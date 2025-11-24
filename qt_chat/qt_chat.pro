@@ -19,10 +19,14 @@ SOURCES += \
     customlabel.cpp \
     frame.cpp \
     funwidget.cpp \
+    html_renderer.cpp \
     itemwidget.cpp \
     listwidget.cpp \
     main.cpp \
     mainwindow.cpp \
+    markdown_block_element.cpp \
+    markdown_inline_element.cpp \
+    markdown_parser.cpp \
     messagethread.cpp \
     messagewidget.cpp \
     pushbutton.cpp \
@@ -38,9 +42,13 @@ HEADERS += \
     custommenu.h \
     frame.h \
     funwidget.h \
+    html_renderer.h \
     itemwidget.h \
     listwidget.h \
     mainwindow.h \
+    markdown_block_element.h \
+    markdown_inline_element.h \
+    markdown_parser.h \
     messagethread.h \
     messagewidget.h \
     pushbutton.h \
