@@ -59,7 +59,8 @@ void Markdown_Parser::split(const std::string& RawText) {
                 OrderedLists_flag = true;
             }
             BlockText.push_back(curr);
-            if (!next || next->empty()) OrderedLists_flag = false;
+            if (!next || *next == "\r" || *next == "\n" || next->empty())
+                OrderedLists_flag = false;
             ins++;
             continue;
         }
@@ -73,7 +74,8 @@ void Markdown_Parser::split(const std::string& RawText) {
                 UnorderedList_flag = true;
             }
             BlockText.push_back(curr);
-            if (!next || next->empty()) UnorderedList_flag = false;
+            if (!next || *next == "\r" || *next == "\n" || next->empty())
+                UnorderedList_flag = false;
             ins++;
             continue;
         }
@@ -87,7 +89,8 @@ void Markdown_Parser::split(const std::string& RawText) {
                 BlockQuote_flag = true;
             }
             BlockText.push_back(curr);
-            if (!next || next->empty()) BlockQuote_flag = false;
+            if (!next || *next == "\r" || *next == "\n" || next->empty())
+                BlockQuote_flag = false;
             ins++;
             continue;
         }
@@ -119,7 +122,7 @@ void Markdown_Parser::split(const std::string& RawText) {
         }
         // 正文
         if (!curr.empty()) {
-            if (prev && (prev == '\r' || prev == '\n' || prev.empty())) {
+            if (prev && (*prev == "\r" || *prev == "\n" || prev->empty())) {
                 if (!BlockText.empty()) {
                     RawBlock.push_back(BlockText);
                     BlockText.clear();
@@ -307,16 +310,16 @@ void Markdown_Parser::block_parse(const std::string& RawText, std::vector<Markdo
     }
 }
 
-bool Markdown_Parser::isHorizontalRules(std::string lineStr) {
-    if (lineStr.starts_with("---") &&
+bool Markdown_Parser::isHorizontalRules(const std::string& lineStr) {
+    if (lineStr.substr(0, 3) == "---" &&
         std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; }) &&
         (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
         return true;
-    if (lineStr.starts_with("***") &&
+    if (lineStr.substr(0, 3) == "***" &&
         std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '*'; }) &&
         (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '*'))
         return true;
-    if (lineStr.starts_with("___") &&
+    if (lineStr.substr(0, 3) == "___" &&
         std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '_'; }) &&
         (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '_'))
         return true;

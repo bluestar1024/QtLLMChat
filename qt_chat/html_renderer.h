@@ -10,7 +10,7 @@
 class Html_Renderer {
 private:
     std::string HtmlText = "";
-    std::string Style_css;
+    std::string Style_css = "";
 public:
     void SetStyle(std::string filename);
     void Init();

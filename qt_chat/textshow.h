@@ -9,18 +9,17 @@
 #include <QHBoxLayout>
 #include <QTimer>
 #include <QUrl>
-#include <mistune/mistune.hpp>   // 头文件仅作示意，可用任意 markdown→html 库
+#include <QFileInfo>
 #include "customlabel.h"
 #include "webengineview.h"
-
-QT_BEGIN_NAMESPACE
-class CustomLabel;
-class WebEngineView;
-QT_END_NAMESPACE
+#include "markdown_parser.h"
+#include "html_renderer.h"
 
 extern const QString fontFilePath;
 extern const QString mathjaxScriptPath;
 extern const int windowFontPixelSize;
+
+class WebEngineView;
 
 class TextShow : public QWidget
 {
@@ -33,7 +32,7 @@ public:
     ~TextShow();
 
     template <typename T>
-    void TextShow::connectExecuteNext(T *receiver, void (T::*slot)());
+    void connectExecuteNext(T *receiver, void (T::*slot)());
 
     void setText(const QString &text);
     void toggleWidget();

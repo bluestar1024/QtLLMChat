@@ -1,6 +1,6 @@
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets
 
 CONFIG += c++11
 
@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     customlabel.cpp \
+    customwebengineview.cpp \
     frame.cpp \
     funwidget.cpp \
     html_renderer.cpp \
@@ -35,11 +36,14 @@ SOURCES += \
     textedit.cpp \
     texteditfull.cpp \
     textshow.cpp \
+    webenginepage.cpp \
+    webengineview.cpp \
     widget.cpp
 
 HEADERS += \
     customlabel.h \
     custommenu.h \
+    customwebengineview.h \
     frame.h \
     funwidget.h \
     html_renderer.h \
@@ -57,6 +61,8 @@ HEADERS += \
     textedit.h \
     texteditfull.h \
     textshow.h \
+    webenginepage.h \
+    webengineview.h \
     widget.h
 
 # Default rules for deployment.

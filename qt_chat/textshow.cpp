@@ -1,4 +1,5 @@
 #include "textshow.h"
+#include <cmath>
 
 TextShow::TextShow(const QString &text, bool isUser, int maxWidth, QWidget *parent)
     : QWidget(parent),
@@ -6,7 +7,7 @@ TextShow::TextShow(const QString &text, bool isUser, int maxWidth, QWidget *pare
       m_isUser(isUser),
       m_maxWidth(maxWidth - 10)
 {
-    int fontId = QFontDatabase::addApplicationFont(font_file_path);
+    int fontId = QFontDatabase::addApplicationFont(fontFilePath);
     if (fontId != -1) {
         QStringList families = QFontDatabase::applicationFontFamilies(fontId);
         if (!families.isEmpty()) {
@@ -29,17 +30,16 @@ TextShow::TextShow(const QString &text, bool isUser, int maxWidth, QWidget *pare
     connect(m_webEngineView->page(), &QWebEnginePage::contentsSizeChanged,
             this, &TextShow::onContentsSizeChanged);
 
-    isLabel = true;
+    m_isLabel = true;
     m_mainHLayout = new QHBoxLayout(this);
-    m_mainHLayout.addWidget(m_label);
+    m_mainHLayout->addWidget(m_label);
     m_mainHLayout->setContentsMargins(5, 0, 5, 0);
     setText(m_text);
 
-    isColorful = false;
     m_updateSizeTimer = new QTimer(this);
     m_updateSizeTimer->setSingleShot(true);
     connect(m_updateSizeTimer, &QTimer::timeout, this, &TextShow::onUpdateSize);
-    firstExecuteNextEmit = true;
+    m_firstExecuteNextEmit = true;
 }
 
 TextShow::~TextShow()
@@ -79,7 +79,7 @@ void TextShow::measureText(const QString &text,
     } else {
         int totalWidth = 0;
         for (int i = 0; i < lines.size(); ++i) {
-            qreal w = m_fontMetrics->width(lines[i] + (i < lines.size() - 1 ? ' ' : ""));
+            qreal w = m_fontMetrics->width(lines[i] + (i < lines.size() - 1 ? " " : ""));
             totalWidth += std::ceil(w / (m_maxWidth - 24)) * (m_maxWidth - 24);
         }
         labelWidth  = m_maxWidth;
@@ -132,7 +132,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 <body>
 <div class="content">
 )")
-            .arg(mathjax_script_path)
+            .arg(mathjaxScriptPath)
             .arg(windowFontPixelSize);
     // ---- markdown → html ----
     if (!m_text.isEmpty()) {
@@ -142,26 +142,57 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             QString before = htmlReplaceText(parts.value(0));
             QString after  = htmlReplaceText(parts.value(1));
 
-            m_htmlText = mistune::markdown(before.toStdString()).c_str();
+//            m_htmlText = mistune::markdown(before.toStdString()).c_str();
+            Markdown_Parser before_parser;
+            std::vector<Markdown_BlockElement> before_blocks;
+            Html_Renderer before_html;
+            before_parser.block_parse(before.toStdString(), before_blocks);
+            before_html.Init();
+            for (size_t i = 0; i < before_blocks.size(); i++) {
+                before_html.BlockHtml(before_blocks[i]);
+            }
+            before_html.Tail();
+            m_htmlText = before_html.getHtml().c_str();
+
             m_htmlText += "<table><thead><tr>";
-            for (int i = 0; i < tbl.cols; ++i)
+            for (int i = 0; i < tbl.col; ++i)
                 m_htmlText += QString("<th class='%1'>%2</th>")
                                   .arg(getAlignmentClass(tbl.alignList.value(i)))
                                   .arg(tbl.items.value(i));
             m_htmlText += "</tr></thead><tbody>";
-            for (int r = 1; r < tbl.rows; ++r) {
+            for (int r = 1; r < tbl.row; ++r) {
                 m_htmlText += "<tr>";
-                for (int c = 0; c < tbl.cols; ++c)
+                for (int c = 0; c < tbl.col; ++c)
                     m_htmlText += QString("<td class='%1'>%2</td>")
                                       .arg(getAlignmentClass(tbl.alignList.value(c)))
-                                      .arg(tbl.items.value(r * tbl.cols + c));
+                                      .arg(tbl.items.value(r * tbl.col + c));
                 m_htmlText += "</tr>";
             }
             m_htmlText += "</tbody></table>";
-            m_htmlText += mistune::markdown(after.toStdString()).c_str();
+//            m_htmlText += mistune::markdown(after.toStdString()).c_str();
+            Markdown_Parser after_parser;
+            std::vector<Markdown_BlockElement> after_blocks;
+            Html_Renderer after_html;
+            after_parser.block_parse(after.toStdString(), after_blocks);
+            after_html.Init();
+            for (size_t i = 0; i < after_blocks.size(); i++) {
+                after_html.BlockHtml(after_blocks[i]);
+            }
+            after_html.Tail();
+            m_htmlText += after_html.getHtml().c_str();
         } else {
             QString md = htmlReplaceText(m_text);
-            m_htmlText = mistune::markdown(md.toStdString()).c_str();
+//            m_htmlText = mistune::markdown(md.toStdString()).c_str();
+            Markdown_Parser parser;
+            std::vector<Markdown_BlockElement> blocks;
+            Html_Renderer html;
+            parser.block_parse(md.toStdString(), blocks);
+            html.Init();
+            for (size_t i = 0; i < blocks.size(); i++) {
+                html.BlockHtml(blocks[i]);
+            }
+            html.Tail();
+            m_htmlText += html.getHtml().c_str();
         }
         m_fullHtmlText = m_mathJaxCdn + m_htmlText + "</div></body></html>";
         QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
@@ -235,11 +266,11 @@ TextShow::TableInfo TextShow::getTable(const QString &text) const
     if (lastPipe == -1 || lastPipe <= firstPipe) return t;
 
     t.tableText = text.mid(firstPipe, lastPipe - firstPipe + 1);
-    QStringList segs = t.tableText.split('|', Qt::keepEmptyParts);
+    QStringList segs = t.tableText.split('|');
     segs.removeFirst();
     segs.removeLast();
     int row = 0, rowFull = 0, col = 0;
-    for (i = 0; i < segs.size(); i++) {
+    for (int i = 0; i < segs.size(); i++) {
         if (segs[i].contains('\n')) ++rowFull;
         else {
             if (rowFull == 0) col += 1;
@@ -251,7 +282,7 @@ TextShow::TableInfo TextShow::getTable(const QString &text) const
     if (row >= 1) t.items << segs.mid(0, col);
     if (rowFull >= 2) t.alignList << segs.mid(col + 1, col);
     if (row >= 2) {
-        for(i = 1; i < row; i++) t.items << segs.mid((r + 1) * (col + 1), col);
+        for(int r = 1; r < row; r++) t.items << segs.mid((r + 1) * (col + 1), col);
         if (segs.size() == rowFull * (col + 1) - 1) t.complete = true;
     }
     t.row = row;

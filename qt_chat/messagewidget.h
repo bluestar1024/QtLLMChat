@@ -38,6 +38,8 @@ public:
     void setText(const QString &text);
     void removeLoadingWidget();
 
+    QListWidget *m_listWidget;
+
 signals:
     void resizeFinished();
     void setTexting(bool state);
@@ -49,7 +51,6 @@ private:
     QString m_text;
     std::function<void()> m_copyFun;
     std::function<void()> m_renewResponseFun;
-    QListWidget *m_listWidget;
     QList<int> &m_thinkTimeLengthList;
     int  m_thinkTimeIndex;
     bool m_isUser;
