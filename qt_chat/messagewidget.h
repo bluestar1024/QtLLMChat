@@ -6,6 +6,9 @@
 #include <QListWidget>
 #include <QHBoxLayout>
 #include <QLabel>
+#include "textshow.h"
+
+class TextShow;
 
 class MessageWidget : public QWidget
 {
@@ -44,10 +47,9 @@ signals:
     void resizeFinished();
     void setTexting(bool state);
 
-    //
-    void executeNext();
-
 private:
+    void onSizeFinshed();
+
     QString m_text;
     std::function<void()> m_copyFun;
     std::function<void()> m_renewResponseFun;
@@ -57,8 +59,8 @@ private:
     bool m_thinkIsExpand;
     int  m_textMaxWidth;
 
-    QHBoxLayout *layout;
-    QLabel *label;
+    QHBoxLayout *m_layout;
+    TextShow *m_textShow;
 };
 
 template <typename T>
@@ -76,7 +78,8 @@ void MessageWidget::connectSetTexting(T *receiver, void (T::*slot)(bool))
 template <typename T>
 void MessageWidget::connectExecuteNext(T *receiver, void (T::*slot)())
 {
-    connect(this, &MessageWidget::executeNext, receiver, slot);
+//    connect(this, &MessageWidget::executeNext, receiver, slot);
+    if (m_isUser) m_textShow->connectExecuteNext(receiver, slot);
 }
 
 #endif // MESSAGEWIDGET_H

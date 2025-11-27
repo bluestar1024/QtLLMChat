@@ -22,7 +22,7 @@ void MessageThread::run()
     contentOutput = testText;
     if (m_useStream) {
         for (int i = 0; i < contentOutput.size(); i += 5) {
-            emit newMessage(contentOutput.mid(i, 5));
+            emit newMessage(contentOutput.mid(i, 200));
             msleep(500);
         }
     } else {

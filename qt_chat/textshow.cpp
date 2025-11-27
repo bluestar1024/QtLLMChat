@@ -1,5 +1,6 @@
 #include "textshow.h"
 #include <cmath>
+#include <QDebug>
 
 TextShow::TextShow(const QString &text, bool isUser, int maxWidth, QWidget *parent)
     : QWidget(parent),
@@ -40,6 +41,7 @@ TextShow::TextShow(const QString &text, bool isUser, int maxWidth, QWidget *pare
     m_updateSizeTimer->setSingleShot(true);
     connect(m_updateSizeTimer, &QTimer::timeout, this, &TextShow::onUpdateSize);
     m_firstExecuteNextEmit = true;
+    qDebug() << m_isUser <<"TextShow init end";
 }
 
 TextShow::~TextShow()
@@ -147,11 +149,11 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             std::vector<Markdown_BlockElement> before_blocks;
             Html_Renderer before_html;
             before_parser.block_parse(before.toStdString(), before_blocks);
-            before_html.Init();
+//            before_html.Init();
             for (size_t i = 0; i < before_blocks.size(); i++) {
                 before_html.BlockHtml(before_blocks[i]);
             }
-            before_html.Tail();
+//            before_html.Tail();
             m_htmlText = before_html.getHtml().c_str();
 
             m_htmlText += "<table><thead><tr>";
@@ -174,11 +176,11 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             std::vector<Markdown_BlockElement> after_blocks;
             Html_Renderer after_html;
             after_parser.block_parse(after.toStdString(), after_blocks);
-            after_html.Init();
+//            after_html.Init();
             for (size_t i = 0; i < after_blocks.size(); i++) {
                 after_html.BlockHtml(after_blocks[i]);
             }
-            after_html.Tail();
+//            after_html.Tail();
             m_htmlText += after_html.getHtml().c_str();
         } else {
             QString md = htmlReplaceText(m_text);
@@ -187,11 +189,11 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             std::vector<Markdown_BlockElement> blocks;
             Html_Renderer html;
             parser.block_parse(md.toStdString(), blocks);
-            html.Init();
+//            html.Init();
             for (size_t i = 0; i < blocks.size(); i++) {
                 html.BlockHtml(blocks[i]);
             }
-            html.Tail();
+//            html.Tail();
             m_htmlText += html.getHtml().c_str();
         }
         m_fullHtmlText = m_mathJaxCdn + m_htmlText + "</div></body></html>";
@@ -211,17 +213,21 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         emit setSizeFinished();
         m_isLabel = false;
     }
+    qDebug() << m_isUser <<"TextShow toggleWidget end";
+    qDebug() << m_fullHtmlText;
 }
 
 void TextShow::onPageLoadFinished(bool success)
 {
     if (success)
         m_webEngineView->page()->runJavaScript("document.body.style.overflowY='hidden';");
+    qDebug() << m_isUser << "onPageLoadFinished";
 }
 
 void TextShow::onContentsSizeChanged(const QSizeF &)
 {
     m_updateSizeTimer->start(20);
+    qDebug() << m_isUser << "onContentsSizeChanged";
 }
 
 void TextShow::onUpdateSize()
@@ -253,7 +259,9 @@ getPageSize();
         if (m_firstExecuteNextEmit) {
             m_firstExecuteNextEmit = false;
             emit executeNext();
+            qDebug() << "TextShow executeNext emit";
         }
+        qDebug() << m_isUser << "TextShow onUpdateSize end";
     });
 }
 

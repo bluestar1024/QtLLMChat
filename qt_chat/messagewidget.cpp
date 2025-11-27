@@ -22,17 +22,13 @@ MessageWidget::MessageWidget(const QString &text,
       m_thinkIsExpand(thinkIsExpand),
       m_textMaxWidth(textMaxWidth)
 {
-    layout = new QHBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    label = new QLabel(m_text);
-    label->setWordWrap(true);
-    label->setMaximumWidth(m_textMaxWidth);
-    label->adjustSize();
-    layout->addWidget(label);
-    if (!m_isUser) layout->addStretch();
-    else           label->setAlignment(Qt::AlignRight);
-    setFixedSize(label->size());
-    QTimer::singleShot(50, [this]{emit executeNext();});
+    m_layout = new QHBoxLayout(this);
+    m_layout->setContentsMargins(0, 0, 0, 0);
+    m_textShow = new TextShow(m_text, m_isUser, m_textMaxWidth, this);
+    m_layout->addWidget(m_textShow);
+//    if (!m_isUser) m_layout->addStretch();
+//    else           m_layout->setAlignment(Qt::AlignRight);
+    setFixedSize(m_textShow->size());
 }
 
 MessageWidget::~MessageWidget()
@@ -57,7 +53,8 @@ void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
 
 void MessageWidget::toggleWidget()
 {
-
+    connect(m_textShow, &TextShow::setSizeFinished, this, &MessageWidget::onSizeFinshed);
+    m_textShow->toggleWidget();
 }
 
 void MessageWidget::breakHandle()
@@ -72,12 +69,18 @@ void MessageWidget::removeRenewResponseButton()
 
 void MessageWidget::setText(const QString &text)
 {
-    label->setText(text);
-    label->adjustSize();
-    setFixedSize(label->size());
+    m_text = text;
+    m_textShow->setText(m_text);
+    setFixedSize(m_textShow->size());
 }
 
 void MessageWidget::removeLoadingWidget()
 {
 
+}
+
+void MessageWidget::onSizeFinshed()
+{
+    emit resizeFinished();
+    if (!m_isUser) emit setTexting(false);
 }
