@@ -3,6 +3,7 @@ QT       += core gui
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets
 
 CONFIG += c++11
+CONFIG += use_lld_linker
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -21,6 +22,7 @@ SOURCES += \
     frame.cpp \
     funwidget.cpp \
     html_renderer.cpp \
+    imagelabel.cpp \
     itemwidget.cpp \
     listwidget.cpp \
     main.cpp \
@@ -47,6 +49,7 @@ HEADERS += \
     frame.h \
     funwidget.h \
     html_renderer.h \
+    imagelabel.h \
     itemwidget.h \
     listwidget.h \
     mainwindow.h \
