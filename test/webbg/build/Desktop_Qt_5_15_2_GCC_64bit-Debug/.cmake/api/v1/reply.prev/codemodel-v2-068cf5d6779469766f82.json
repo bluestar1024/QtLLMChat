@@ -1,0 +1,70 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-03037a5e94b9bfb15443.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "webbg",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "webbg::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-webbg-Debug-c51dd73bc5d78f9d4936.json",
+					"name" : "webbg",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "webbg_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-webbg_autogen-Debug-0e59324d41e98bc931c5.json",
+					"name" : "webbg_autogen",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/dong/Qt/QT_project/qt_chat/test/webbg/build/Desktop_Qt_5_15_2_GCC_64bit-Debug",
+		"source" : "/home/dong/Qt/QT_project/qt_chat/test/webbg"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 3
+	}
+}
