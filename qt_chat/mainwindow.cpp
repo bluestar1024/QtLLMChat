@@ -240,7 +240,7 @@ MainWindow::MainWindow(QWidget *parent)
     isRegenerateFirst = true;
     isSetTexting = false;
     pushButtonIsPress = false;
-    lastScreen = curScreen = getScreenForWidget(this);
+    lastScreen = curScreen = screen();
     initDpi = lastDpi = curDpi = curScreen->logicalDotsPerInch();
     screenChanged = false;
     thinkExpandedList.clear();
@@ -475,15 +475,15 @@ void MainWindow::newChat()
 
 }
 
-QScreen* MainWindow::getScreenForWidget(const QWidget* widget)
-{
-    QDesktopWidget* desktop = QApplication::desktop();
-    int screenNumber = desktop->screenNumber(widget);
-    if (screenNumber != -1) {
-        QList<QScreen*> screens = QApplication::screens();
-        if (screenNumber < screens.size()) {
-            return screens.at(screenNumber);
-        }
-    }
-    return QApplication::primaryScreen();
-}
+// QScreen* MainWindow::getScreenForWidget(const QWidget* widget)
+// {
+//     QDesktopWidget* desktop = QApplication::desktop();
+//     int screenNumber = desktop->screenNumber(widget);
+//     if (screenNumber != -1) {
+//         QList<QScreen*> screens = QApplication::screens();
+//         if (screenNumber < screens.size()) {
+//             return screens.at(screenNumber);
+//         }
+//     }
+//     return QApplication::primaryScreen();
+// }

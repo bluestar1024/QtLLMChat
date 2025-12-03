@@ -10,7 +10,7 @@
 #include <QString>
 #include <QScreen>
 #include <QApplication>
-#include <QDesktopWidget>
+// #include <QDesktopWidget>
 #include <QVariant>
 #include "widget.h"
 #include "funwidget.h"
@@ -135,6 +135,6 @@ private slots:
     void getSetTexting(bool);
     void showChatRecords();
     void newChat();
-    QScreen* getScreenForWidget(const QWidget* widget);
+    // QScreen* getScreenForWidget(const QWidget* widget);
 };
 #endif // MAINWINDOW_H

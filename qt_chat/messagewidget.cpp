@@ -4,7 +4,7 @@
 MessageWidget::MessageWidget(const QString &text,
                              std::function<void()> copyFun,
                              std::function<void()> renewResponseFun,
-                             QListWidget *listWidget,
+                             ListWidget *listWidget,
                              QList<int> &thinkTimeLengthList,
                              int thinkTimeIndex,
                              bool isUser,
@@ -83,4 +83,9 @@ void MessageWidget::onSizeFinshed()
 {
     emit resizeFinished();
     if (!m_isUser) emit setTexting(false);
+}
+
+ListWidget *MessageWidget::getListWidget()
+{
+    return m_listWidget;
 }

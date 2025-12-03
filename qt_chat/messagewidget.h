@@ -1,14 +1,13 @@
 #ifndef MESSAGEWIDGET_H
 #define MESSAGEWIDGET_H
 
+#pragma once
 #include <QWidget>
 #include <QString>
-#include <QListWidget>
 #include <QHBoxLayout>
 #include <QLabel>
+#include "listwidget.h"
 #include "textshow.h"
-
-class TextShow;
 
 class MessageWidget : public QWidget
 {
@@ -17,7 +16,7 @@ public:
     explicit MessageWidget(const QString &text,
                            std::function<void()> copyFun,
                            std::function<void()> renewResponseFun,
-                           QListWidget *listWidget,
+                           ListWidget *listWidget,
                            QList<int> &thinkTimeLengthList,
                            int thinkTimeIndex,
                            bool isUser = true,
@@ -40,8 +39,7 @@ public:
     void removeRenewResponseButton();
     void setText(const QString &text);
     void removeLoadingWidget();
-
-    QListWidget *m_listWidget;
+    ListWidget *getListWidget();
 
 signals:
     void resizeFinished();
@@ -53,6 +51,7 @@ private:
     QString m_text;
     std::function<void()> m_copyFun;
     std::function<void()> m_renewResponseFun;
+    ListWidget *m_listWidget = nullptr;
     QList<int> &m_thinkTimeLengthList;
     int  m_thinkTimeIndex;
     bool m_isUser;
@@ -78,7 +77,7 @@ void MessageWidget::connectSetTexting(T *receiver, void (T::*slot)(bool))
 template <typename T>
 void MessageWidget::connectExecuteNext(T *receiver, void (T::*slot)())
 {
-//    connect(this, &MessageWidget::executeNext, receiver, slot);
+    //    connect(this, &MessageWidget::executeNext, receiver, slot);
     if (m_isUser) m_textShow->connectExecuteNext(receiver, slot);
 }
 

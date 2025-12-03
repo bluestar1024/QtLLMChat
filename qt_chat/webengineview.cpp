@@ -1,4 +1,5 @@
 #include "webengineview.h"
+#include "messagewidget.h"
 
 WebEngineView::WebEngineView(QWidget *parent)
     : QWebEngineView(parent)
@@ -18,7 +19,8 @@ bool WebEngineView::eventFilter(QObject *obj, QEvent *ev)
     if (obj == focusProxy() && ev->type() == QEvent::MouseButtonRelease) {
         auto *me = static_cast<QMouseEvent*>(ev);
         QMouseEvent newEv(me->type(),
-                          me->pos(),
+                          me->position(),
+                          me->globalPosition(),
                           me->button(),
                           me->buttons(),
                           me->modifiers());
@@ -35,7 +37,7 @@ void WebEngineView::contextMenuEvent(QContextMenuEvent *ev)
 void WebEngineView::wheelEvent(QWheelEvent *ev)
 {
     const int deltaY = ev->angleDelta().y();
-    QListWidget *list = findListWidget();
+    ListWidget *list = findListWidget();
     if (!list) return;
 
     QScrollBar *bar = list->verticalScrollBar();
@@ -49,7 +51,7 @@ void WebEngineView::wheelEvent(QWheelEvent *ev)
     ev->accept();
 }
 
-QListWidget *WebEngineView::findListWidget()
+ListWidget *WebEngineView::findListWidget()
 {
     QWidget *w = parentWidget();
     if (qobject_cast<TextShow*>(w)) {
@@ -58,7 +60,7 @@ QListWidget *WebEngineView::findListWidget()
         for (int i = 0; i < 4 && w; ++i) w = w->parentWidget();
     }
     if (auto *messageWidget = qobject_cast<MessageWidget *>(w))
-        return messageWidget->m_listWidget;
+        return messageWidget->getListWidget();
     else
         return nullptr;
 }

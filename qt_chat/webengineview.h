@@ -8,11 +8,13 @@
 #include <QContextMenuEvent>
 #include <QEvent>
 #include <QCoreApplication>
-#include <QListWidget>
 #include <QScrollBar>
+#include <QPointingDevice>
+#include "listwidget.h"
 #include "webenginepage.h"
 #include "textshow.h"
-#include "messagewidget.h"
+
+class MessageWidget;
 
 class WebEngineView : public QWebEngineView
 {
@@ -34,7 +36,7 @@ protected:
     void wheelEvent(QWheelEvent *ev) override;
 
 private:
-    QListWidget *findListWidget();
+    ListWidget *findListWidget();
 };
 
 template <typename T>

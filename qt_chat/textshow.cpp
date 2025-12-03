@@ -73,7 +73,7 @@ void TextShow::measureText(const QString &text,
     QStringList lines = text.split('\n');
     int maxLineWidth = 0;
     for (const QString &line : lines)
-        maxLineWidth = qMax(maxLineWidth, int(m_fontMetrics->width(line)));
+        maxLineWidth = qMax(maxLineWidth, int(m_fontMetrics->horizontalAdvance(line)));
 
     if (maxLineWidth + 4 < m_maxWidth) {
         labelWidth  = maxLineWidth + 4;
@@ -81,7 +81,7 @@ void TextShow::measureText(const QString &text,
     } else {
         int totalWidth = 0;
         for (int i = 0; i < lines.size(); ++i) {
-            qreal w = m_fontMetrics->width(lines[i] + (i < lines.size() - 1 ? " " : ""));
+            qreal w = m_fontMetrics->horizontalAdvance(lines[i] + (i < lines.size() - 1 ? " " : ""));
             totalWidth += std::ceil(w / (m_maxWidth - 24)) * (m_maxWidth - 24);
         }
         labelWidth  = m_maxWidth;
@@ -95,7 +95,7 @@ void TextShow::toggleWidget()
     m_htmlText.clear();
     m_fullHtmlText.clear();
 
-    int initWidth = int(m_fontMetrics->width(m_text));
+    int initWidth = int(m_fontMetrics->horizontalAdvance(m_text));
     if (initWidth > m_maxWidth)
         m_webEngineView->setFixedWidth(m_maxWidth);
     else {
