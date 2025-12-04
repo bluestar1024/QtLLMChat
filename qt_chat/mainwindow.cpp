@@ -1,9 +1,9 @@
 #include "mainwindow.h"
 #include <QDebug>
 
-const QString imagesDir = ":/fonts/your_font.ttf";
-const QString fontFilePath = ":/fonts/your_font.ttf";
-const QString mathjaxScriptPath = ":/fonts/your_font.ttf";
+const QString imagesDir = ":/images";
+const QString fontFilePath = ":/font/msyhl.ttc";
+const QString mathjaxScriptPath = ":/mathjax/es5/tex-mml-chtml.js";
 const int windowFontPointSize = 10;
 const int windowFontPixelSize = 20;
 const int titleFontPixelSize = 28;
@@ -31,8 +31,8 @@ ___粗斜体文本___
 ~~删除线文本~~
 <u>带下划线文本</u>
 苹果10$，梨子20$，香蕉30$，橘子40$。
-苹果10\$，梨子20\$，香蕉30\$，橘子40\$。
-
+苹果10\\$，梨子20\\$，香蕉30\\$，橘子40\\$。
+$\alpha$ $\beta$ $\gamma$ $\delta$ $\epsilon$ $\zeta$ $\eta$ $\theta$ $\iota$ $\kappa$ $\lambda$ $\mu$ $\nu$ $\xi$ $\omicron$ $\pi$ $\rho$ $\sigma$ $\tau$ $\upsilon$ $\phi$ $\chi$ $\psi$ $\omega$ $\Gamma$ $\Delta$ $\Theta$ $\Lambda$ $\Xi$ $\Pi$ $\Sigma$ $\Upsilon$ $\Phi$ $\Psi$ $\Omega$
 创建脚注格式类似这样 [^RUNOOB]。
 [^RUNOOB]: 菜鸟教程 -- 学的不仅是技术，更是梦想！！！
 
@@ -85,12 +85,12 @@ ___粗斜体文本___
 * 第二项
 ******************
 ### 代码
-`printf()`函数
+`printHelloWorld()`函数
 
     def printHelloWorld():
         print('hello world')
 
-```python:
+```python
 def printHelloWorld():
     print('hello world')
 ```
@@ -107,7 +107,7 @@ def printHelloWorld():
 ### 图片
 ![RUNOOB 图标](https://static.jyshare.com/images/runoob-logo.png "RUNOOB")
 
-这个链接用 1 作为网址变量 [RUNOOB][2]
+这个链接用 2 作为网址变量 [RUNOOB][2]
 然后在文档的结尾为变量赋值（网址）
 
 [2]: https://static.jyshare.com/images/runoob-logo.png
@@ -116,8 +116,8 @@ def printHelloWorld():
 
 ******************
 ### 表格
-| 表头 | 表头 | 表头 |
-| :--- | ---: | :---: |
+|  表头  |  表头  |  表头  |
+| :----- | -----: | :----: |
 | 单元格 | 单元格 | 单元格 |
 | 单元格 | 单元格 | 单元格 |
 ******************
