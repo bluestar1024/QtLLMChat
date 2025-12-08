@@ -14,3 +14,6 @@ size_t Markdown_InlineElement::getBegin() const {
 size_t Markdown_InlineElement::getEnd() const {
     return end;
 }
+std::string Markdown_InlineElement::getImageUrl() const {
+    return image_url;
+}

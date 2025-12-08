@@ -37,6 +37,7 @@ public:
     void toggleWidget();
     void breakHandle();
     void removeRenewResponseButton();
+    void setSize();
     void setText(const QString &text);
     void removeLoadingWidget();
     ListWidget *getListWidget();

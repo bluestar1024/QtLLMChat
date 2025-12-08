@@ -1,4 +1,5 @@
 #include "textedit.h"
+#include <QDebug>
 
 TextEdit::TextEdit(QWidget *parent)
     : QTextEdit(parent), isSending(false)
@@ -13,6 +14,7 @@ TextEdit::TextEdit(QWidget *parent)
             QFont font(font_family);
             font.setPixelSize(windowFontPixelSize);
             setFont(font);
+            qDebug() << "textEdit setFont end";
         }
     }
     setPlaceholderText("按Shift+Enter换行、按Enter提交");

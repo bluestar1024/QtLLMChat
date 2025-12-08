@@ -134,8 +134,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 <body>
 <div class="content">
 )")
-            .arg(mathjaxScriptPath)
-            .arg(windowFontPixelSize);
+            .arg(mathjaxScriptPath, windowFontPixelSize);
     // ---- markdown → html ----
     if (!m_text.isEmpty()) {
         TableInfo tbl = getTable(m_text);
@@ -159,15 +158,13 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             m_htmlText += "<table><thead><tr>";
             for (int i = 0; i < tbl.col; ++i)
                 m_htmlText += QString("<th class='%1'>%2</th>")
-                                  .arg(getAlignmentClass(tbl.alignList.value(i)))
-                                  .arg(tbl.items.value(i));
+                                  .arg(getAlignmentClass(tbl.alignList.value(i)), tbl.items.value(i));
             m_htmlText += "</tr></thead><tbody>";
             for (int r = 1; r < tbl.row; ++r) {
                 m_htmlText += "<tr>";
                 for (int c = 0; c < tbl.col; ++c)
                     m_htmlText += QString("<td class='%1'>%2</td>")
-                                      .arg(getAlignmentClass(tbl.alignList.value(c)))
-                                      .arg(tbl.items.value(r * tbl.col + c));
+                                      .arg(getAlignmentClass(tbl.alignList.value(c)), tbl.items.value(r * tbl.col + c));
                 m_htmlText += "</tr>";
             }
             m_htmlText += "</tbody></table>";
@@ -197,7 +194,9 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             m_htmlText += html.getHtml().c_str();
         }
         m_fullHtmlText = m_mathJaxCdn + m_htmlText + "</div></body></html>";
-        QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
+        // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
+        QUrl base = QUrl::fromLocalFile(QFileInfo(QFileInfo(".").absolutePath()).absolutePath() + "/");
+        qDebug() << 'base:' << base;
 
         m_mainHLayout->removeWidget(m_label);
         m_label->deleteLater();
@@ -252,6 +251,7 @@ getPageSize();
         if (list.size() != 2) return;
         int w = list[0].toInt();
         int h = list[1].toInt();
+        qDebug() << "WebEngineView get size:" << w << h;
         if (w <= 0 || h <= 0) return;
         m_webEngineView->setFixedSize(w, h);
         setFixedSize(w + 10, h);
@@ -310,14 +310,14 @@ QString TextShow::htmlReplaceText(const QString &text) const
 {
     QString s = text;
     s.replace("\\$", "\\\\$");
-    s.replace("\\frac", "\\\\frac");
+    s.replace("\frac", "\\frac");
     s.replace("\\,", "\\\\,");
-    s.replace("\\alpha", "\\\\alpha");
-    s.replace("\\beta",  "\\\\beta");
-    s.replace("\\theta", "\\\\theta");
-    s.replace("\\nu",    "\\\\nu");
-    s.replace("\\rho",   "\\\\rho");
-    s.replace("\\tau",   "\\\\tau");
+    s.replace("\alpha", "\\alpha");
+    s.replace("\beta",  "\\beta");
+    s.replace("\theta", "\\theta");
+    s.replace("\nu",    "\\nu");
+    s.replace("\rho",   "\\rho");
+    s.replace("\tau",   "\\tau");
     return s;
 }
 

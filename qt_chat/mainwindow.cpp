@@ -277,7 +277,30 @@ void MainWindow::onDpiChanged()
 
 void MainWindow::messageWidgetResize()
 {
-
+    const int count = chatShow->count();
+    for (int i = 0; i < count; ++i)
+    {
+        MessageWidget *messageWidget = messageWidgetList.at(i);
+        messageWidget->setSize();
+        QListWidgetItem *item       = chatShow->item(i);
+        QWidget        *itemWidget  = chatShow->itemWidget(item);
+        if (!itemWidget)
+            continue;
+        const int w = chatShow->width();
+        const int h = messageWidget->height() + 10;
+        itemWidget->setFixedSize(w, h);
+        QLayout *itemLayout = itemWidget->layout();
+        if (itemLayout)
+        {
+            if (messageWidget->getIsUser())
+                itemLayout->setContentsMargins(itemWidget->width() - messageWidget->width() - 25,
+                                        5, 25, 5);
+            else
+                itemLayout->setContentsMargins(0, 5,
+                                        itemWidget->width() - messageWidget->width(), 5);
+        }
+        item->setSizeHint(QSize(w, h));
+    }
 }
 
 void MainWindow::sendMessage()
@@ -448,6 +471,8 @@ void MainWindow::messageFinish()
         messageRenewResponse();
     }
     isSending = false;
+
+    qDebug() << "chatShow item count:" << chatShow->count();
 }
 
 void MainWindow::textCopy()

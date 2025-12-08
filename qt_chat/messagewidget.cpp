@@ -20,15 +20,19 @@ MessageWidget::MessageWidget(const QString &text,
       m_thinkTimeIndex(thinkTimeIndex),
       m_isUser(isUser),
       m_thinkIsExpand(thinkIsExpand),
-      m_textMaxWidth(textMaxWidth)
+      m_textMaxWidth(textMaxWidth - 10)
 {
     m_layout = new QHBoxLayout(this);
-    m_layout->setContentsMargins(0, 0, 0, 0);
+    m_layout->setContentsMargins(5, 5, 5, 5);
     m_textShow = new TextShow(m_text, m_isUser, m_textMaxWidth, this);
     m_layout->addWidget(m_textShow);
 //    if (!m_isUser) m_layout->addStretch();
 //    else           m_layout->setAlignment(Qt::AlignRight);
-    setFixedSize(m_textShow->size());
+    setFixedSize(m_textShow->size() + QSize(10, 0));
+    setObjectName("messageWidget");
+    setStyleSheet("#messageWidget{"
+                  "background: green;"
+                  "}");
 }
 
 MessageWidget::~MessageWidget()
@@ -67,11 +71,16 @@ void MessageWidget::removeRenewResponseButton()
 
 }
 
+void MessageWidget::setSize()
+{
+    setFixedSize(m_textShow->size() + QSize(10, 0));
+}
+
 void MessageWidget::setText(const QString &text)
 {
     m_text = text;
     m_textShow->setText(m_text);
-    setFixedSize(m_textShow->size());
+    setFixedSize(m_textShow->size() + QSize(10, 0));
 }
 
 void MessageWidget::removeLoadingWidget()
