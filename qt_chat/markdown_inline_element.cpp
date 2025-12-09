@@ -5,6 +5,8 @@ Markdown_InlineElement::Markdown_InlineElement()
 }
 Markdown_InlineElement::Markdown_InlineElement(InlineType T, size_t b, size_t e)
     : type(T), begin(b), end(e) {}
+Markdown_InlineElement::Markdown_InlineElement(InlineType T, size_t b, size_t e, std::string iu)
+    : type(T), begin(b), end(e), image_url(iu) {}
 InlineType Markdown_InlineElement::getType() const {
     return type;
 }

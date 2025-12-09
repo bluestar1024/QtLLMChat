@@ -3,7 +3,7 @@
 
 const QString imagesDir = ":/images";
 const QString fontFilePath = ":/font/msyhl.ttc";
-const QString mathjaxScriptPath = ":/mathjax/es5/tex-mml-chtml.js";
+const QString mathjaxScriptPath = "mathjax/es5/tex-mml-chtml.js";
 const int windowFontPointSize = 10;
 const int windowFontPixelSize = 20;
 const int titleFontPixelSize = 28;
@@ -31,6 +31,7 @@ ___粗斜体文本___
 ~~删除线文本~~
 <u>带下划线文本</u>
 苹果10$，梨子20$，香蕉30$，橘子40$。
+苹果10\$，梨子20\$，香蕉30\$，橘子40\$。
 苹果10\\$，梨子20\\$，香蕉30\\$，橘子40\\$。
 $\alpha$ $\beta$ $\gamma$ $\delta$ $\epsilon$ $\zeta$ $\eta$ $\theta$ $\iota$ $\kappa$ $\lambda$ $\mu$ $\nu$ $\xi$ $\omicron$ $\pi$ $\rho$ $\sigma$ $\tau$ $\upsilon$ $\phi$ $\chi$ $\psi$ $\omega$ $\Gamma$ $\Delta$ $\Theta$ $\Lambda$ $\Xi$ $\Pi$ $\Sigma$ $\Upsilon$ $\Phi$ $\Psi$ $\Omega$
 创建脚注格式类似这样 [^RUNOOB]。
@@ -105,14 +106,14 @@ def printHelloWorld():
 [runoob]: http://www.runoob.com/
 ******************
 ### 图片
-![RUNOOB 图标](https://static.jyshare.com/images/runoob-logo.png "RUNOOB")
+![thinking 图标](images/thinking_icon.png "thinking")
 
-这个链接用 2 作为网址变量 [RUNOOB][2]
+这个链接用 2 作为网址变量 [thinking][2]
 然后在文档的结尾为变量赋值（网址）
 
-[2]: https://static.jyshare.com/images/runoob-logo.png
+[2]: images/thinking_icon.png
 
-<img src="https://static.jyshare.com/images/runoob-logo.png" width="25%">
+<img src="images/thinking_icon.png" width="25%">
 
 ******************
 ### 表格

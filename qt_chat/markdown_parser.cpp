@@ -169,6 +169,25 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
 
     while (i < BufText.size()) {
         std::string token(1, BufText[i]);
+        if (token == "!" && i + 1 < BufText.size() && BufText[i + 1] == '[') {
+            size_t alt_start = i + 2;
+            size_t alt_end = BufText.find("]", alt_start);
+            if (alt_end != std::string::npos && alt_end + 1 < BufText.size() && BufText[alt_end + 1] == '(') {
+                size_t url_start = alt_end + 2;
+                size_t url_end = BufText.find(")", url_start);
+                if (url_end != std::string::npos) {
+                    std::string alt_text = BufText.substr(alt_start, alt_end - alt_start);
+                    std::string url = BufText.substr(url_start, url_end - url_start);
+
+                    ResElem.push_back(Markdown_InlineElement(InlineType::Image, ins, ins + alt_text.size(), url));
+                    ResText += alt_text;
+
+                    i = url_end + 1;
+                    ins += alt_text.size();
+                    continue;
+                }
+            }
+        }
         if (token == "`" || Code_flag) {
             if (token == "`" && (!Code_flag)) {
                 Code_flag = true;

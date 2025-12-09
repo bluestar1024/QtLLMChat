@@ -21,6 +21,7 @@ private:
 public:
     Markdown_InlineElement();
     Markdown_InlineElement(InlineType T, size_t b, size_t e);
+    Markdown_InlineElement(InlineType T, size_t b, size_t e, std::string iu);
     InlineType getType() const;
     size_t getBegin() const;
     size_t getEnd() const;

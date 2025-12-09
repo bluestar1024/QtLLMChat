@@ -196,7 +196,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         m_fullHtmlText = m_mathJaxCdn + m_htmlText + "</div></body></html>";
         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
         QUrl base = QUrl::fromLocalFile(QFileInfo(QFileInfo(".").absolutePath()).absolutePath() + "/");
-        qDebug() << 'base:' << base;
+        qDebug() << "base:" << base;
 
         m_mainHLayout->removeWidget(m_label);
         m_label->deleteLater();
@@ -309,9 +309,9 @@ QString TextShow::getAlignmentClass(const QString &fmt) const
 QString TextShow::htmlReplaceText(const QString &text) const
 {
     QString s = text;
-    s.replace("\\$", "\\\\$");
+    // s.replace("\\$", "\\\\$");
     s.replace("\frac", "\\frac");
-    s.replace("\\,", "\\\\,");
+    // s.replace("\\,", "\\\\,");
     s.replace("\alpha", "\\alpha");
     s.replace("\beta",  "\\beta");
     s.replace("\theta", "\\theta");

@@ -75,6 +75,7 @@ void Html_Renderer::BlockHtml(Markdown_BlockElement BlockElem) {
 std::string Html_Renderer::InlineHtml(LineElement Line) {
     std::vector<size_t> ins;
     std::string res = "";
+    bool isContinue = false;
     for (size_t i = 0; i < Line.InlineElement.size(); i++) {
         ins.push_back(Line.InlineElement[i].getBegin());
         ins.push_back(Line.InlineElement[i].getEnd());
@@ -95,25 +96,50 @@ std::string Html_Renderer::InlineHtml(LineElement Line) {
                         res += "<code>";
                         break;
                     }
+                    case InlineType::Image: {
+                        size_t begin = Line.InlineElement[j / 2].getBegin();
+                        size_t end = Line.InlineElement[j / 2].getEnd();
+                        std::string alt = Line.text.substr(begin, end - begin);
+                        std::string url = Line.InlineElement[j / 2].getImageUrl();
+                        res += "<img src=\"" + url + "\" alt=\"" + alt + "\" />";
+                        isContinue = true;
+                        break;
+                    }
+                    default:
+                        break;
                 }
             }
             else if (ins[j] == i && (j % 2 == 1)) {
                 switch (Line.InlineElement[(j - 1) / 2].getType()) {
-                case InlineType::Bold: {
-                    res += "</strong>";
-                    break;
-                }
-                case InlineType::Italic: {
-                    res += "</em>";
-                    break;
-                }
-                case InlineType::Code: {
-                    res += "</code>";
-                }
+                    case InlineType::Bold: {
+                        res += "</strong>";
+                        break;
+                    }
+                    case InlineType::Italic: {
+                        res += "</em>";
+                        break;
+                    }
+                    case InlineType::Code: {
+                        res += "</code>";
+                    }
+                    case InlineType::Image: {
+                        size_t begin = Line.InlineElement[(j - 1) / 2].getBegin();
+                        size_t end = Line.InlineElement[(j - 1) / 2].getEnd();
+                        std::string alt = Line.text.substr(begin, end - begin);
+                        std::string url = Line.InlineElement[(j - 1) / 2].getImageUrl();
+                        res += "<img src=\"" + url + "\" alt=\"" + alt + "\" />";
+                        isContinue = true;
+                        break;
+                    }
+                    default:
+                        break;
                 }
             }
         }
-        res += Line.text[i];
+        if (isContinue)
+            isContinue = false;
+        else
+            res += Line.text[i];
     }
     return res;
 }
