@@ -76,6 +76,7 @@ std::string Html_Renderer::InlineHtml(LineElement Line) {
     std::vector<size_t> ins;
     std::string res = "";
     bool isContinue = false;
+    size_t jBegin = 0;
     for (size_t i = 0; i < Line.InlineElement.size(); i++) {
         ins.push_back(Line.InlineElement[i].getBegin());
         ins.push_back(Line.InlineElement[i].getEnd());
@@ -97,12 +98,11 @@ std::string Html_Renderer::InlineHtml(LineElement Line) {
                         break;
                     }
                     case InlineType::Image: {
-                        size_t begin = Line.InlineElement[j / 2].getBegin();
-                        size_t end = Line.InlineElement[j / 2].getEnd();
-                        std::string alt = Line.text.substr(begin, end - begin);
+                        std::string alt = Line.text.substr(ins[j], ins[j + 1] - ins[j]);
                         std::string url = Line.InlineElement[j / 2].getImageUrl();
                         res += "<img src=\"" + url + "\" alt=\"" + alt + "\" />";
                         isContinue = true;
+                        jBegin = j;
                         break;
                     }
                     default:
@@ -122,22 +122,17 @@ std::string Html_Renderer::InlineHtml(LineElement Line) {
                     case InlineType::Code: {
                         res += "</code>";
                     }
-                    case InlineType::Image: {
-                        size_t begin = Line.InlineElement[(j - 1) / 2].getBegin();
-                        size_t end = Line.InlineElement[(j - 1) / 2].getEnd();
-                        std::string alt = Line.text.substr(begin, end - begin);
-                        std::string url = Line.InlineElement[(j - 1) / 2].getImageUrl();
-                        res += "<img src=\"" + url + "\" alt=\"" + alt + "\" />";
-                        isContinue = true;
-                        break;
-                    }
                     default:
                         break;
                 }
             }
         }
-        if (isContinue)
-            isContinue = false;
+        if (isContinue) {
+            if (i >= ins[jBegin + 1]) {
+                isContinue = false;
+                res += Line.text[i];
+            }
+        }
         else
             res += Line.text[i];
     }
