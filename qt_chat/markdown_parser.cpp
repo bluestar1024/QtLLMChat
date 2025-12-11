@@ -94,6 +94,16 @@ void Markdown_Parser::split(const std::string& RawText) {
             ins++;
             continue;
         }
+        // 引用式链接
+        std::regex ref_regex(R"(^\[([^\]]+)\]:\s*(.+)$)");
+        std::smatch match;
+        if (std::regex_match(curr, match, ref_regex)) {
+            std::string id = match[1].str();
+            std::string url = match[2].str();
+            ref_links[id] = url;
+            ins++;
+            continue;
+        }
         // 标题
         if ((curr.size() >= 2 && curr[0] == '#' && curr[1] == ' ') ||
             (curr.size() >= 3 && curr[0] == '#' && curr[1] == '#' && curr[2] == ' ') ||
@@ -185,6 +195,26 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
                     i = url_end + 1;
                     ins += alt_text.size();
                     continue;
+                }
+            }
+        }
+        if (token == "[" && !Italic_flag && !Bold_flag && !Code_flag) {
+            size_t text_start = i + 1;
+            size_t text_end = BufText.find("]", text_start);
+            if (text_end != std::string::npos && text_end + 1 < BufText.size() && BufText[text_end + 1] == '[') {
+                size_t id_start = text_end + 2;
+                size_t id_end = BufText.find("]", id_start);
+                if (id_end != std::string::npos) {
+                    std::string link_text = BufText.substr(text_start, text_end - text_start);
+                    std::string id = BufText.substr(id_start, id_end - id_start);
+                    if (ref_links.count(id)) {
+                        std::string url = ref_links[id];
+                        ResElem.push_back(Markdown_InlineElement(InlineType::Link, ins, ins + link_text.size(), url));
+                        ResText += link_text;
+                        i = id_end + 1;
+                        ins += link_text.size();
+                        continue;
+                    }
                 }
             }
         }

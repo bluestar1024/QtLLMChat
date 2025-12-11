@@ -99,8 +99,16 @@ std::string Html_Renderer::InlineHtml(LineElement Line) {
                     }
                     case InlineType::Image: {
                         std::string alt = Line.text.substr(ins[j], ins[j + 1] - ins[j]);
-                        std::string url = Line.InlineElement[j / 2].getImageUrl();
+                        std::string url = Line.InlineElement[j / 2].getUrl();
                         res += "<img src=\"" + url + "\" alt=\"" + alt + "\" />";
+                        isContinue = true;
+                        jBegin = j;
+                        break;
+                    }
+                    case InlineType::Link: {
+                        std::string text = Line.text.substr(ins[j], ins[j + 1] - ins[j]);
+                        std::string url = Line.InlineElement[j / 2].getUrl();
+                        res += "<a href=\"" + url + "\">" + text + "</a>";
                         isContinue = true;
                         jBegin = j;
                         break;
@@ -122,6 +130,10 @@ std::string Html_Renderer::InlineHtml(LineElement Line) {
                     case InlineType::Code: {
                         res += "</code>";
                     }
+                    case InlineType::Image:
+                        break;
+                    case InlineType::Link:
+                        break;
                     default:
                         break;
                 }
