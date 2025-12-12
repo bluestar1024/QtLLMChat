@@ -65,7 +65,9 @@ void Markdown_Parser::split(const std::string& RawText) {
             continue;
         }
         // 无序列表
-        if (curr.size() >= 2 && curr[0] == '-' && curr[1] == ' ') {
+        if ((curr.size() >= 2 && curr[0] == '*' && curr[1] == ' ')
+            || (curr.size() >= 2 && curr[0] == '+' && curr[1] == ' ')
+            || (curr.size() >= 2 && curr[0] == '-' && curr[1] == ' ')) {
             if (!UnorderedList_flag) {
                 if (!BlockText.empty()) {
                     RawBlock.push_back(BlockText);
@@ -105,6 +107,33 @@ void Markdown_Parser::split(const std::string& RawText) {
             continue;
         }
         // 标题
+        if (next && !(*next == "\r" || *next == "\n" || next->empty())) {
+            if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '='; }) &&
+                (next->back() == '\r' || next->back() == '\n' || next->back() == '=')) {
+                if (!BlockText.empty()) {
+                    RawBlock.push_back(BlockText);
+                    BlockText.clear();
+                }
+                BlockText.push_back("# " + curr);
+                RawBlock.push_back(BlockText);
+                BlockText.clear();
+                ins += 2;
+                continue;
+            }
+            if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '-'; }) &&
+                (next->back() == '\r' || next->back() == '\n' || next->back() == '-')) {
+                if (!BlockText.empty()) {
+                    RawBlock.push_back(BlockText);
+                    BlockText.clear();
+                }
+                BlockText.push_back("## " + curr);
+                RawBlock.push_back(BlockText);
+                BlockText.clear();
+                ins += 2;
+                continue;
+            }
+        }
+        // 标题
         if ((curr.size() >= 2 && curr[0] == '#' && curr[1] == ' ') ||
             (curr.size() >= 3 && curr[0] == '#' && curr[1] == '#' && curr[2] == ' ') ||
             (curr.size() >= 4 && curr[0] == '#' && curr[1] == '#' && curr[2] == '#' && curr[3] == ' ')) {
@@ -119,7 +148,7 @@ void Markdown_Parser::split(const std::string& RawText) {
             continue;
         }
         // 分割线
-        if (isHorizontalRules(curr)) {
+        if (isHorizontalRules(curr, prev)) {
             if (!BlockText.empty()) {
                 RawBlock.push_back(BlockText);
                 BlockText.clear();
@@ -218,6 +247,29 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
                 }
             }
         }
+        // 支持 [text](<url ...>https://...)</url>
+        if (token == "[" && !Italic_flag && !Bold_flag && !Code_flag) {
+            size_t text_start = i + 1;
+            size_t text_end = BufText.find("]", text_start);
+            if (text_end != std::string::npos && text_end + 1 < BufText.size() && BufText[text_end + 1] == '(') {
+                size_t url_start = text_end + 2;
+                size_t url_end = BufText.find(")", url_start);
+                if (url_end != std::string::npos) {
+                    std::string link_text = BufText.substr(text_start, text_end - text_start);
+                    std::string url_full = BufText.substr(url_start, url_end - url_start);
+                    std::regex url_regex(R"(https?://[^\s<]+)");
+                    std::smatch url_match;
+                    if (std::regex_search(url_full, url_match, url_regex)) {
+                        std::string url = url_match.str();
+                        ResElem.push_back(Markdown_InlineElement(InlineType::Link, ins, ins + link_text.size(), url));
+                        ResText += link_text;
+                        i = url_end + 1;
+                        ins += link_text.size();
+                        continue;
+                    }
+                }
+            }
+        }
         if (token == "`" || Code_flag) {
             if (token == "`" && (!Code_flag)) {
                 Code_flag = true;
@@ -291,7 +343,9 @@ void Markdown_Parser::block_parse(const std::string& RawText, std::vector<Markdo
             }
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
         }
-        else if (token.size() >= 2 && token.substr(0, 2) == "- ") {
+        else if ((token.size() >= 2 && token.substr(0, 2) == "* ")
+               || (token.size() >= 2 && token.substr(0, 2) == "+ ")
+               || (token.size() >= 2 && token.substr(0, 2) == "- ")) {
             type = BlockType::UnorderedList;
             std::vector<LineElement> Lines;
             for (const auto& line : RawBlock[i]) {
@@ -359,11 +413,7 @@ void Markdown_Parser::block_parse(const std::string& RawText, std::vector<Markdo
     }
 }
 
-bool Markdown_Parser::isHorizontalRules(const std::string& lineStr) {
-    if (lineStr.substr(0, 3) == "---" &&
-        std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; }) &&
-        (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
-        return true;
+bool Markdown_Parser::isHorizontalRules(const std::string& lineStr, const std::string* prevLine) {
     if (lineStr.substr(0, 3) == "***" &&
         std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '*'; }) &&
         (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '*'))
@@ -372,5 +422,17 @@ bool Markdown_Parser::isHorizontalRules(const std::string& lineStr) {
         std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '_'; }) &&
         (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '_'))
         return true;
+    if (!prevLine) {
+        if (lineStr.substr(0, 3) == "---" &&
+            std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; }) &&
+            (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
+            return true;
+    }
+    else if (*prevLine == "\r" || *prevLine == "\n" || prevLine->empty()) {
+        if (lineStr.substr(0, 3) == "---" &&
+            std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; }) &&
+            (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
+            return true;
+    }
     return false;
 }

@@ -15,7 +15,7 @@ public:
     void split(const std::string& RawText);
     std::vector<Markdown_InlineElement> inline_parse(const std::string& RawText, std::string& ResText);
     void block_parse(const std::string& RawText, std::vector<Markdown_BlockElement>& BlockElem);
-    bool isHorizontalRules(const std::string& lineStr);
+    bool isHorizontalRules(const std::string& lineStr, const std::string* prevLine = nullptr);
 };
 
 #endif // MARKDOWN_PARSER_H
