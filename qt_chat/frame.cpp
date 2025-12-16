@@ -1,14 +1,11 @@
 #include "frame.h"
 
-Frame::Frame(QWidget *parent)
-    : QFrame(parent)
+Frame::Frame(QWidget *parent) : QFrame(parent)
 {
     setMouseTracking(true);
 }
 
-Frame::~Frame()
-{
-}
+Frame::~Frame() { }
 
 void Frame::mouseMoveEvent(QMouseEvent *event)
 {

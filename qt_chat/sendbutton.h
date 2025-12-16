@@ -16,9 +16,7 @@ class SendButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit SendButton(const QString &tipText = "",
-                        int tipOffsetX = 10,
-                        int tipOffsetY = 40,
+    explicit SendButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
                         QWidget *parent = nullptr);
     ~SendButton();
 
@@ -27,7 +25,7 @@ protected:
 
 private:
     QString m_tipText;
-    QPoint  m_tipStartPos;
+    QPoint m_tipStartPos;
     int m_ox;
     int m_oy;
 };

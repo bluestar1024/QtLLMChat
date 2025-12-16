@@ -17,9 +17,7 @@ class PushButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit PushButton(const QString &tipText = "",
-                        int tipOffsetX = 10,
-                        int tipOffsetY = 40,
+    explicit PushButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
                         QWidget *parent = nullptr);
     ~PushButton();
 
@@ -30,9 +28,9 @@ protected:
 
 private:
     QString m_tipText;
-    QPoint  m_tipStartPos;
-    int     m_ox;
-    int     m_oy;
+    QPoint m_tipStartPos;
+    int m_ox;
+    int m_oy;
 };
 
 #endif // PUSHBUTTON_H

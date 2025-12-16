@@ -1,9 +1,9 @@
 #ifndef CUSTOMLABEL_H
 #define CUSTOMLABEL_H
 
-#include <QLabel>
-#include <QMouseEvent>
-#include <QContextMenuEvent>
+#include <QtWidgets/QLabel>
+#include <QtGui/QMouseEvent>
+#include <QtGui/QContextMenuEvent>
 
 class CustomLabel : public QLabel
 {

@@ -4,6 +4,8 @@
 #pragma once
 #include <QLabel>
 
+extern const QString imagesDir;
+
 class ImageLabel : public QLabel
 {
     Q_OBJECT

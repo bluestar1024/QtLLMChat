@@ -1,13 +1,8 @@
 #include "webenginepage.h"
 
-WebEnginePage::WebEnginePage(QObject *parent)
-    : QWebEnginePage(parent)
-{
-}
+WebEnginePage::WebEnginePage(QObject *parent) : QWebEnginePage(parent) { }
 
-WebEnginePage::~WebEnginePage()
-{
-}
+WebEnginePage::~WebEnginePage() { }
 
 bool WebEnginePage::acceptNavigationRequest(const QUrl &url, NavigationType type, bool isMainFrame)
 {
@@ -20,14 +15,13 @@ bool WebEnginePage::acceptNavigationRequest(const QUrl &url, NavigationType type
         newWindow->show();
         windows.append(newWindow);
         // 移除窗口时清理指针
-        connect(newWindow, &QMainWindow::destroyed,
-                this, [this](QObject *obj) {
-                        QMainWindow *window = qobject_cast<QMainWindow*>(obj);
-                        if (window) windows.removeOne(window);
-                        }
-        );
-        return false;  // 阻止当前视图跳转
+        connect(newWindow, &QMainWindow::destroyed, this, [this](QObject *obj) {
+            QMainWindow *window = qobject_cast<QMainWindow *>(obj);
+            if (window)
+                windows.removeOne(window);
+        });
+        return false; // 阻止当前视图跳转
     }
     return QWebEnginePage::acceptNavigationRequest(url, type, isMainFrame);
-//    return true;
+    // return true;
 }

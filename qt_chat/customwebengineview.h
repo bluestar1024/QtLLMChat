@@ -2,9 +2,9 @@
 #define CUSTOMWEBENGINEVIEW_H
 
 #pragma once
-#include <QWebEngineView>
-#include <QWebEnginePage>
-#include <QMainWindow>
+#include <QtWebEngineWidgets/QWebEngineView>
+#include <QtWebEngineCore/QWebEnginePage>
+#include <QtWidgets/QMainWindow>
 
 class CustomWebEngineView : public QWebEngineView
 {
@@ -17,7 +17,7 @@ protected:
     CustomWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
 
 private:
-    QList<QMainWindow*> windows;
+    QList<QMainWindow *> windows;
 };
 
 #endif // CUSTOMWEBENGINEVIEW_H

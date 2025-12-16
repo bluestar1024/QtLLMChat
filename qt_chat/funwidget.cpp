@@ -7,13 +7,10 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     chatRecordsImagesPath = QDir(imagesDir).filePath("chat_records.png");
     chatRecordsButton->setIcon(QIcon(chatRecordsImagesPath));
     chatRecordsButton->setIconSize(QSize(30, 30));
-    chatRecordsButton->setStyleSheet(
-        "QPushButton{ border:none; border-radius:22px; }"
-        "QPushButton:hover{ background:#d0d0d0; }"
-    );
+    chatRecordsButton->setStyleSheet("QPushButton{ border:none; border-radius:22px; }"
+                                     "QPushButton:hover{ background:#d0d0d0; }");
     funLeftSubWidget = new Widget();
-    funLeftSubWidget->resize(chatRecordsButton->width() + 15,
-                             chatRecordsButton->height() + 16);
+    funLeftSubWidget->resize(chatRecordsButton->width() + 15, chatRecordsButton->height() + 16);
     funLeftSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     funLeftSubHLayout = new QHBoxLayout(funLeftSubWidget);
@@ -45,13 +42,10 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     newChatImagesPath = QDir(imagesDir).filePath("new_chat.png");
     newChatButton->setIcon(QIcon(newChatImagesPath));
     newChatButton->setIconSize(QSize(30, 30));
-    newChatButton->setStyleSheet(
-        "QPushButton{ border:none; border-radius:22px; }"
-        "QPushButton:hover{ background:#d0d0d0; }"
-    );
+    newChatButton->setStyleSheet("QPushButton{ border:none; border-radius:22px; }"
+                                 "QPushButton:hover{ background:#d0d0d0; }");
     funRightSubWidget = new Widget();
-    funRightSubWidget->resize(newChatButton->width() + 15,
-                              newChatButton->height() + 16);
+    funRightSubWidget->resize(newChatButton->width() + 15, newChatButton->height() + 16);
     funRightSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     funRightSubHLayout = new QHBoxLayout(funRightSubWidget);
     funRightSubHLayout->addWidget(newChatButton);
@@ -68,9 +62,7 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     saveWidgetSize();
 }
 
-FunWidget::~FunWidget()
-{
-}
+FunWidget::~FunWidget() { }
 
 void FunWidget::mouseMoveEvent(QMouseEvent *event)
 {
@@ -91,15 +83,19 @@ void FunWidget::saveWidgetSize()
     widgetSizeDict["chatRecordsButton"] = chatRecordsButton->size();
     widgetSizeDict["chatRecordsButton iconSize"] = chatRecordsButton->iconSize();
     widgetSizeDict["funLeftSubWidget"] = funLeftSubWidget->size();
-    widgetSizeDict["funLeftSubHLayout contentsMargins"] = QVariant::fromValue(funLeftSubHLayout->contentsMargins());
+    widgetSizeDict["funLeftSubHLayout contentsMargins"] =
+            QVariant::fromValue(funLeftSubHLayout->contentsMargins());
     widgetSizeDict["titleLabel"] = titleLabel->size();
     widgetSizeDict["funMidSubWidget"] = funMidSubWidget->size();
-    widgetSizeDict["funMidSubHLayout contentsMargins"] = QVariant::fromValue(funMidSubHLayout->contentsMargins());
+    widgetSizeDict["funMidSubHLayout contentsMargins"] =
+            QVariant::fromValue(funMidSubHLayout->contentsMargins());
     widgetSizeDict["newChatButton"] = newChatButton->size();
     widgetSizeDict["newChatButton iconSize"] = newChatButton->iconSize();
     widgetSizeDict["funRightSubWidget"] = funRightSubWidget->size();
-    widgetSizeDict["funRightSubHLayout contentsMargins"] = QVariant::fromValue(funRightSubHLayout->contentsMargins());
-    widgetSizeDict["mainHLayout contentsMargins"] = QVariant::fromValue(mainHLayout->contentsMargins());
+    widgetSizeDict["funRightSubHLayout contentsMargins"] =
+            QVariant::fromValue(funRightSubHLayout->contentsMargins());
+    widgetSizeDict["mainHLayout contentsMargins"] =
+            QVariant::fromValue(mainHLayout->contentsMargins());
 }
 
 void FunWidget::resetWidgetSize()
@@ -110,7 +106,8 @@ void FunWidget::resetWidgetSize()
 
 void FunWidget::updateSize(qreal curDpi, qreal lastDpi)
 {
-    if (lastDpi == 0) return;
+    if (lastDpi == 0)
+        return;
     qreal ratio = qreal(curDpi / lastDpi);
 
     auto scale = [=](const QSize &s) -> QSize {
@@ -123,13 +120,15 @@ void FunWidget::updateSize(qreal curDpi, qreal lastDpi)
 
     setFixedSize(scale(widgetSizeDict["this"].value<QSize>()));
     chatRecordsButton->setFixedSize(scale(widgetSizeDict["chatRecordsButton"].value<QSize>()));
-    chatRecordsButton->setIconSize(scale(widgetSizeDict["chatRecordsButton iconSize"].value<QSize>()));
-    chatRecordsButton->setStyleSheet(QString(
-        "QPushButton{ border:none; border-radius:%1px; }"
-        "QPushButton:hover{ background:#d0d0d0; }").arg(chatRecordsButton->width() / 2));
+    chatRecordsButton->setIconSize(
+            scale(widgetSizeDict["chatRecordsButton iconSize"].value<QSize>()));
+    chatRecordsButton->setStyleSheet(QString("QPushButton{ border:none; border-radius:%1px; }"
+                                             "QPushButton:hover{ background:#d0d0d0; }")
+                                             .arg(chatRecordsButton->width() / 2));
 
     funLeftSubWidget->setFixedSize(scale(widgetSizeDict["funLeftSubWidget"].value<QSize>()));
-    funLeftSubHLayout->setContentsMargins(scaleMargins(widgetSizeDict["funLeftSubHLayout contentsMargins"].value<QMargins>()));
+    funLeftSubHLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["funLeftSubHLayout contentsMargins"].value<QMargins>()));
 
     titleLabel->setFixedSize(scale(widgetSizeDict["titleLabel"].value<QSize>()));
     funMidSubWidget->setFixedSize(scale(widgetSizeDict["funMidSubWidget"].value<QSize>()));
@@ -137,11 +136,12 @@ void FunWidget::updateSize(qreal curDpi, qreal lastDpi)
 
     newChatButton->setFixedSize(scale(widgetSizeDict["newChatButton"].value<QSize>()));
     newChatButton->setIconSize(scale(widgetSizeDict["newChatButton iconSize"].value<QSize>()));
-    newChatButton->setStyleSheet(QString(
-        "QPushButton{ border:none; border-radius:%1px; }"
-        "QPushButton:hover{ background:#d0d0d0; }").arg(newChatButton->width() / 2));
+    newChatButton->setStyleSheet(QString("QPushButton{ border:none; border-radius:%1px; }"
+                                         "QPushButton:hover{ background:#d0d0d0; }")
+                                         .arg(newChatButton->width() / 2));
 
     funRightSubWidget->setFixedSize(scale(widgetSizeDict["funRightSubWidget"].value<QSize>()));
-    funRightSubHLayout->setContentsMargins(scaleMargins(widgetSizeDict["funRightSubHLayout contentsMargins"].value<QMargins>()));
+    funRightSubHLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["funRightSubHLayout contentsMargins"].value<QMargins>()));
     mainHLayout->setContentsMargins(0, 0, 0, 0);
 }

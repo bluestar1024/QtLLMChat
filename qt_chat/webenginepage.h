@@ -18,6 +18,6 @@ protected:
     bool acceptNavigationRequest(const QUrl &url, NavigationType type, bool isMainFrame) override;
 
 private:
-    QList<QMainWindow*> windows;
+    QList<QMainWindow *> windows;
 };
 #endif // WEBENGINEPAGE_H

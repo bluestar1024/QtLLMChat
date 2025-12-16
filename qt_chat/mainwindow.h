@@ -36,8 +36,7 @@ extern const QColor textEditFullBTColor;
 extern const QColor textEditFullBColor;
 extern const QString testText;
 
-enum class RegionEnum : int
-{
+enum class RegionEnum : int {
     LEFT = 0,
     RIGHT,
     TOP,
@@ -67,27 +66,27 @@ private:
     RegionEnum regionDir;
     int padding;
 
-    FunWidget   *chatFun;
-    ListWidget  *chatShow;
+    FunWidget *chatFun;
+    ListWidget *chatShow;
     TextEditFull *chatInput;
-    Widget      *chatShowWidget;
-    Widget      *chatInputWidget;
-    Widget      *contentWidget;
+    Widget *chatShowWidget;
+    Widget *chatInputWidget;
+    Widget *contentWidget;
     QVBoxLayout *chatShowVLayout;
     QVBoxLayout *chatInputVLayout;
     QVBoxLayout *contentVLayout;
-    Splitter    *splitter;
-    Frame       *mainWidget;
+    Splitter *splitter;
+    Frame *mainWidget;
     QVBoxLayout *mainVLayout;
-//    TitleWidget     *titleWidget;
+    // TitleWidget     *titleWidget;
     QList<MessageWidget *> messageWidgetList;
     QList<int> thinkTimeLengthList;
-//    ChatRecordsWidget *chatRecordsWidget;
+    // ChatRecordsWidget *chatRecordsWidget;
     QString curChatFile;
     QPropertyAnimation *chatRecordsAnimationMove;
     bool chatRecordsWidgetIsOpen;
-//    PrintLabel *emptyTextLabel;
-//    PrintLabel *textCopyLabel;
+    // PrintLabel *emptyTextLabel;
+    // PrintLabel *textCopyLabel;
 
     bool isRegenerate;
     bool isRegenerateFirst;

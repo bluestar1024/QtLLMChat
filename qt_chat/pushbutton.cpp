@@ -1,22 +1,13 @@
 #include "pushbutton.h"
 
-PushButton::PushButton(const QString &tipText,
-                       int tipOffsetX,
-                       int tipOffsetY,
-                       QWidget *parent)
-    : QPushButton(parent),
-      m_tipText(tipText),
-      m_ox(tipOffsetX),
-      m_oy(tipOffsetY)
+PushButton::PushButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
+    : QPushButton(parent), m_tipText(tipText), m_ox(tipOffsetX), m_oy(tipOffsetY)
 {
     setCursor(Qt::PointingHandCursor);
-    m_tipStartPos = QPoint(rect().topLeft().x() - m_ox,
-                           rect().topLeft().y() - m_oy);
+    m_tipStartPos = QPoint(rect().topLeft().x() - m_ox, rect().topLeft().y() - m_oy);
 }
 
-PushButton::~PushButton()
-{
-}
+PushButton::~PushButton() { }
 
 void PushButton::mousePressEvent(QMouseEvent *event)
 {

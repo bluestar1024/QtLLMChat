@@ -48,9 +48,7 @@ void WebEngineView::connectLoadFinished(T *receiver, void (T::*slot)(bool))
 template <typename T>
 void WebEngineView::connectContentsSizeChanged(T *receiver, void (T::*slot)())
 {
-    connect(page(), &QWebEnginePage::contentsSizeChanged, [=](QSize) {
-        (receiver->*slot)();
-    });
+    connect(page(), &QWebEnginePage::contentsSizeChanged, [=](QSize) { (receiver->*slot)(); });
 }
 
 template <typename T>

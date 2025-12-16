@@ -1,13 +1,8 @@
 #include "messagethread.h"
 
-MessageThread::MessageThread(const QString &contentInput,
-                             const QList<QVariantMap> &context,
-                             bool useStream,
-                             QObject *parent)
-    : QThread(parent),
-      m_contentInput(contentInput),
-      m_context(context),
-      m_useStream(useStream)
+MessageThread::MessageThread(const QString &contentInput, const QList<QVariantMap> &context,
+                             bool useStream, QObject *parent)
+    : QThread(parent), m_contentInput(contentInput), m_context(context), m_useStream(useStream)
 {
 }
 

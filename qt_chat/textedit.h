@@ -62,9 +62,7 @@ private:
 template <typename T>
 void TextEdit::connectSendButtonClick(T *receiver, void (T::*slot)())
 {
-    connect(sendButton, &QPushButton::clicked, [=](bool) {
-        (receiver->*slot)();
-    });
+    connect(sendButton, &QPushButton::clicked, [=](bool) { (receiver->*slot)(); });
 }
 
 template <typename T>

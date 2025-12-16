@@ -1,13 +1,8 @@
 #include "customlabel.h"
 
-CustomLabel::CustomLabel(QWidget *parent)
-    : QLabel(parent)
-{
-}
+CustomLabel::CustomLabel(QWidget *parent) : QLabel(parent) { }
 
-CustomLabel::~CustomLabel()
-{
-}
+CustomLabel::~CustomLabel() { }
 
 void CustomLabel::mousePressEvent(QMouseEvent *event)
 {

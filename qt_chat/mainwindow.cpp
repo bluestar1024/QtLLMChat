@@ -133,8 +133,7 @@ $$\int_{a}^{b} {f(x)} \, \mathrm{d}x = F(b) - F(a)$$
 $$\frac{d}{dx} e^x = e^x$$
 )";
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setMinimumSize(1110, 795);
     resize(1220, 820);
@@ -145,7 +144,7 @@ MainWindow::MainWindow(QWidget *parent)
     mouseLeftButtonIsPress = false;
     regionDir = RegionEnum::MIDDLE;
     padding = 2;
-//    titleWidgetInit();
+    // titleWidgetInit();
     chatFun = new FunWidget();
     chatFun->connectChatRecordsButtonClick(this, &MainWindow::showChatRecords);
     chatFun->connectNewChatButtonClick(this, &MainWindow::newChat);
@@ -190,14 +189,12 @@ MainWindow::MainWindow(QWidget *parent)
     mainWidget->setGeometry(10, 10, width() - 20, height() - 20);
     mainWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     mainWidget->setObjectName("mainWidget");
-    mainWidget->setStyleSheet(
-        "#mainWidget {"
-        "    border-radius: 16px;"
-        "    background-color: #F0F0F0;"
-        "}"
-    );
+    mainWidget->setStyleSheet("#mainWidget {"
+                              "    border-radius: 16px;"
+                              "    background-color: #F0F0F0;"
+                              "}");
     mainVLayout = new QVBoxLayout(mainWidget);
-//    mainVLayout->addWidget(titleWidget);
+    // mainVLayout->addWidget(titleWidget);
     mainVLayout->addWidget(contentWidget);
     mainVLayout->setContentsMargins(0, 0, 0, 0);
     mainVLayout->setSpacing(0);
@@ -210,33 +207,33 @@ MainWindow::MainWindow(QWidget *parent)
     setGraphicsEffect(shadow);
     messageWidgetList.clear();
 
-//    settingWidgetInit();
-//    chatRecordsWidget = ChatRecordsWidget(mainWidget);
-//    chatRecordsWidget.connectSettingButtonClick(settingButtonClicked);
-//    chatRecordsWidget.connectLineEditTextChanged(showSearchRecords);
-//    chatRecordsWidget.connectSearchButtonClick(showSearchRecords);
-//    chatRecordsWidget.connectClearAllButtonClick(clearAllChatRecords);
-//    chatRecordsWidget.connectListItemClick(generateChatRecord);
-//    chatRecordsWidget.move(-self.chatRecordsWidget.width(), self.titleWidget.height());
-//    curChatFile = '';
+    // settingWidgetInit();
+    // chatRecordsWidget = ChatRecordsWidget(mainWidget);
+    // chatRecordsWidget.connectSettingButtonClick(settingButtonClicked);
+    // chatRecordsWidget.connectLineEditTextChanged(showSearchRecords);
+    // chatRecordsWidget.connectSearchButtonClick(showSearchRecords);
+    // chatRecordsWidget.connectClearAllButtonClick(clearAllChatRecords);
+    // chatRecordsWidget.connectListItemClick(generateChatRecord);
+    // chatRecordsWidget.move(-self.chatRecordsWidget.width(), self.titleWidget.height());
+    // curChatFile = '';
 
-//    chatRecordsAnimationMove = new QPropertyAnimation(chatRecordsWidget, "geometry");
-//    chatRecordsAnimationMove->setDuration(1000);
-//    chatRecordsAnimationMove->setEasingCurve(QEasingCurve::OutQuad);
-//    connect(chatRecordsAnimationMove, &QPropertyAnimation::valueChanged, this, &MainWindow::chatRecordsUiAnimationMove);
-//    connect(chatRecordsAnimationMove, &QPropertyAnimation::finished, this, &MainWindow::chatRecordsUiMoveFinished);
+    // chatRecordsAnimationMove = new QPropertyAnimation(chatRecordsWidget, "geometry");
+    // chatRecordsAnimationMove->setDuration(1000);
+    // chatRecordsAnimationMove->setEasingCurve(QEasingCurve::OutQuad);
+    // connect(chatRecordsAnimationMove, &QPropertyAnimation::valueChanged, this, &MainWindow::chatRecordsUiAnimationMove);
+    // connect(chatRecordsAnimationMove, &QPropertyAnimation::finished, this, &MainWindow::chatRecordsUiMoveFinished);
 
-//    chatRecordsWidgetIsOpen = false;
-//    emptyTextLabel = new PrintLabel("文本不能为空", this);
-//    emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
-//                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
-//    emptyTextLabel->raise();
-//    emptyTextLabel->hide();
-//    textCopyLabel = new PrintLabel("文本复制成功", this);
-//    textCopyLabel->move((width() - textCopyLabel->width()) / 2,
-//                        titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
-//    textCopyLabel->raise();
-//    textCopyLabel->hide();
+    // chatRecordsWidgetIsOpen = false;
+    // emptyTextLabel = new PrintLabel("文本不能为空", this);
+    // emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
+    //                      titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
+    // emptyTextLabel->raise();
+    // emptyTextLabel->hide();
+    // textCopyLabel = new PrintLabel("文本复制成功", this);
+    // textCopyLabel->move((width() - textCopyLabel->width()) / 2,
+    //                     titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
+    // textCopyLabel->raise();
+    // textCopyLabel->hide();
     isRegenerate = false;
     isRegenerateFirst = true;
     isSetTexting = false;
@@ -267,38 +264,31 @@ MainWindow::MainWindow(QWidget *parent)
     avoidRepeatSelfFun = false;
 }
 
-MainWindow::~MainWindow()
-{
-}
+MainWindow::~MainWindow() { }
 
-void MainWindow::onDpiChanged()
-{
-
-}
+void MainWindow::onDpiChanged() { }
 
 void MainWindow::messageWidgetResize()
 {
     const int count = chatShow->count();
-    for (int i = 0; i < count; ++i)
-    {
+    for (int i = 0; i < count; ++i) {
         MessageWidget *messageWidget = messageWidgetList.at(i);
         messageWidget->setSize();
-        QListWidgetItem *item       = chatShow->item(i);
-        QWidget        *itemWidget  = chatShow->itemWidget(item);
+        QListWidgetItem *item = chatShow->item(i);
+        QWidget *itemWidget = chatShow->itemWidget(item);
         if (!itemWidget)
             continue;
         const int w = chatShow->width();
         const int h = messageWidget->height() + 10;
         itemWidget->setFixedSize(w, h);
         QLayout *itemLayout = itemWidget->layout();
-        if (itemLayout)
-        {
+        if (itemLayout) {
             if (messageWidget->getIsUser())
-                itemLayout->setContentsMargins(itemWidget->width() - messageWidget->width() - 25,
-                                        5, 25, 5);
+                itemLayout->setContentsMargins(itemWidget->width() - messageWidget->width() - 25, 5,
+                                               25, 5);
             else
-                itemLayout->setContentsMargins(0, 5,
-                                        itemWidget->width() - messageWidget->width(), 5);
+                itemLayout->setContentsMargins(0, 5, itemWidget->width() - messageWidget->width(),
+                                               5);
         }
         item->setSizeHint(QSize(w, h));
     }
@@ -312,21 +302,15 @@ void MainWindow::sendMessage()
         if (!text.isEmpty()) {
             for (auto *w : messageWidgetList) {
                 QVariantMap m;
-                m["role"]    = w->getIsUser() ? "user" : "assistant";
+                m["role"] = w->getIsUser() ? "user" : "assistant";
                 m["content"] = w->getText();
                 context.append(m);
             }
             thinkTimeLengthList.append(0);
             messageSendWidget = new MessageWidget(
-                text,
-                [this](){ textCopy(); },
-                [this](){ messageRenewResponse(); },
-                chatShow,
-                thinkTimeLengthList,
-                messageWidgetList.size(),
-                true,
-                true,
-                chatShow->width() * 3 / 4);
+                    text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); }, chatShow,
+                    thinkTimeLengthList, messageWidgetList.size(), true, true,
+                    chatShow->width() * 3 / 4);
             messageSendWidget->updateFunWidgetSize(curDpi, initDpi);
             messageSendWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
             messageSendWidget->connectSetTexting(this, &MainWindow::getSetTexting);
@@ -337,15 +321,12 @@ void MainWindow::sendMessage()
             itemSendWidget = new ItemWidget(this);
             itemSendHLayout = new QHBoxLayout(itemSendWidget);
             itemSendHLayout->addWidget(messageSendWidget);
-            itemSendWidget->setFixedSize(chatShow->width(),
-                                         messageSendWidget->height() + 10);
+            itemSendWidget->setFixedSize(chatShow->width(), messageSendWidget->height() + 10);
             itemSendHLayout->setContentsMargins(
-                itemSendWidget->width() - messageSendWidget->width() - 25,
-                5, 25, 5);
+                    itemSendWidget->width() - messageSendWidget->width() - 25, 5, 25, 5);
 
             sendItem = new QListWidgetItem(chatShow);
-            sendItem->setSizeHint(QSize(chatShow->width(),
-                                        messageSendWidget->height() + 10));
+            sendItem->setSizeHint(QSize(chatShow->width(), messageSendWidget->height() + 10));
             chatShow->setItemWidget(sendItem, itemSendWidget);
 
             thread = new MessageThread(text, context);
@@ -354,12 +335,14 @@ void MainWindow::sendMessage()
             isSending = true;
             qDebug() << "sendMessage:" << text;
         } else {
-//            emptyTextLabel->printStart();
+            //         emptyTextLabel->printStart();
         }
     } else {
-        if (thread) thread->stop();
+        if (thread)
+            thread->stop();
         isSending = false;
-        if (messageRecvWidget) messageRecvWidget->breakHandle();
+        if (messageRecvWidget)
+            messageRecvWidget->breakHandle();
     }
 }
 
@@ -391,15 +374,8 @@ void MainWindow::messageStart()
 
     thinkTimeLengthList.append(0);
     messageRecvWidget = new MessageWidget(
-        Message,
-        [this](){ textCopy(); },
-        [this](){ messageRenewResponse(); },
-        chatShow,
-        thinkTimeLengthList,
-        messageWidgetList.size(),
-        false,
-        true,
-        chatShow->width() * 3 / 4);
+            Message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); }, chatShow,
+            thinkTimeLengthList, messageWidgetList.size(), false, true, chatShow->width() * 3 / 4);
     messageRecvWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
     messageRecvWidget->connectSetTexting(this, &MainWindow::getSetTexting);
     messageWidgetList.append(messageRecvWidget);
@@ -407,15 +383,12 @@ void MainWindow::messageStart()
     itemRecvWidget = new ItemWidget(this);
     itemRecvHLayout = new QHBoxLayout(itemRecvWidget);
     itemRecvHLayout->addWidget(messageRecvWidget);
-    itemRecvWidget->setFixedSize(chatShow->width(),
-                                 messageRecvWidget->height() + 10);
-    itemRecvHLayout->setContentsMargins(
-        0, 5,
-        itemRecvWidget->width() - messageRecvWidget->width(), 5);
+    itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
+    itemRecvHLayout->setContentsMargins(0, 5, itemRecvWidget->width() - messageRecvWidget->width(),
+                                        5);
 
     recvItem = new QListWidgetItem(chatShow);
-    recvItem->setSizeHint(QSize(chatShow->width(),
-                                messageRecvWidget->height() + 10));
+    recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
     chatShow->setItemWidget(recvItem, itemRecvWidget);
 
     first = true;
@@ -437,13 +410,10 @@ void MainWindow::recvMessage(const QString &text)
 
     if (isContinueShow) {
         messageRecvWidget->setText(Message);
-        itemRecvWidget->setFixedSize(chatShow->width(),
-                                     messageRecvWidget->height() + 10);
+        itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
         itemRecvHLayout->setContentsMargins(
-            0, 5,
-            itemRecvWidget->width() - messageRecvWidget->width(), 5);
-        recvItem->setSizeHint(QSize(chatShow->width(),
-                                    messageRecvWidget->height() + 10));
+                0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+        recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
     }
 }
 
@@ -454,19 +424,17 @@ void MainWindow::messageFinish()
     messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
     messageRecvWidget->toggleWidget();
 
-    itemRecvWidget->setFixedSize(chatShow->width(),
-                                 messageRecvWidget->height() + 10);
-    itemRecvHLayout->setContentsMargins(
-        0, 5,
-        itemRecvWidget->width() - messageRecvWidget->width(), 5);
-    recvItem->setSizeHint(QSize(chatShow->width(),
-                                messageRecvWidget->height() + 10));
+    itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
+    itemRecvHLayout->setContentsMargins(0, 5, itemRecvWidget->width() - messageRecvWidget->width(),
+                                        5);
+    recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
 
     if (Message.isEmpty()) {
         delete messageWidgetList.takeLast();
         int last = chatShow->count() - 1;
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
-        if (itemWidget) itemWidget->deleteLater();
+        if (itemWidget)
+            itemWidget->deleteLater();
         QListWidgetItem *lastItem = chatShow->takeItem(last);
         delete lastItem;
         messageRenewResponse();
@@ -476,40 +444,28 @@ void MainWindow::messageFinish()
     qDebug() << "chatShow item count:" << chatShow->count();
 }
 
-void MainWindow::textCopy()
-{
+void MainWindow::textCopy() { }
 
-}
-
-void MainWindow::messageRenewResponse()
-{
-
-}
+void MainWindow::messageRenewResponse() { }
 
 void MainWindow::getSetTexting(bool state)
 {
     isSetTexting = state;
 }
 
-void MainWindow::showChatRecords()
-{
+void MainWindow::showChatRecords() { }
 
-}
-
-void MainWindow::newChat()
-{
-
-}
+void MainWindow::newChat() { }
 
 // QScreen* MainWindow::getScreenForWidget(const QWidget* widget)
 // {
-//     QDesktopWidget* desktop = QApplication::desktop();
-//     int screenNumber = desktop->screenNumber(widget);
-//     if (screenNumber != -1) {
-//         QList<QScreen*> screens = QApplication::screens();
-//         if (screenNumber < screens.size()) {
-//             return screens.at(screenNumber);
-//         }
-//     }
-//     return QApplication::primaryScreen();
+//  QDesktopWidget* desktop = QApplication::desktop();
+//  int screenNumber = desktop->screenNumber(widget);
+//  if (screenNumber != -1) {
+//      QList<QScreen*> screens = QApplication::screens();
+//      if (screenNumber < screens.size()) {
+//          return screens.at(screenNumber);
+//      }
+//  }
+//  return QApplication::primaryScreen();
 // }

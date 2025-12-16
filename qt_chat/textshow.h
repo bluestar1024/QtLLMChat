@@ -25,10 +25,8 @@ class TextShow : public QWidget
 {
     Q_OBJECT
 public:
-    explicit TextShow(const QString &text = "",
-                      bool isUser          = true,
-                      int maxWidth         = 810,
-                      QWidget *parent      = nullptr);
+    explicit TextShow(const QString &text = "", bool isUser = true, int maxWidth = 810,
+                      QWidget *parent = nullptr);
     ~TextShow();
 
     template <typename T>
@@ -51,7 +49,8 @@ private slots:
 private:
     void measureText(const QString &text, int &labelWidth, int &labelHeight) const;
     QString htmlReplaceText(const QString &text) const;
-    struct TableInfo {
+    struct TableInfo
+    {
         QString tableText;
         QStringList items;
         QStringList alignList;

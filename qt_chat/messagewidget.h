@@ -13,15 +13,10 @@ class MessageWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit MessageWidget(const QString &text,
-                           std::function<void()> copyFun,
-                           std::function<void()> renewResponseFun,
-                           ListWidget *listWidget,
-                           QList<int> &thinkTimeLengthList,
-                           int thinkTimeIndex,
-                           bool isUser = true,
-                           bool thinkIsExpand = true,
-                           int textMaxWidth = 877,
+    explicit MessageWidget(const QString &text, std::function<void()> copyFun,
+                           std::function<void()> renewResponseFun, ListWidget *listWidget,
+                           QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser = true,
+                           bool thinkIsExpand = true, int textMaxWidth = 877,
                            QWidget *parent = nullptr);
     ~MessageWidget();
 
@@ -54,10 +49,10 @@ private:
     std::function<void()> m_renewResponseFun;
     ListWidget *m_listWidget = nullptr;
     QList<int> &m_thinkTimeLengthList;
-    int  m_thinkTimeIndex;
+    int m_thinkTimeIndex;
     bool m_isUser;
     bool m_thinkIsExpand;
-    int  m_textMaxWidth;
+    int m_textMaxWidth;
 
     QHBoxLayout *m_layout;
     TextShow *m_textShow;
@@ -78,8 +73,9 @@ void MessageWidget::connectSetTexting(T *receiver, void (T::*slot)(bool))
 template <typename T>
 void MessageWidget::connectExecuteNext(T *receiver, void (T::*slot)())
 {
-    //    connect(this, &MessageWidget::executeNext, receiver, slot);
-    if (m_isUser) m_textShow->connectExecuteNext(receiver, slot);
+    // connect(this, &MessageWidget::executeNext, receiver, slot);
+    if (m_isUser)
+        m_textShow->connectExecuteNext(receiver, slot);
 }
 
 #endif // MESSAGEWIDGET_H

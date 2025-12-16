@@ -1,13 +1,8 @@
 #include "customwebengineview.h"
 
-CustomWebEngineView::CustomWebEngineView(QWidget *parent)
-    : QWebEngineView(parent)
-{
-}
+CustomWebEngineView::CustomWebEngineView(QWidget *parent) : QWebEngineView(parent) { }
 
-CustomWebEngineView::~CustomWebEngineView()
-{
-}
+CustomWebEngineView::~CustomWebEngineView() { }
 
 CustomWebEngineView *CustomWebEngineView::createWindow(QWebEnginePage::WebWindowType type)
 {
@@ -18,11 +13,10 @@ CustomWebEngineView *CustomWebEngineView::createWindow(QWebEnginePage::WebWindow
     newWindow->resize(1200, 800);
     newWindow->show();
     windows.append(newWindow);
-    connect(newWindow, &QMainWindow::destroyed,
-            this, [this](QObject *obj) {
-                    QMainWindow *window = qobject_cast<QMainWindow*>(obj);
-                    if (window) windows.removeOne(window);
-                    }
-    );
+    connect(newWindow, &QMainWindow::destroyed, this, [this](QObject *obj) {
+        QMainWindow *window = qobject_cast<QMainWindow *>(obj);
+        if (window)
+            windows.removeOne(window);
+    });
     return newView;
 }

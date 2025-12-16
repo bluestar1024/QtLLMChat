@@ -4,21 +4,16 @@
 #pragma once
 #include <string>
 
-enum class InlineType {
-    Bold,
-    Italic,
-    Code,
-    Image,
-    Link,
-    Null
-};
+enum class InlineType { Bold, Italic, Code, Image, Link, Null };
 
-class Markdown_InlineElement {
+class Markdown_InlineElement
+{
 private:
     InlineType type;
     size_t begin;
     size_t end;
     std::string url;
+
 public:
     Markdown_InlineElement();
     Markdown_InlineElement(InlineType t, size_t b, size_t e);

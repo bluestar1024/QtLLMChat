@@ -1,9 +1,7 @@
 #include "listwidget.h"
 
 ListWidget::ListWidget(QWidget *parent)
-    : QListWidget(parent),
-      m_scrollAutoChange(true),
-      m_scrollChangeUplimit(200)
+    : QListWidget(parent), m_scrollAutoChange(true), m_scrollChangeUplimit(200)
 {
     resize(1170, 480);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -11,54 +9,50 @@ ListWidget::ListWidget(QWidget *parent)
     setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     setFocusPolicy(Qt::NoFocus);
     verticalScrollBar()->setCursor(Qt::PointingHandCursor);
-    setStyleSheet(
-        "QListWidget{"
-        "    border: none;"
-        "    background: transparent;"
-        "}"
-        "QListWidget::item{"
-        "    background: transparent;"
-        "}"
-        "QListWidget::item:active{"
-        "    background: transparent;"
-        "}"
-        "QListWidget::item:selected{"
-        "    background: transparent;"
-        "}"
-        "QListWidget::item:hover{"
-        "    background: transparent;"
-        "}"
-        "QScrollBar:vertical {"
-        "    background: transparent;"
-        "    width: 10px;"
-        "    padding: 0px 4px 0px 0px;"
-        "}"
-        "QScrollBar::handle:vertical {"
-        "    background: #bcbcbc;"
-        "    width: 6px;"
-        "    border-radius: 3px;"
-        "}"
-        "QScrollBar::handle:vertical:hover {"
-        "    background: #808080;"
-        "}"
-        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
-        "    background: transparent;"
-        "}"
-        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
-        "    width: 0px;"
-        "}"
-    );
+    setStyleSheet("QListWidget{"
+                  "    border: none;"
+                  "    background: transparent;"
+                  "}"
+                  "QListWidget::item{"
+                  "    background: transparent;"
+                  "}"
+                  "QListWidget::item:active{"
+                  "    background: transparent;"
+                  "}"
+                  "QListWidget::item:selected{"
+                  "    background: transparent;"
+                  "}"
+                  "QListWidget::item:hover{"
+                  "    background: transparent;"
+                  "}"
+                  "QScrollBar:vertical {"
+                  "    background: transparent;"
+                  "    width: 10px;"
+                  "    padding: 0px 4px 0px 0px;"
+                  "}"
+                  "QScrollBar::handle:vertical {"
+                  "    background: #bcbcbc;"
+                  "    width: 6px;"
+                  "    border-radius: 3px;"
+                  "}"
+                  "QScrollBar::handle:vertical:hover {"
+                  "    background: #808080;"
+                  "}"
+                  "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {"
+                  "    background: transparent;"
+                  "}"
+                  "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+                  "    width: 0px;"
+                  "}");
 
     setMouseTracking(true);
-    connect(verticalScrollBar(), &QScrollBar::rangeChanged,
-            this, &ListWidget::onScrollBarRangeChanged);
-    connect(verticalScrollBar(), &QScrollBar::valueChanged,
-            this, &ListWidget::onScrollBarValueChanged);
+    connect(verticalScrollBar(), &QScrollBar::rangeChanged, this,
+            &ListWidget::onScrollBarRangeChanged);
+    connect(verticalScrollBar(), &QScrollBar::valueChanged, this,
+            &ListWidget::onScrollBarValueChanged);
 }
 
-ListWidget::~ListWidget()
-{
-}
+ListWidget::~ListWidget() { }
 
 void ListWidget::scrollTo(const QModelIndex &index, ScrollHint hint)
 {

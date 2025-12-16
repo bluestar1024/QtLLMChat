@@ -2,22 +2,23 @@
 #define FUNWIDGET_H
 
 #pragma once
-#include <QWidget>
-#include <QLabel>
-#include <QHBoxLayout>
-#include <QSizePolicy>
-#include <QFontDatabase>
-#include <QFont>
-#include <QIcon>
-#include <QMouseEvent>
-#include <QMap>
-#include <QString>
-#include <QMargins>
-#include <QSize>
-#include <QDir>
-#include <QVariant>
 #include "pushbutton.h"
 #include "widget.h"
+
+#include <QtWidgets/QWidget>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QSizePolicy>
+#include <QtGui/QFontDatabase>
+#include <QtGui/QFont>
+#include <QtGui/QIcon>
+#include <QtGui/QMouseEvent>
+#include <QtCore/QMap>
+#include <QtCore/QString>
+#include <QtCore/QMargins>
+#include <QtCore/QSize>
+#include <QtCore/QDir>
+#include <QtCore/QVariant>
 
 extern const QString imagesDir;
 extern const QString fontFilePath;
@@ -66,23 +67,23 @@ private:
     QMap<QString, QVariant> widgetSizeDict;
 
     /* 记录原始尺寸 */
-//    struct Saved
-//    {
-//        QSize self;
-//        QSize chatBtn;
-//        QSize chatIcon;
-//        QSize leftW;
-//        QSize midW;
-//        QSize rightW;
-//        QSize title;
-//        QSize newBtn;
-//        QSize newIcon;
-//        QMargins leftMargin;
-//        QMargins midMargin;
-//        QMargins rightMargin;
-//        QMargins mainMargin;
-//    };
-//    Saved saved;
+    // struct Saved
+    // {
+    //     QSize self;
+    //     QSize chatBtn;
+    //     QSize chatIcon;
+    //     QSize leftW;
+    //     QSize midW;
+    //     QSize rightW;
+    //     QSize title;
+    //     QSize newBtn;
+    //     QSize newIcon;
+    //     QMargins leftMargin;
+    //     QMargins midMargin;
+    //     QMargins rightMargin;
+    //     QMargins mainMargin;
+    // };
+    // Saved saved;
 };
 
 Q_DECLARE_METATYPE(QMargins)
@@ -90,9 +91,7 @@ Q_DECLARE_METATYPE(QMargins)
 template <typename T>
 void FunWidget::connectChatRecordsButtonClick(T *receiver, void (T::*slot)())
 {
-    connect(chatRecordsButton, &QPushButton::clicked, [=](bool) {
-        (receiver->*slot)();
-    });
+    connect(chatRecordsButton, &QPushButton::clicked, [=](bool) { (receiver->*slot)(); });
 }
 
 template <typename T>
@@ -104,9 +103,7 @@ void FunWidget::connectChatRecordsButtonClick(T *receiver, void (T::*slot)(bool)
 template <typename T>
 void FunWidget::connectNewChatButtonClick(T *receiver, void (T::*slot)())
 {
-    connect(newChatButton, &QPushButton::clicked, [=](bool) {
-        (receiver->*slot)();
-    });
+    connect(newChatButton, &QPushButton::clicked, [=](bool) { (receiver->*slot)(); });
 }
 
 template <typename T>

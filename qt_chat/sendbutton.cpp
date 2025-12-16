@@ -1,21 +1,13 @@
 #include "sendbutton.h"
 
-SendButton::SendButton(const QString &tipText,
-                       int tipOffsetX,
-                       int tipOffsetY,
-                       QWidget *parent)
-    : QPushButton(parent),
-      m_tipText(tipText),
-      m_ox(tipOffsetX),
-      m_oy(tipOffsetY)
+SendButton::SendButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
+    : QPushButton(parent), m_tipText(tipText), m_ox(tipOffsetX), m_oy(tipOffsetY)
 {
     setCursor(Qt::PointingHandCursor);
     m_tipStartPos = rect().topLeft() - QPoint(m_ox, m_oy);
 }
 
-SendButton::~SendButton()
-{
-}
+SendButton::~SendButton() { }
 
 bool SendButton::event(QEvent *event)
 {

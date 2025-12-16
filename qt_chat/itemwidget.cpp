@@ -1,11 +1,8 @@
 #include "itemwidget.h"
 
-ItemWidget::ItemWidget(QWidget *parent)
-    : QWidget(parent)
+ItemWidget::ItemWidget(QWidget *parent) : QWidget(parent)
 {
     setMouseTracking(true);
 }
 
-ItemWidget::~ItemWidget()
-{
-}
+ItemWidget::~ItemWidget() { }

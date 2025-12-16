@@ -2,15 +2,17 @@
 #define HTML_RENDERER_H
 
 #pragma once
-
-#include <string>
 #include "markdown_block_element.h"
 #include "markdown_inline_element.h"
 
-class Html_Renderer {
+#include <string>
+
+class Html_Renderer
+{
 private:
     std::string HtmlText = "";
     std::string Style_css = "";
+
 public:
     void SetStyle(std::string filename);
     void Init();

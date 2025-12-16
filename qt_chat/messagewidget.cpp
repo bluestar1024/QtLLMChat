@@ -1,16 +1,10 @@
 #include "messagewidget.h"
 #include <QTimer>
 
-MessageWidget::MessageWidget(const QString &text,
-                             std::function<void()> copyFun,
-                             std::function<void()> renewResponseFun,
-                             ListWidget *listWidget,
-                             QList<int> &thinkTimeLengthList,
-                             int thinkTimeIndex,
-                             bool isUser,
-                             bool thinkIsExpand,
-                             int textMaxWidth,
-                             QWidget *parent)
+MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
+                             std::function<void()> renewResponseFun, ListWidget *listWidget,
+                             QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser,
+                             bool thinkIsExpand, int textMaxWidth, QWidget *parent)
     : QWidget(parent),
       m_text(text),
       m_copyFun(copyFun),
@@ -26,8 +20,8 @@ MessageWidget::MessageWidget(const QString &text,
     m_layout->setContentsMargins(5, 5, 5, 5);
     m_textShow = new TextShow(m_text, m_isUser, m_textMaxWidth, this);
     m_layout->addWidget(m_textShow);
-//    if (!m_isUser) m_layout->addStretch();
-//    else           m_layout->setAlignment(Qt::AlignRight);
+    // if (!m_isUser) m_layout->addStretch();
+    // else           m_layout->setAlignment(Qt::AlignRight);
     setFixedSize(m_textShow->size() + QSize(10, 0));
     setObjectName("messageWidget");
     setStyleSheet("#messageWidget{"
@@ -35,9 +29,7 @@ MessageWidget::MessageWidget(const QString &text,
                   "}");
 }
 
-MessageWidget::~MessageWidget()
-{
-}
+MessageWidget::~MessageWidget() { }
 
 bool MessageWidget::getIsUser()
 {
@@ -61,15 +53,9 @@ void MessageWidget::toggleWidget()
     m_textShow->toggleWidget();
 }
 
-void MessageWidget::breakHandle()
-{
+void MessageWidget::breakHandle() { }
 
-}
-
-void MessageWidget::removeRenewResponseButton()
-{
-
-}
+void MessageWidget::removeRenewResponseButton() { }
 
 void MessageWidget::setSize()
 {
@@ -83,15 +69,13 @@ void MessageWidget::setText(const QString &text)
     setFixedSize(m_textShow->size() + QSize(10, 0));
 }
 
-void MessageWidget::removeLoadingWidget()
-{
-
-}
+void MessageWidget::removeLoadingWidget() { }
 
 void MessageWidget::onSizeFinshed()
 {
     emit resizeFinished();
-    if (!m_isUser) emit setTexting(false);
+    if (!m_isUser)
+        emit setTexting(false);
 }
 
 ListWidget *MessageWidget::getListWidget()

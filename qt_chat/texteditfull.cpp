@@ -1,7 +1,6 @@
 #include "texteditfull.h"
 
-TextEditFull::TextEditFull(QWidget* parent)
-    : QWidget(parent), backgroundColorIsLight(false)
+TextEditFull::TextEditFull(QWidget *parent) : QWidget(parent), backgroundColorIsLight(false)
 {
     setMinimumHeight(80);
 
@@ -27,16 +26,16 @@ TextEditFull::TextEditFull(QWidget* parent)
     setMouseTracking(true);
 }
 
-TextEditFull::~TextEditFull()
-{
-}
+TextEditFull::~TextEditFull() { }
 
-void TextEditFull::mouseMoveEvent(QMouseEvent* event) {
+void TextEditFull::mouseMoveEvent(QMouseEvent *event)
+{
     QWidget::mouseMoveEvent(event);
     event->ignore();
 }
 
-void TextEditFull::paintEvent(QPaintEvent* event) {
+void TextEditFull::paintEvent(QPaintEvent *event)
+{
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
@@ -55,25 +54,30 @@ void TextEditFull::paintEvent(QPaintEvent* event) {
     painter.end();
 }
 
-QColor TextEditFull::getBackgroundColor() const {
+QColor TextEditFull::getBackgroundColor() const
+{
     return BGColor;
 }
 
-void TextEditFull::setBackgroundColor(const QColor& color) {
+void TextEditFull::setBackgroundColor(const QColor &color)
+{
     BGColor = color;
     update();
 }
 
-QColor TextEditFull::getBorderColor() const {
+QColor TextEditFull::getBorderColor() const
+{
     return BColor;
 }
 
-void TextEditFull::setBorderColor(const QColor& color) {
+void TextEditFull::setBorderColor(const QColor &color)
+{
     BColor = color;
     update();
 }
 
-void TextEditFull::backgroundColorShowLight() {
+void TextEditFull::backgroundColorShowLight()
+{
     if (!backgroundColorIsLight) {
         backgroundColorIsLight = true;
         AnimationBackgroundColor->setStartValue(textEditFullBGColor);
@@ -86,7 +90,8 @@ void TextEditFull::backgroundColorShowLight() {
     }
 }
 
-void TextEditFull::backgroundColorShowDark() {
+void TextEditFull::backgroundColorShowDark()
+{
     if (backgroundColorIsLight) {
         backgroundColorIsLight = false;
         AnimationBackgroundColor->setStartValue(textEditFullBGTColor);
@@ -99,23 +104,28 @@ void TextEditFull::backgroundColorShowDark() {
     }
 }
 
-void TextEditFull::clearFocus() {
+void TextEditFull::clearFocus()
+{
     textEdit->clearFocus();
 }
 
-void TextEditFull::updateSendButtonSize(qreal curDpi, qreal lastDpi) {
+void TextEditFull::updateSendButtonSize(qreal curDpi, qreal lastDpi)
+{
     textEdit->updateSendButtonSize(curDpi, lastDpi);
 }
 
-void TextEditFull::resetWidgetSize() {
+void TextEditFull::resetWidgetSize()
+{
     textEdit->resize(width() - 30, height() - 30);
 }
 
-QString TextEditFull::toPlainText() const {
+QString TextEditFull::toPlainText() const
+{
     return textEdit->toPlainText();
 }
 
-void TextEditFull::clearText() {
+void TextEditFull::clearText()
+{
     textEdit->clear();
 }
 

@@ -3,7 +3,8 @@
 #include <iostream>
 #include "markdown_parser.h"
 
-void Markdown_Parser::split(const std::string& RawText) {
+void Markdown_Parser::split(const std::string &RawText)
+{
     RawBlock.clear();
     std::istringstream iss(RawText);
     std::vector<std::string> RawLine;
@@ -19,10 +20,10 @@ void Markdown_Parser::split(const std::string& RawText) {
     bool UnorderedList_flag = false;
     bool BlockQuote_flag = false;
 
-    while(ins < RawLine.size()) {
-        const std::string* prev = (ins > 0) ? &RawLine[ins - 1] : nullptr;
-        const std::string& curr = RawLine[ins];
-        const std::string* next = (ins + 1 < RawLine.size()) ? &RawLine[ins + 1] : nullptr;
+    while (ins < RawLine.size()) {
+        const std::string *prev = (ins > 0) ? &RawLine[ins - 1] : nullptr;
+        const std::string &curr = RawLine[ins];
+        const std::string *next = (ins + 1 < RawLine.size()) ? &RawLine[ins + 1] : nullptr;
         // std::cout << "test\t" << curr << '\n';
         if (curr.empty()) {
             BlockText.push_back(curr);
@@ -108,8 +109,8 @@ void Markdown_Parser::split(const std::string& RawText) {
         }
         // 标题
         if (next && !(*next == "\r" || *next == "\n" || next->empty())) {
-            if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '='; }) &&
-                (next->back() == '\r' || next->back() == '\n' || next->back() == '=')) {
+            if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '='; })
+                && (next->back() == '\r' || next->back() == '\n' || next->back() == '=')) {
                 if (!BlockText.empty()) {
                     RawBlock.push_back(BlockText);
                     BlockText.clear();
@@ -120,8 +121,8 @@ void Markdown_Parser::split(const std::string& RawText) {
                 ins += 2;
                 continue;
             }
-            if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '-'; }) &&
-                (next->back() == '\r' || next->back() == '\n' || next->back() == '-')) {
+            if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '-'; })
+                && (next->back() == '\r' || next->back() == '\n' || next->back() == '-')) {
                 if (!BlockText.empty()) {
                     RawBlock.push_back(BlockText);
                     BlockText.clear();
@@ -134,9 +135,10 @@ void Markdown_Parser::split(const std::string& RawText) {
             }
         }
         // 标题
-        if ((curr.size() >= 2 && curr[0] == '#' && curr[1] == ' ') ||
-            (curr.size() >= 3 && curr[0] == '#' && curr[1] == '#' && curr[2] == ' ') ||
-            (curr.size() >= 4 && curr[0] == '#' && curr[1] == '#' && curr[2] == '#' && curr[3] == ' ')) {
+        if ((curr.size() >= 2 && curr[0] == '#' && curr[1] == ' ')
+            || (curr.size() >= 3 && curr[0] == '#' && curr[1] == '#' && curr[2] == ' ')
+            || (curr.size() >= 4 && curr[0] == '#' && curr[1] == '#' && curr[2] == '#'
+                && curr[3] == ' ')) {
             if (!BlockText.empty()) {
                 RawBlock.push_back(BlockText);
                 BlockText.clear();
@@ -180,7 +182,9 @@ void Markdown_Parser::split(const std::string& RawText) {
     }
 }
 
-std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::string& RawText, std::string& ResText) {
+std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::string &RawText,
+                                                                  std::string &ResText)
+{
     std::string BufText = "";
     ResText = "";
     std::vector<Markdown_InlineElement> ResElem;
@@ -188,13 +192,20 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
     bool space = false;
     for (size_t i = 0; i < RawText.size(); i++) {
         std::string token(1, RawText[i]);
-        if (BufText.empty() && token == " ") { continue; }
+        if (BufText.empty() && token == " ") {
+            continue;
+        }
         if (token == " ") {
-            if (!space) { space = true; }
+            if (!space) {
+                space = true;
+            }
             continue;
         }
         if (token != " ") {
-            if (space) { BufText += " "; space = false; }
+            if (space) {
+                BufText += " ";
+                space = false;
+            }
             BufText += token;
         }
     }
@@ -211,14 +222,16 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
         if (token == "!" && i + 1 < BufText.size() && BufText[i + 1] == '[') {
             size_t alt_start = i + 2;
             size_t alt_end = BufText.find("]", alt_start);
-            if (alt_end != std::string::npos && alt_end + 1 < BufText.size() && BufText[alt_end + 1] == '(') {
+            if (alt_end != std::string::npos && alt_end + 1 < BufText.size()
+                && BufText[alt_end + 1] == '(') {
                 size_t url_start = alt_end + 2;
                 size_t url_end = BufText.find(")", url_start);
                 if (url_end != std::string::npos) {
                     std::string alt_text = BufText.substr(alt_start, alt_end - alt_start);
                     std::string url = BufText.substr(url_start, url_end - url_start);
 
-                    ResElem.push_back(Markdown_InlineElement(InlineType::Image, ins, ins + alt_text.size(), url));
+                    ResElem.push_back(Markdown_InlineElement(InlineType::Image, ins,
+                                                             ins + alt_text.size(), url));
                     ResText += alt_text;
 
                     i = url_end + 1;
@@ -230,7 +243,8 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
         if (token == "[" && !Italic_flag && !Bold_flag && !Code_flag) {
             size_t text_start = i + 1;
             size_t text_end = BufText.find("]", text_start);
-            if (text_end != std::string::npos && text_end + 1 < BufText.size() && BufText[text_end + 1] == '[') {
+            if (text_end != std::string::npos && text_end + 1 < BufText.size()
+                && BufText[text_end + 1] == '[') {
                 size_t id_start = text_end + 2;
                 size_t id_end = BufText.find("]", id_start);
                 if (id_end != std::string::npos) {
@@ -238,7 +252,8 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
                     std::string id = BufText.substr(id_start, id_end - id_start);
                     if (ref_links.count(id)) {
                         std::string url = ref_links[id];
-                        ResElem.push_back(Markdown_InlineElement(InlineType::Link, ins, ins + link_text.size(), url));
+                        ResElem.push_back(Markdown_InlineElement(InlineType::Link, ins,
+                                                                 ins + link_text.size(), url));
                         ResText += link_text;
                         i = id_end + 1;
                         ins += link_text.size();
@@ -251,7 +266,8 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
         if (token == "[" && !Italic_flag && !Bold_flag && !Code_flag) {
             size_t text_start = i + 1;
             size_t text_end = BufText.find("]", text_start);
-            if (text_end != std::string::npos && text_end + 1 < BufText.size() && BufText[text_end + 1] == '(') {
+            if (text_end != std::string::npos && text_end + 1 < BufText.size()
+                && BufText[text_end + 1] == '(') {
                 size_t url_start = text_end + 2;
                 size_t url_end = BufText.find(")", url_start);
                 if (url_end != std::string::npos) {
@@ -261,7 +277,8 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
                     std::smatch url_match;
                     if (std::regex_search(url_full, url_match, url_regex)) {
                         std::string url = url_match.str();
-                        ResElem.push_back(Markdown_InlineElement(InlineType::Link, ins, ins + link_text.size(), url));
+                        ResElem.push_back(Markdown_InlineElement(InlineType::Link, ins,
+                                                                 ins + link_text.size(), url));
                         ResText += link_text;
                         i = url_end + 1;
                         ins += link_text.size();
@@ -291,23 +308,26 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
                 if (token_next != "*") {
                     Italic_flag = true;
                     begin = ins;
-                    i++; continue;
-                }
-                else {
+                    i++;
+                    continue;
+                } else {
                     Bold_flag = true;
                     begin = ins;
-                    i += 2; continue;
+                    i += 2;
+                    continue;
                 }
             }
-            if(token == "*" && Bold_flag && !Italic_flag) {
+            if (token == "*" && Bold_flag && !Italic_flag) {
                 Bold_flag = false;
                 ResElem.push_back(Markdown_InlineElement(InlineType::Bold, begin, ins));
-                i += 2; continue;
+                i += 2;
+                continue;
             }
-            if(token == "*" && Italic_flag && !Bold_flag) {
+            if (token == "*" && Italic_flag && !Bold_flag) {
                 Italic_flag = false;
                 ResElem.push_back(Markdown_InlineElement(InlineType::Italic, begin, ins));
-                i++; continue;
+                i++;
+                continue;
             }
         }
         ResText += token;
@@ -317,7 +337,9 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
     return ResElem;
 }
 
-void Markdown_Parser::block_parse(const std::string& RawText, std::vector<Markdown_BlockElement>& BlockElem) {
+void Markdown_Parser::block_parse(const std::string &RawText,
+                                  std::vector<Markdown_BlockElement> &BlockElem)
+{
     split(RawText);
     for (size_t i = 0; i < RawBlock.size(); i++) {
         BlockType type;
@@ -330,82 +352,80 @@ void Markdown_Parser::block_parse(const std::string& RawText, std::vector<Markdo
                 Lines.push_back(LineElement(RawBlock[i][j]));
             }
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        }
-        else if (token.size() >= 2 && token[0] == '1' && token[1] == '.') {
+        } else if (token.size() >= 2 && token[0] == '1' && token[1] == '.') {
             type = BlockType::OrderedList;
             std::vector<LineElement> Lines;
-            for (const auto& line : RawBlock[i]) {
+            for (const auto &line : RawBlock[i]) {
                 std::string pure_text;
                 if (line.size() >= 2) {
-                    std::vector<Markdown_InlineElement> InlineElem = inline_parse(line.substr(2), pure_text);
+                    std::vector<Markdown_InlineElement> InlineElem =
+                            inline_parse(line.substr(2), pure_text);
                     Lines.push_back(LineElement(pure_text, InlineElem));
                 }
             }
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        }
-        else if ((token.size() >= 2 && token.substr(0, 2) == "* ")
-               || (token.size() >= 2 && token.substr(0, 2) == "+ ")
-               || (token.size() >= 2 && token.substr(0, 2) == "- ")) {
+        } else if ((token.size() >= 2 && token.substr(0, 2) == "* ")
+                   || (token.size() >= 2 && token.substr(0, 2) == "+ ")
+                   || (token.size() >= 2 && token.substr(0, 2) == "- ")) {
             type = BlockType::UnorderedList;
             std::vector<LineElement> Lines;
-            for (const auto& line : RawBlock[i]) {
+            for (const auto &line : RawBlock[i]) {
                 std::string pure_text;
                 if (line.size() >= 2) {
-                    std::vector<Markdown_InlineElement> InlineElem = inline_parse(line.substr(2), pure_text);
+                    std::vector<Markdown_InlineElement> InlineElem =
+                            inline_parse(line.substr(2), pure_text);
                     Lines.push_back(LineElement(pure_text, InlineElem));
                 }
             }
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        }
-        else if (token.size() >= 2 && token[0] == '>' && token[1] == ' ') {
+        } else if (token.size() >= 2 && token[0] == '>' && token[1] == ' ') {
             type = BlockType::BlockQuote;
             std::vector<LineElement> Lines;
-            for (const auto& line : RawBlock[i]) {
+            for (const auto &line : RawBlock[i]) {
                 std::string pure_text;
                 if (line.size() >= 2) {
-                    std::vector<Markdown_InlineElement> InlineElem = inline_parse(line.substr(2), pure_text);
+                    std::vector<Markdown_InlineElement> InlineElem =
+                            inline_parse(line.substr(2), pure_text);
                     Lines.push_back(LineElement(pure_text, InlineElem));
                 }
             }
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        }
-        else if (token == "###") {
+        } else if (token == "###") {
             type = BlockType::Headinglevel3;
             std::vector<LineElement> Lines;
             std::string pure_text;
-            std::vector<Markdown_InlineElement> InlineElem = inline_parse(RawBlock[i][0].substr(4), pure_text);
+            std::vector<Markdown_InlineElement> InlineElem =
+                    inline_parse(RawBlock[i][0].substr(4), pure_text);
             Lines.push_back(LineElement(pure_text, InlineElem));
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        }
-        else if (token == "## ") {
+        } else if (token == "## ") {
             type = BlockType::Headinglevel2;
             std::vector<LineElement> Lines;
             std::string pure_text;
-            std::vector<Markdown_InlineElement> InlineElem = inline_parse(RawBlock[i][0].substr(3), pure_text);
+            std::vector<Markdown_InlineElement> InlineElem =
+                    inline_parse(RawBlock[i][0].substr(3), pure_text);
             Lines.push_back(LineElement(pure_text, InlineElem));
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        }
-        else if (token.size() >= 1 && token[0] == '#') {
+        } else if (token.size() >= 1 && token[0] == '#') {
             type = BlockType::Headinglevel1;
             std::vector<LineElement> Lines;
             std::string pure_text;
-            std::vector<Markdown_InlineElement> InlineElem = inline_parse(RawBlock[i][0].substr(2), pure_text);
+            std::vector<Markdown_InlineElement> InlineElem =
+                    inline_parse(RawBlock[i][0].substr(2), pure_text);
             Lines.push_back(LineElement(pure_text, InlineElem));
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        }
-        else if (isHorizontalRules(RawBlock[i][0])) {
+        } else if (isHorizontalRules(RawBlock[i][0], i ? &RawBlock[i - 1].back() : nullptr)) {
             type = BlockType::HorizontalRules;
             std::vector<LineElement> Lines;
             Lines.push_back(LineElement(""));
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        }
-        else if (!token.empty()) {
+        } else if (!token.empty()) {
             type = BlockType::Paragraph;
             std::vector<LineElement> Lines;
             std::string pure_text;
-            for(size_t j = 0; j < RawBlock[i].size(); j++)
-            {
-                std::vector<Markdown_InlineElement> InlineElem = inline_parse(RawBlock[i][j], pure_text);
+            for (size_t j = 0; j < RawBlock[i].size(); j++) {
+                std::vector<Markdown_InlineElement> InlineElem =
+                        inline_parse(RawBlock[i][j], pure_text);
                 Lines.push_back(LineElement(pure_text, InlineElem));
             }
             BlockElem.push_back(Markdown_BlockElement(type, Lines));
@@ -413,25 +433,25 @@ void Markdown_Parser::block_parse(const std::string& RawText, std::vector<Markdo
     }
 }
 
-bool Markdown_Parser::isHorizontalRules(const std::string& lineStr, const std::string* prevLine) {
-    if (lineStr.substr(0, 3) == "***" &&
-        std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '*'; }) &&
-        (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '*'))
+bool Markdown_Parser::isHorizontalRules(const std::string &lineStr, const std::string *prevLine)
+{
+    if (lineStr.substr(0, 3) == "***"
+        && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '*'; })
+        && (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '*'))
         return true;
-    if (lineStr.substr(0, 3) == "___" &&
-        std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '_'; }) &&
-        (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '_'))
+    if (lineStr.substr(0, 3) == "___"
+        && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '_'; })
+        && (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '_'))
         return true;
     if (!prevLine) {
-        if (lineStr.substr(0, 3) == "---" &&
-            std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; }) &&
-            (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
+        if (lineStr.substr(0, 3) == "---"
+            && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; })
+            && (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
             return true;
-    }
-    else if (*prevLine == "\r" || *prevLine == "\n" || prevLine->empty()) {
-        if (lineStr.substr(0, 3) == "---" &&
-            std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; }) &&
-            (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
+    } else if (*prevLine == "\r" || *prevLine == "\n" || prevLine->empty()) {
+        if (lineStr.substr(0, 3) == "---"
+            && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; })
+            && (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
             return true;
     }
     return false;

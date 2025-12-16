@@ -1,14 +1,11 @@
 #include "widget.h"
 
-Widget::Widget(QWidget *parent)
-    : QWidget(parent)
+Widget::Widget(QWidget *parent) : QWidget(parent)
 {
     setMouseTracking(true);
 }
 
-Widget::~Widget()
-{
-}
+Widget::~Widget() { }
 
 void Widget::mouseMoveEvent(QMouseEvent *event)
 {

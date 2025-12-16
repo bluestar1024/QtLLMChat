@@ -15,8 +15,7 @@ public:
     ~ListWidget();
 
 protected:
-    void scrollTo(const QModelIndex &index,
-                  ScrollHint hint = EnsureVisible) override;
+    void scrollTo(const QModelIndex &index, ScrollHint hint = EnsureVisible) override;
 
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -27,8 +26,8 @@ private slots:
     void onScrollBarValueChanged(int value);
 
 private:
-    bool  m_scrollAutoChange;
-    int   m_scrollChangeUplimit;
+    bool m_scrollAutoChange;
+    int m_scrollChangeUplimit;
 };
 
 #endif // LISTWIDGET_H

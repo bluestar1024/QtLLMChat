@@ -2,8 +2,8 @@
 #define FRAME_H
 
 #pragma once
-#include <QFrame>
-#include <QMouseEvent>
+#include <QtWidgets/QFrame>
+#include <QtGui/QMouseEvent>
 
 class Frame : public QFrame
 {

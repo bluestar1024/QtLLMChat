@@ -1,8 +1,7 @@
 #include "textedit.h"
 #include <QDebug>
 
-TextEdit::TextEdit(QWidget *parent)
-    : QTextEdit(parent), isSending(false)
+TextEdit::TextEdit(QWidget *parent) : QTextEdit(parent), isSending(false)
 {
     resize(1130, 150);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -37,7 +36,8 @@ TextEdit::TextEdit(QWidget *parent)
             border: none;
             image: url("%1");
         }
-    )").arg(send_images_path));
+    )")
+                                      .arg(send_images_path));
     setStyleSheet(QString(R"(
         QTextEdit{
             border: none;
@@ -47,15 +47,14 @@ TextEdit::TextEdit(QWidget *parent)
         QScrollBar{
             width: 25px;
         }
-    )").arg(windowFontPointSize));
+    )")
+                          .arg(windowFontPointSize));
     setMouseTracking(true);
     widgetSizeDict["sendButton"] = sendButton->size();
     widgetSizeDict["sendButton iconSize"] = sendButton->iconSize();
 }
 
-TextEdit::~TextEdit()
-{
-}
+TextEdit::~TextEdit() { }
 
 void TextEdit::contextMenuEvent(QContextMenuEvent *event)
 {
@@ -131,7 +130,8 @@ void TextEdit::keyPressEvent(QKeyEvent *event)
 
 void TextEdit::updateSendButtonSize(qreal curDpi, qreal lastDpi)
 {
-    if (lastDpi == 0) return;
+    if (lastDpi == 0)
+        return;
     qreal ratio = qreal(curDpi / lastDpi);
 
     auto scale = [=](const QSize &s) -> QSize {
@@ -158,21 +158,24 @@ void TextEdit::sendButtonShow()
                 border: none;
                 image: url("%1");
             }
-        )").arg(send_disable_images_path));
+        )")
+                                          .arg(send_disable_images_path));
     } else if (toPlainText().isEmpty()) {
         sendButton->setStyleSheet(QString(R"(
             QPushButton{
                 border: none;
                 image: url("%1");
             }
-        )").arg(send_images_path));
+        )")
+                                          .arg(send_images_path));
     } else {
         sendButton->setStyleSheet(QString(R"(
             QPushButton{
                 border: none;
                 image: url("%1");
             }
-        )").arg(send_hover_images_path));
+        )")
+                                          .arg(send_hover_images_path));
     }
 }
 
