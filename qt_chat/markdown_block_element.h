@@ -2,9 +2,10 @@
 #define MARKDOWN_BLOCK_ELEMENT_H
 
 #pragma once
+#include "markdown_inline_element.h"
+
 #include <string>
 #include <vector>
-#include "markdown_inline_element.h"
 
 // 枚举语法类型
 enum class BlockType {
@@ -22,20 +23,19 @@ enum class BlockType {
 struct LineElement
 {
     std::string text;
-    std::vector<Markdown_InlineElement> InlineElement;
+    std::vector<MarkdownInlineElement> inlineElement;
     LineElement(std::string t) : text(t) { }
-    LineElement(std::string t, std::vector<Markdown_InlineElement> I)
-        : text(t), InlineElement(I) { }
+    LineElement(std::string t, std::vector<MarkdownInlineElement> i) : text(t), inlineElement(i) { }
 };
 
-class Markdown_BlockElement
+class MarkdownBlockElement
 {
 private:
     BlockType type;
-    std::vector<LineElement> Text;
+    std::vector<LineElement> text;
 
 public:
-    Markdown_BlockElement(BlockType t, std::vector<LineElement> T);
+    MarkdownBlockElement(BlockType type, std::vector<LineElement> text);
     BlockType getType() const;
     std::vector<LineElement> getText() const;
 };

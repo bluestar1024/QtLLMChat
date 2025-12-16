@@ -2,12 +2,12 @@
 #define SENDBUTTON_H
 
 #pragma once
-#include <QPushButton>
-#include <QEvent>
-#include <QFont>
-#include <QFontDatabase>
-#include <QToolTip>
-#include <QPoint>
+#include <QtWidgets/QPushButton>
+#include <QtCore/QEvent>
+#include <QtGui/QFont>
+#include <QtGui/QFontDatabase>
+#include <QtWidgets/QToolTip>
+#include <QtCore/QPoint>
 
 extern const QString fontFilePath;
 extern const int buttonFontPointSize;
@@ -21,13 +21,13 @@ public:
     ~SendButton();
 
 protected:
-    bool event(QEvent *event) override;
+    bool event(QEvent *e) override;
 
 private:
-    QString m_tipText;
-    QPoint m_tipStartPos;
-    int m_ox;
-    int m_oy;
+    QString tipText;
+    QPoint tipStartPos;
+    int tipOffsetX;
+    int tipOffsetY;
 };
 
 #endif // SENDBUTTON_H

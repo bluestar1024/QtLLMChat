@@ -2,18 +2,19 @@
 #define TEXTSHOW_H
 
 #pragma once
-#include <QWidget>
-#include <QFont>
-#include <QFontDatabase>
-#include <QFontMetricsF>
-#include <QHBoxLayout>
-#include <QTimer>
-#include <QUrl>
-#include <QFileInfo>
 #include "customlabel.h"
 #include "webengineview.h"
 #include "markdown_parser.h"
 #include "html_renderer.h"
+
+#include <QtWidgets/QWidget>
+#include <QtGui/QFont>
+#include <QtGui/QFontDatabase>
+#include <QtGui/QFontMetricsF>
+#include <QtWidgets/QHBoxLayout>
+#include <QtCore/QTimer>
+#include <QtCore/QUrl>
+#include <QtCore/QFileInfo>
 
 extern const QString fontFilePath;
 extern const QString mathjaxScriptPath;
@@ -61,22 +62,22 @@ private:
     TableInfo getTable(const QString &text) const;
     QString getAlignmentClass(const QString &fmt) const;
 
-    QString m_text;
-    bool m_isUser;
-    int m_maxWidth;
-    bool m_isLabel = true;
-    bool m_firstExecuteNextEmit = true;
+    QString text;
+    bool isUser;
+    int maxWidth;
+    bool isLabel = true;
+    bool firstExecuteNextEmit = true;
 
-    CustomLabel *m_label;
-    WebEngineView *m_webEngineView;
-    QHBoxLayout *m_mainHLayout;
-    QFont m_font;
-    QFontMetricsF *m_fontMetrics = nullptr;
-    QTimer *m_updateSizeTimer;
+    CustomLabel *label;
+    WebEngineView *webEngineView;
+    QHBoxLayout *mainHLayout;
+    QFont font;
+    QFontMetricsF *fontMetrics = nullptr;
+    QTimer *updateSizeTimer;
 
-    QString m_mathJaxCdn;
-    QString m_htmlText;
-    QString m_fullHtmlText;
+    QString mathJaxCdn;
+    QString htmlText;
+    QString fullHtmlText;
 };
 
 template <typename T>

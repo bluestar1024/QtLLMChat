@@ -46,7 +46,7 @@ public:
     void updateSize(qreal curDpi, qreal lastDpi);
 
 protected:
-    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
 
 private:
     PushButton *chatRecordsButton;

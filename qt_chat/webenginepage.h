@@ -2,10 +2,11 @@
 #define WEBENGINEPAGE_H
 
 #pragma once
-#include <QWebEnginePage>
-#include <QMainWindow>
-#include <QList>
 #include "customwebengineview.h"
+
+#include <QtWebEngineCore/QWebEnginePage>
+#include <QtWidgets/QMainWindow>
+#include <QtCore/QList>
 
 class WebEnginePage : public QWebEnginePage
 {

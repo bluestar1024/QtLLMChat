@@ -1,4 +1,5 @@
 #include "imagelabel.h"
+
 #include <QPixmap>
 
 ImageLabel::ImageLabel(bool isUser, QWidget *parent) : QLabel(parent)

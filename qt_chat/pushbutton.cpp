@@ -1,29 +1,29 @@
 #include "pushbutton.h"
 
 PushButton::PushButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
-    : QPushButton(parent), m_tipText(tipText), m_ox(tipOffsetX), m_oy(tipOffsetY)
+    : QPushButton(parent), tipText(tipText), tipOffsetX(tipOffsetX), tipOffsetY(tipOffsetY)
 {
     setCursor(Qt::PointingHandCursor);
-    m_tipStartPos = QPoint(rect().topLeft().x() - m_ox, rect().topLeft().y() - m_oy);
+    tipStartPos = rect().topLeft() - QPoint(this->tipOffsetX, this->tipOffsetY);
 }
 
 PushButton::~PushButton() { }
 
-void PushButton::mousePressEvent(QMouseEvent *event)
+void PushButton::mousePressEvent(QMouseEvent *e)
 {
-    QPushButton::mousePressEvent(event);
-    event->ignore();
+    QPushButton::mousePressEvent(e);
+    e->ignore();
 }
 
-void PushButton::mouseReleaseEvent(QMouseEvent *event)
+void PushButton::mouseReleaseEvent(QMouseEvent *e)
 {
-    QPushButton::mouseReleaseEvent(event);
-    event->ignore();
+    QPushButton::mouseReleaseEvent(e);
+    e->ignore();
 }
 
-bool PushButton::event(QEvent *event)
+bool PushButton::event(QEvent *e)
 {
-    if (event->type() == QEvent::ToolTip) {
+    if (e->type() == QEvent::ToolTip) {
         static bool fontLoaded = false;
         static QFont customFont;
         if (!fontLoaded) {
@@ -38,7 +38,7 @@ bool PushButton::event(QEvent *event)
         }
         if (fontLoaded)
             QToolTip::setFont(customFont);
-        QToolTip::showText(mapToGlobal(m_tipStartPos), m_tipText, this);
+        QToolTip::showText(mapToGlobal(tipStartPos), tipText, this);
     }
-    return QPushButton::event(event);
+    return QPushButton::event(e);
 }

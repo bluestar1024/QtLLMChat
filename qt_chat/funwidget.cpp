@@ -64,10 +64,10 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
 
 FunWidget::~FunWidget() { }
 
-void FunWidget::mouseMoveEvent(QMouseEvent *event)
+void FunWidget::mouseMoveEvent(QMouseEvent *e)
 {
-    QWidget::mouseMoveEvent(event);
-    event->ignore();
+    QWidget::mouseMoveEvent(e);
+    e->ignore();
 }
 
 void FunWidget::setSize()

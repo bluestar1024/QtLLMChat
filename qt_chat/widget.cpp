@@ -7,8 +7,8 @@ Widget::Widget(QWidget *parent) : QWidget(parent)
 
 Widget::~Widget() { }
 
-void Widget::mouseMoveEvent(QMouseEvent *event)
+void Widget::mouseMoveEvent(QMouseEvent *e)
 {
-    QWidget::mouseMoveEvent(event);
-    event->ignore();
+    QWidget::mouseMoveEvent(e);
+    e->ignore();
 }

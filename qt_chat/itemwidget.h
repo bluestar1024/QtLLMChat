@@ -1,7 +1,7 @@
 #ifndef ITEMWIDGET_H
 #define ITEMWIDGET_H
 
-#include <QWidget>
+#include <QtWidgets/QWidget>
 
 class ItemWidget : public QWidget
 {

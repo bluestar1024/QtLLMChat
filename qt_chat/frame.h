@@ -13,7 +13,7 @@ public:
     ~Frame();
 
 protected:
-    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
 };
 
 #endif // FRAME_H

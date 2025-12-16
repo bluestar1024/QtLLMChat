@@ -2,7 +2,7 @@
 #define IMAGELABEL_H
 
 #pragma once
-#include <QLabel>
+#include <QtWidgets/QLabel>
 
 extern const QString imagesDir;
 

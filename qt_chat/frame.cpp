@@ -7,8 +7,8 @@ Frame::Frame(QWidget *parent) : QFrame(parent)
 
 Frame::~Frame() { }
 
-void Frame::mouseMoveEvent(QMouseEvent *event)
+void Frame::mouseMoveEvent(QMouseEvent *e)
 {
-    QFrame::mouseMoveEvent(event);
-    event->ignore();
+    QFrame::mouseMoveEvent(e);
+    e->ignore();
 }

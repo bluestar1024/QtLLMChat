@@ -2,12 +2,13 @@
 #define MESSAGEWIDGET_H
 
 #pragma once
-#include <QWidget>
-#include <QString>
-#include <QHBoxLayout>
-#include <QLabel>
 #include "listwidget.h"
 #include "textshow.h"
+
+#include <QtWidgets/QWidget>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QLabel>
+#include <QtCore/QString>
 
 class MessageWidget : public QWidget
 {
@@ -44,18 +45,18 @@ signals:
 private:
     void onSizeFinshed();
 
-    QString m_text;
-    std::function<void()> m_copyFun;
-    std::function<void()> m_renewResponseFun;
-    ListWidget *m_listWidget = nullptr;
-    QList<int> &m_thinkTimeLengthList;
-    int m_thinkTimeIndex;
-    bool m_isUser;
-    bool m_thinkIsExpand;
-    int m_textMaxWidth;
+    QString text;
+    std::function<void()> copyFun;
+    std::function<void()> renewResponseFun;
+    ListWidget *listWidget = nullptr;
+    QList<int> &thinkTimeLengthList;
+    int thinkTimeIndex;
+    bool isUser;
+    bool thinkIsExpand;
+    int textMaxWidth;
 
-    QHBoxLayout *m_layout;
-    TextShow *m_textShow;
+    QHBoxLayout *layout;
+    TextShow *textShow;
 };
 
 template <typename T>
@@ -73,9 +74,8 @@ void MessageWidget::connectSetTexting(T *receiver, void (T::*slot)(bool))
 template <typename T>
 void MessageWidget::connectExecuteNext(T *receiver, void (T::*slot)())
 {
-    // connect(this, &MessageWidget::executeNext, receiver, slot);
-    if (m_isUser)
-        m_textShow->connectExecuteNext(receiver, slot);
+    if (isUser)
+        textShow->connectExecuteNext(receiver, slot);
 }
 
 #endif // MESSAGEWIDGET_H

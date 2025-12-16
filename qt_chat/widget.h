@@ -2,8 +2,8 @@
 #define WIDGET_H
 
 #pragma once
-#include <QWidget>
-#include <QMouseEvent>
+#include <QtWidgets/QWidget>
+#include <QtGui/QMouseEvent>
 
 class Widget : public QWidget
 {
@@ -13,7 +13,7 @@ public:
     ~Widget();
 
 protected:
-    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
 };
 
 #endif // WIDGET_H

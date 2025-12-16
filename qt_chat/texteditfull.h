@@ -2,18 +2,19 @@
 #define TEXTEDITFULL_H
 
 #pragma once
-#include <QWidget>
-#include <QHBoxLayout>
-#include <QPropertyAnimation>
-#include <QMouseEvent>
-#include <QPaintEvent>
-#include <QPainter>
-#include <QPen>
-#include <QBrush>
-#include <QPainterPath>
-#include <QColor>
-#include <QMetaMethod>
 #include "textedit.h"
+
+#include <QtWidgets/QWidget>
+#include <QtWidgets/QHBoxLayout>
+#include <QtCore/QPropertyAnimation>
+#include <QtGui/QMouseEvent>
+#include <QtGui/QPaintEvent>
+#include <QtGui/QPainter>
+#include <QtGui/QPen>
+#include <QtGui/QBrush>
+#include <QtGui/QPainterPath>
+#include <QtGui/QColor>
+#include <QtCore/QMetaMethod>
 
 extern const QColor textEditFullBGColor;
 extern const QColor textEditFullBGTColor;
@@ -44,16 +45,16 @@ public:
     void setSending(bool isSending);
 
 protected:
-    void mouseMoveEvent(QMouseEvent *event) override;
-    void paintEvent(QPaintEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
+    void paintEvent(QPaintEvent *e) override;
 
 private:
     TextEdit *textEdit;
     QHBoxLayout *mainHLayout;
-    QPropertyAnimation *AnimationBackgroundColor;
-    QPropertyAnimation *AnimationBorderColor;
-    QColor BGColor;
-    QColor BColor;
+    QPropertyAnimation *animationBackgroundColor;
+    QPropertyAnimation *animationBorderColor;
+    QColor bgColor;
+    QColor bColor;
     bool backgroundColorIsLight;
 
     QColor getBackgroundColor() const;

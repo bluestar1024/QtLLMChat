@@ -2,10 +2,10 @@
 #define LISTWIDGET_H
 
 #pragma once
-#include <QListWidget>
-#include <QScrollBar>
-#include <QMouseEvent>
-#include <QModelIndex>
+#include <QtWidgets/QListWidget>
+#include <QtWidgets/QScrollBar>
+#include <QtGui/QMouseEvent>
+#include <QtCore/QModelIndex>
 
 class ListWidget : public QListWidget
 {
@@ -17,17 +17,17 @@ public:
 protected:
     void scrollTo(const QModelIndex &index, ScrollHint hint = EnsureVisible) override;
 
-    void mouseMoveEvent(QMouseEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
+    void mousePressEvent(QMouseEvent *e) override;
+    void mouseReleaseEvent(QMouseEvent *e) override;
 
 private slots:
     void onScrollBarRangeChanged(int min, int max);
     void onScrollBarValueChanged(int value);
 
 private:
-    bool m_scrollAutoChange;
-    int m_scrollChangeUplimit;
+    bool scrollAutoChange;
+    int scrollChangeUplimit;
 };
 
 #endif // LISTWIDGET_H

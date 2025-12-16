@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+
 #include <QDebug>
 
 const QString imagesDir = ":/images";
@@ -142,7 +143,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     setMouseTracking(true);
 
     mouseLeftButtonIsPress = false;
-    regionDir = RegionEnum::MIDDLE;
+    regionDir = RegionEnum::Middle;
     padding = 2;
     // titleWidgetInit();
     chatFun = new FunWidget();
@@ -363,7 +364,7 @@ void MainWindow::startThread()
 
 void MainWindow::messageStart()
 {
-    Message.clear();
+    message.clear();
     int i = messageWidgetList.size() - 1;
     if (i != 0) {
         if (messageWidgetList[i]->getIsUser())
@@ -374,7 +375,7 @@ void MainWindow::messageStart()
 
     thinkTimeLengthList.append(0);
     messageRecvWidget = new MessageWidget(
-            Message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); }, chatShow,
+            message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); }, chatShow,
             thinkTimeLengthList, messageWidgetList.size(), false, true, chatShow->width() * 3 / 4);
     messageRecvWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
     messageRecvWidget->connectSetTexting(this, &MainWindow::getSetTexting);
@@ -401,15 +402,15 @@ void MainWindow::recvMessage(const QString &text)
     if (first) {
         first = false;
         if (text.startsWith("\n "))
-            Message = text.mid(2);
+            message = text.mid(2);
         else
-            Message = text;
+            message = text;
     } else {
-        Message += text;
+        message += text;
     }
 
     if (isContinueShow) {
-        messageRecvWidget->setText(Message);
+        messageRecvWidget->setText(message);
         itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
         itemRecvHLayout->setContentsMargins(
                 0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
@@ -429,7 +430,7 @@ void MainWindow::messageFinish()
                                         5);
     recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
 
-    if (Message.isEmpty()) {
+    if (message.isEmpty()) {
         delete messageWidgetList.takeLast();
         int last = chatShow->count() - 1;
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
@@ -456,16 +457,3 @@ void MainWindow::getSetTexting(bool state)
 void MainWindow::showChatRecords() { }
 
 void MainWindow::newChat() { }
-
-// QScreen* MainWindow::getScreenForWidget(const QWidget* widget)
-// {
-//  QDesktopWidget* desktop = QApplication::desktop();
-//  int screenNumber = desktop->screenNumber(widget);
-//  if (screenNumber != -1) {
-//      QList<QScreen*> screens = QApplication::screens();
-//      if (screenNumber < screens.size()) {
-//          return screens.at(screenNumber);
-//      }
-//  }
-//  return QApplication::primaryScreen();
-// }

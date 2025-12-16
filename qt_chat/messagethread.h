@@ -1,9 +1,9 @@
 #ifndef MESSAGETHREAD_H
 #define MESSAGETHREAD_H
 
-#include <QThread>
-#include <QString>
-#include <QVariantMap>
+#include <QtCore/QThread>
+#include <QtCore/QString>
+#include <QtCore/QVariantMap>
 
 extern const QString testText;
 
@@ -22,9 +22,9 @@ protected:
     void run() override;
 
 private:
-    QString m_contentInput;
-    QList<QVariantMap> m_context;
-    bool m_useStream;
+    QString contentInput;
+    QList<QVariantMap> context;
+    bool useStream;
     QString contentOutput;
 };
 

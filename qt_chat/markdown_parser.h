@@ -2,21 +2,22 @@
 #define MARKDOWN_PARSER_H
 
 #pragma once
-#include <string>
-#include <vector>
-#include <unordered_map>
 #include "markdown_block_element.h"
 #include "markdown_inline_element.h"
 
-class Markdown_Parser
+#include <string>
+#include <vector>
+#include <unordered_map>
+
+class MarkdownParser
 {
 public:
-    std::vector<std::vector<std::string>> RawBlock;
-    std::unordered_map<std::string, std::string> ref_links;
-    void split(const std::string &RawText);
-    std::vector<Markdown_InlineElement> inline_parse(const std::string &RawText,
-                                                     std::string &ResText);
-    void block_parse(const std::string &RawText, std::vector<Markdown_BlockElement> &BlockElem);
+    std::vector<std::vector<std::string>> rawBlock;
+    std::unordered_map<std::string, std::string> refLinks;
+    void split(const std::string &rawText);
+    std::vector<MarkdownInlineElement> inlineParse(const std::string &rawText,
+                                                   std::string &resText);
+    void blockParse(const std::string &rawText, std::vector<MarkdownBlockElement> &blockElem);
     bool isHorizontalRules(const std::string &lineStr, const std::string *prevLine = nullptr);
 };
 

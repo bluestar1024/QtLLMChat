@@ -4,19 +4,19 @@ CustomLabel::CustomLabel(QWidget *parent) : QLabel(parent) { }
 
 CustomLabel::~CustomLabel() { }
 
-void CustomLabel::mousePressEvent(QMouseEvent *event)
+void CustomLabel::mousePressEvent(QMouseEvent *e)
 {
-    QLabel::mousePressEvent(event);
-    event->ignore();
+    QLabel::mousePressEvent(e);
+    e->ignore();
 }
 
-void CustomLabel::mouseReleaseEvent(QMouseEvent *event)
+void CustomLabel::mouseReleaseEvent(QMouseEvent *e)
 {
-    QLabel::mouseReleaseEvent(event);
-    event->ignore();
+    QLabel::mouseReleaseEvent(e);
+    e->ignore();
 }
 
-void CustomLabel::contextMenuEvent(QContextMenuEvent *event)
+void CustomLabel::contextMenuEvent(QContextMenuEvent *e)
 {
-    event->ignore();
+    e->ignore();
 }

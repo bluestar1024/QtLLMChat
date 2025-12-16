@@ -12,38 +12,39 @@ TextEditFull::TextEditFull(QWidget *parent) : QWidget(parent), backgroundColorIs
     resize(textEdit->width() + 30, textEdit->height() + 30);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
-    BGColor = textEditFullBGColor;
-    BColor = textEditFullBTColor;
+    bgColor = textEditFullBGColor;
+    bColor = textEditFullBTColor;
 
-    AnimationBackgroundColor = new QPropertyAnimation(this, "backgroundColor");
-    AnimationBackgroundColor->setDuration(400);
-    AnimationBackgroundColor->setEasingCurve(QEasingCurve::OutQuad);
+    animationBackgroundColor = new QPropertyAnimation(this, "backgroundColor");
+    animationBackgroundColor->setDuration(400);
+    animationBackgroundColor->setEasingCurve(QEasingCurve::OutQuad);
 
-    AnimationBorderColor = new QPropertyAnimation(this, "borderColor");
-    AnimationBorderColor->setDuration(400);
-    AnimationBorderColor->setEasingCurve(QEasingCurve::OutQuad);
+    animationBorderColor = new QPropertyAnimation(this, "borderColor");
+    animationBorderColor->setDuration(400);
+    animationBorderColor->setEasingCurve(QEasingCurve::OutQuad);
 
     setMouseTracking(true);
 }
 
 TextEditFull::~TextEditFull() { }
 
-void TextEditFull::mouseMoveEvent(QMouseEvent *event)
+void TextEditFull::mouseMoveEvent(QMouseEvent *e)
 {
-    QWidget::mouseMoveEvent(event);
-    event->ignore();
+    QWidget::mouseMoveEvent(e);
+    e->ignore();
 }
 
-void TextEditFull::paintEvent(QPaintEvent *event)
+void TextEditFull::paintEvent(QPaintEvent *e)
 {
+    Q_UNUSED(e);
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    QPen pen(BColor);
+    QPen pen(bColor);
     painter.setPen(pen);
 
     QBrush brush(Qt::SolidPattern);
-    brush.setColor(BGColor);
+    brush.setColor(bgColor);
     painter.setBrush(brush);
 
     QPainterPath path;
@@ -56,23 +57,23 @@ void TextEditFull::paintEvent(QPaintEvent *event)
 
 QColor TextEditFull::getBackgroundColor() const
 {
-    return BGColor;
+    return bgColor;
 }
 
 void TextEditFull::setBackgroundColor(const QColor &color)
 {
-    BGColor = color;
+    bgColor = color;
     update();
 }
 
 QColor TextEditFull::getBorderColor() const
 {
-    return BColor;
+    return bColor;
 }
 
 void TextEditFull::setBorderColor(const QColor &color)
 {
-    BColor = color;
+    bColor = color;
     update();
 }
 
@@ -80,13 +81,13 @@ void TextEditFull::backgroundColorShowLight()
 {
     if (!backgroundColorIsLight) {
         backgroundColorIsLight = true;
-        AnimationBackgroundColor->setStartValue(textEditFullBGColor);
-        AnimationBackgroundColor->setEndValue(textEditFullBGTColor);
-        AnimationBackgroundColor->start();
+        animationBackgroundColor->setStartValue(textEditFullBGColor);
+        animationBackgroundColor->setEndValue(textEditFullBGTColor);
+        animationBackgroundColor->start();
 
-        AnimationBorderColor->setStartValue(textEditFullBTColor);
-        AnimationBorderColor->setEndValue(textEditFullBColor);
-        AnimationBorderColor->start();
+        animationBorderColor->setStartValue(textEditFullBTColor);
+        animationBorderColor->setEndValue(textEditFullBColor);
+        animationBorderColor->start();
     }
 }
 
@@ -94,13 +95,13 @@ void TextEditFull::backgroundColorShowDark()
 {
     if (backgroundColorIsLight) {
         backgroundColorIsLight = false;
-        AnimationBackgroundColor->setStartValue(textEditFullBGTColor);
-        AnimationBackgroundColor->setEndValue(textEditFullBGColor);
-        AnimationBackgroundColor->start();
+        animationBackgroundColor->setStartValue(textEditFullBGTColor);
+        animationBackgroundColor->setEndValue(textEditFullBGColor);
+        animationBackgroundColor->start();
 
-        AnimationBorderColor->setStartValue(textEditFullBColor);
-        AnimationBorderColor->setEndValue(textEditFullBTColor);
-        AnimationBorderColor->start();
+        animationBorderColor->setStartValue(textEditFullBColor);
+        animationBorderColor->setEndValue(textEditFullBTColor);
+        animationBorderColor->start();
     }
 }
 

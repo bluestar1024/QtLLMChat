@@ -7,20 +7,20 @@
 
 #include <string>
 
-class Html_Renderer
+class HtmlRenderer
 {
 private:
-    std::string HtmlText = "";
-    std::string Style_css = "";
+    std::string htmlText = "";
+    std::string styleCss = "";
 
 public:
-    void SetStyle(std::string filename);
-    void Init();
-    void Tail();
+    void setStyle(std::string filename);
+    void init();
+    void tail();
     // 为块元素语法部分渲染 html 标签
-    void BlockHtml(Markdown_BlockElement BlockElem);
+    void blockHtml(MarkdownBlockElement blockElem);
     // 为行内元素语法部分渲染 html 标签
-    std::string InlineHtml(LineElement Line);
+    std::string inlineHtml(LineElement line);
     std::string getHtml() const;
 };
 

@@ -2,16 +2,6 @@
 #define MAINWINDOW_H
 
 #pragma once
-#include <QMainWindow>
-#include <QGraphicsDropShadowEffect>
-#include <QHBoxLayout>
-#include <QListWidgetItem>
-#include <QTimer>
-#include <QString>
-#include <QScreen>
-#include <QApplication>
-// #include <QDesktopWidget>
-#include <QVariant>
 #include "widget.h"
 #include "funwidget.h"
 #include "listwidget.h"
@@ -22,6 +12,16 @@
 #include "messagewidget.h"
 #include "itemwidget.h"
 #include "messagethread.h"
+
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QGraphicsDropShadowEffect>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QListWidgetItem>
+#include <QtCore/QTimer>
+#include <QtCore/QString>
+#include <QtGui/QScreen>
+#include <QtWidgets/QApplication>
+#include <QtCore/QVariant>
 
 extern const QString imagesDir;
 extern const QString fontFilePath;
@@ -37,17 +37,17 @@ extern const QColor textEditFullBColor;
 extern const QString testText;
 
 enum class RegionEnum : int {
-    LEFT = 0,
-    RIGHT,
-    TOP,
-    BOTTOM,
-    LEFTTOP,
-    RIGHTTOP,
-    LEFTBOTTOM,
-    RIGHTBOTTOM,
-    TITLE,
-    BUTTON,
-    MIDDLE
+    Left = 0,
+    Right,
+    Top,
+    Bottom,
+    LeftTop,
+    LeftBottom,
+    RightTop,
+    RightBottom,
+    Title,
+    Button,
+    Middle
 };
 
 class MainWindow : public QMainWindow
@@ -120,7 +120,7 @@ private:
     QListWidgetItem *sendItem = nullptr;
     QListWidgetItem *recvItem = nullptr;
     MessageThread *thread = nullptr;
-    QString Message = "";
+    QString message = "";
 
 private slots:
     void onDpiChanged();
@@ -134,6 +134,5 @@ private slots:
     void getSetTexting(bool);
     void showChatRecords();
     void newChat();
-    // QScreen* getScreenForWidget(const QWidget* widget);
 };
 #endif // MAINWINDOW_H

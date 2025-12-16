@@ -2,21 +2,22 @@
 #define TEXTEDIT_H
 
 #pragma once
-#include <QTextEdit>
-#include <QSizePolicy>
-#include <QFontDatabase>
-#include <QFont>
-#include <QGridLayout>
-#include <QContextMenuEvent>
-#include <QMenu>
-#include <QAction>
-#include <QKeySequence>
-#include <QIcon>
-#include <QMouseEvent>
-#include <QKeyEvent>
-#include <QMetaMethod>
 #include "sendbutton.h"
 #include "custommenu.h"
+
+#include <QtWidgets/QTextEdit>
+#include <QtWidgets/QSizePolicy>
+#include <QtGui/QFontDatabase>
+#include <QtGui/QFont>
+#include <QtWidgets/QGridLayout>
+#include <QtGui/QContextMenuEvent>
+#include <QtWidgets/QMenu>
+#include <QtGui/QAction>
+#include <QtGui/QKeySequence>
+#include <QtGui/QIcon>
+#include <QtGui/QMouseEvent>
+#include <QtGui/QKeyEvent>
+#include <QtCore/QMetaMethod>
 
 extern const QString imagesDir;
 extern const QString fontFilePath;
@@ -40,11 +41,11 @@ public:
     void setSending(bool isSending);
 
 protected:
-    void contextMenuEvent(QContextMenuEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
+    void contextMenuEvent(QContextMenuEvent *e) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
+    void mousePressEvent(QMouseEvent *e) override;
+    void mouseReleaseEvent(QMouseEvent *e) override;
+    void keyPressEvent(QKeyEvent *e) override;
 
 private slots:
     void sendButtonShow();
@@ -52,9 +53,9 @@ private slots:
 private:
     SendButton *sendButton;
     QGridLayout *gLayout;
-    QString send_images_path;
-    QString send_hover_images_path;
-    QString send_disable_images_path;
+    QString sendImagesPath;
+    QString sendHoverImagesPath;
+    QString sendDisableImagesPath;
     bool isSending;
     QMap<QString, QVariant> widgetSizeDict;
 };

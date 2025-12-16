@@ -1,7 +1,7 @@
 #include "listwidget.h"
 
 ListWidget::ListWidget(QWidget *parent)
-    : QListWidget(parent), m_scrollAutoChange(true), m_scrollChangeUplimit(200)
+    : QListWidget(parent), scrollAutoChange(true), scrollChangeUplimit(200)
 {
     resize(1170, 480);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -64,7 +64,7 @@ void ListWidget::scrollTo(const QModelIndex &index, ScrollHint hint)
 void ListWidget::onScrollBarRangeChanged(int min, int max)
 {
     Q_UNUSED(min);
-    if (m_scrollAutoChange)
+    if (scrollAutoChange)
         verticalScrollBar()->setValue(max);
 }
 
@@ -72,26 +72,26 @@ void ListWidget::onScrollBarRangeChanged(int min, int max)
 void ListWidget::onScrollBarValueChanged(int value)
 {
     Q_UNUSED(value);
-    if (verticalScrollBar()->maximum() - verticalScrollBar()->value() >= m_scrollChangeUplimit)
-        m_scrollAutoChange = false;
+    if (verticalScrollBar()->maximum() - verticalScrollBar()->value() >= scrollChangeUplimit)
+        scrollAutoChange = false;
     else
-        m_scrollAutoChange = true;
+        scrollAutoChange = true;
 }
 
-void ListWidget::mouseMoveEvent(QMouseEvent *event)
+void ListWidget::mouseMoveEvent(QMouseEvent *e)
 {
-    QListWidget::mouseMoveEvent(event);
-    event->ignore();
+    QListWidget::mouseMoveEvent(e);
+    e->ignore();
 }
 
-void ListWidget::mousePressEvent(QMouseEvent *event)
+void ListWidget::mousePressEvent(QMouseEvent *e)
 {
-    QListWidget::mousePressEvent(event);
-    event->ignore();
+    QListWidget::mousePressEvent(e);
+    e->ignore();
 }
 
-void ListWidget::mouseReleaseEvent(QMouseEvent *event)
+void ListWidget::mouseReleaseEvent(QMouseEvent *e)
 {
-    QListWidget::mouseReleaseEvent(event);
-    event->ignore();
+    QListWidget::mouseReleaseEvent(e);
+    e->ignore();
 }

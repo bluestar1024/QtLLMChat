@@ -2,8 +2,8 @@
 #define SPLITTER_H
 
 #pragma once
-#include <QSplitter>
-#include <QMouseEvent>
+#include <QtWidgets/QSplitter>
+#include <QtGui/QMouseEvent>
 
 class Splitter : public QSplitter
 {
@@ -13,7 +13,7 @@ public:
     ~Splitter();
 
 protected:
-    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *e) override;
 };
 
 #endif // SPLITTER_H

@@ -1,17 +1,17 @@
 #include "sendbutton.h"
 
 SendButton::SendButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
-    : QPushButton(parent), m_tipText(tipText), m_ox(tipOffsetX), m_oy(tipOffsetY)
+    : QPushButton(parent), tipText(tipText), tipOffsetX(tipOffsetX), tipOffsetY(tipOffsetY)
 {
     setCursor(Qt::PointingHandCursor);
-    m_tipStartPos = rect().topLeft() - QPoint(m_ox, m_oy);
+    tipStartPos = rect().topLeft() - QPoint(this->tipOffsetX, this->tipOffsetY);
 }
 
 SendButton::~SendButton() { }
 
-bool SendButton::event(QEvent *event)
+bool SendButton::event(QEvent *e)
 {
-    if (event->type() == QEvent::ToolTip) {
+    if (e->type() == QEvent::ToolTip) {
         static bool fontLoaded = false;
         static QFont customFont;
         if (!fontLoaded) {
@@ -26,7 +26,7 @@ bool SendButton::event(QEvent *event)
         }
         if (fontLoaded)
             QToolTip::setFont(customFont);
-        QToolTip::showText(mapToGlobal(m_tipStartPos), m_tipText, this);
+        QToolTip::showText(mapToGlobal(tipStartPos), tipText, this);
     }
-    return QPushButton::event(event);
+    return QPushButton::event(e);
 }

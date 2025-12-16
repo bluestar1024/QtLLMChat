@@ -7,8 +7,8 @@ Splitter::Splitter(Qt::Orientation orientation, QWidget *parent) : QSplitter(ori
 
 Splitter::~Splitter() { }
 
-void Splitter::mouseMoveEvent(QMouseEvent *event)
+void Splitter::mouseMoveEvent(QMouseEvent *e)
 {
-    QSplitter::mouseMoveEvent(event);
-    event->ignore();
+    QSplitter::mouseMoveEvent(e);
+    e->ignore();
 }

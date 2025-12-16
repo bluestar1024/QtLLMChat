@@ -2,17 +2,18 @@
 #define WEBENGINEVIEW_H
 
 #pragma once
-#include <QWebEngineView>
-#include <QMouseEvent>
-#include <QWheelEvent>
-#include <QContextMenuEvent>
-#include <QEvent>
-#include <QCoreApplication>
-#include <QScrollBar>
-#include <QPointingDevice>
 #include "listwidget.h"
 #include "webenginepage.h"
 #include "textshow.h"
+
+#include <QtWebEngineWidgets/QWebEngineView>
+#include <QtGui/QMouseEvent>
+#include <QtGui/QWheelEvent>
+#include <QtGui/QContextMenuEvent>
+#include <QtCore/QEvent>
+#include <QtCore/QCoreApplication>
+#include <QtWidgets/QScrollBar>
+#include <QtGui/QPointingDevice>
 
 class MessageWidget;
 
@@ -31,9 +32,9 @@ public:
     void connectContentsSizeChanged(T *receiver, void (T::*slot)(QSize));
 
 protected:
-    bool eventFilter(QObject *obj, QEvent *ev) override;
-    void contextMenuEvent(QContextMenuEvent *ev) override;
-    void wheelEvent(QWheelEvent *ev) override;
+    bool eventFilter(QObject *o, QEvent *e) override;
+    void contextMenuEvent(QContextMenuEvent *e) override;
+    void wheelEvent(QWheelEvent *e) override;
 
 private:
     ListWidget *findListWidget();

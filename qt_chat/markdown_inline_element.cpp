@@ -1,27 +1,27 @@
 #include "markdown_inline_element.h"
 
-Markdown_InlineElement::Markdown_InlineElement() : type(InlineType::Null), begin(0), end(0) { }
-Markdown_InlineElement::Markdown_InlineElement(InlineType t, size_t b, size_t e)
+MarkdownInlineElement::MarkdownInlineElement() : type(InlineType::Null), begin(0), end(0) { }
+MarkdownInlineElement::MarkdownInlineElement(InlineType t, size_t b, size_t e)
     : type(t), begin(b), end(e)
 {
 }
-Markdown_InlineElement::Markdown_InlineElement(InlineType t, size_t b, size_t e, std::string u)
+MarkdownInlineElement::MarkdownInlineElement(InlineType t, size_t b, size_t e, std::string u)
     : type(t), begin(b), end(e), url(u)
 {
 }
-InlineType Markdown_InlineElement::getType() const
+InlineType MarkdownInlineElement::getType() const
 {
     return type;
 }
-size_t Markdown_InlineElement::getBegin() const
+size_t MarkdownInlineElement::getBegin() const
 {
     return begin;
 }
-size_t Markdown_InlineElement::getEnd() const
+size_t MarkdownInlineElement::getEnd() const
 {
     return end;
 }
-std::string Markdown_InlineElement::getUrl() const
+std::string MarkdownInlineElement::getUrl() const
 {
     return url;
 }

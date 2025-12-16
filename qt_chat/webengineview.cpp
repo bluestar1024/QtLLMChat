@@ -11,25 +11,25 @@ WebEngineView::WebEngineView(QWidget *parent) : QWebEngineView(parent)
 
 WebEngineView::~WebEngineView() { }
 
-bool WebEngineView::eventFilter(QObject *obj, QEvent *ev)
+bool WebEngineView::eventFilter(QObject *o, QEvent *e)
 {
-    if (obj == focusProxy() && ev->type() == QEvent::MouseButtonRelease) {
-        auto *me = static_cast<QMouseEvent *>(ev);
-        QMouseEvent newEv(me->type(), me->position(), me->globalPosition(), me->button(),
+    if (o == focusProxy() && e->type() == QEvent::MouseButtonRelease) {
+        auto *me = static_cast<QMouseEvent *>(e);
+        QMouseEvent newMe(me->type(), me->position(), me->globalPosition(), me->button(),
                           me->buttons(), me->modifiers());
-        QCoreApplication::postEvent(focusProxy()->parentWidget(), &newEv);
+        QCoreApplication::postEvent(focusProxy()->parentWidget(), &newMe);
     }
-    return QWebEngineView::eventFilter(obj, ev);
+    return QWebEngineView::eventFilter(o, e);
 }
 
-void WebEngineView::contextMenuEvent(QContextMenuEvent *ev)
+void WebEngineView::contextMenuEvent(QContextMenuEvent *e)
 {
-    ev->ignore(); // 忽略右键菜单
+    e->ignore(); // 忽略右键菜单
 }
 
-void WebEngineView::wheelEvent(QWheelEvent *ev)
+void WebEngineView::wheelEvent(QWheelEvent *e)
 {
-    const int deltaY = ev->angleDelta().y();
+    const int deltaY = e->angleDelta().y();
     ListWidget *list = findListWidget();
     if (!list)
         return;
@@ -42,7 +42,7 @@ void WebEngineView::wheelEvent(QWheelEvent *ev)
     int newVal = current - deltaY * 3;
     newVal = qBound(minVal, newVal, maxVal);
     bar->setValue(newVal);
-    ev->accept();
+    e->accept();
 }
 
 ListWidget *WebEngineView::findListWidget()

@@ -1,198 +1,187 @@
+#include "markdown_parser.h"
+
 #include <sstream>
 #include <regex>
 #include <iostream>
-#include "markdown_parser.h"
 
-void Markdown_Parser::split(const std::string &RawText)
+void MarkdownParser::split(const std::string &rawText)
 {
-    RawBlock.clear();
-    std::istringstream iss(RawText);
-    std::vector<std::string> RawLine;
-    std::string LineText;
-    while (std::getline(iss, LineText)) {
-        RawLine.push_back(LineText);
+    rawBlock.clear();
+    std::istringstream iss(rawText);
+    std::vector<std::string> rawLine;
+    std::string lineText;
+    while (std::getline(iss, lineText)) {
+        rawLine.push_back(lineText);
     }
 
-    std::vector<std::string> BlockText;
+    std::vector<std::string> blockText;
     size_t ins = 0;
-    bool Code_flag = false;
-    bool OrderedLists_flag = false;
-    bool UnorderedList_flag = false;
-    bool BlockQuote_flag = false;
+    bool codeFlag = false;
+    bool orderedListsFlag = false;
+    bool unorderedListFlag = false;
+    bool blockQuoteFlag = false;
 
-    while (ins < RawLine.size()) {
-        const std::string *prev = (ins > 0) ? &RawLine[ins - 1] : nullptr;
-        const std::string &curr = RawLine[ins];
-        const std::string *next = (ins + 1 < RawLine.size()) ? &RawLine[ins + 1] : nullptr;
-        // std::cout << "test\t" << curr << '\n';
+    while (ins < rawLine.size()) {
+        const std::string *prev = (ins > 0) ? &rawLine[ins - 1] : nullptr;
+        const std::string &curr = rawLine[ins];
+        const std::string *next = (ins + 1 < rawLine.size()) ? &rawLine[ins + 1] : nullptr;
         if (curr.empty()) {
-            BlockText.push_back(curr);
+            blockText.push_back(curr);
             ins++;
             continue;
         }
-        // 代码块
-        if (curr.rfind("```", 0) == 0 || Code_flag) {
-            if (curr.rfind("```", 0) == 0 && !Code_flag) {
-                if (!BlockText.empty()) {
-                    RawBlock.push_back(BlockText);
-                    BlockText.clear();
+        if (curr.rfind("```", 0) == 0 || codeFlag) {
+            if (curr.rfind("```", 0) == 0 && !codeFlag) {
+                if (!blockText.empty()) {
+                    rawBlock.push_back(blockText);
+                    blockText.clear();
                 }
             }
-            BlockText.push_back(curr);
+            blockText.push_back(curr);
             if (curr.rfind("```", 0) == 0) {
-                if (Code_flag) {
-                    RawBlock.push_back(BlockText);
-                    BlockText.clear();
+                if (codeFlag) {
+                    rawBlock.push_back(blockText);
+                    blockText.clear();
                 }
-                Code_flag = !Code_flag;
+                codeFlag = !codeFlag;
             }
             ins++;
             continue;
         }
-
-        // 有序列表
         if (curr.size() >= 3 && std::isdigit(curr[0]) && curr[1] == '.' && curr[2] == ' ') {
-            if (!OrderedLists_flag) {
-                if (!BlockText.empty()) {
-                    RawBlock.push_back(BlockText);
-                    BlockText.clear();
+            if (!orderedListsFlag) {
+                if (!blockText.empty()) {
+                    rawBlock.push_back(blockText);
+                    blockText.clear();
                 }
-                OrderedLists_flag = true;
+                orderedListsFlag = true;
             }
-            BlockText.push_back(curr);
+            blockText.push_back(curr);
             if (!next || *next == "\r" || *next == "\n" || next->empty())
-                OrderedLists_flag = false;
+                orderedListsFlag = false;
             ins++;
             continue;
         }
-        // 无序列表
         if ((curr.size() >= 2 && curr[0] == '*' && curr[1] == ' ')
             || (curr.size() >= 2 && curr[0] == '+' && curr[1] == ' ')
             || (curr.size() >= 2 && curr[0] == '-' && curr[1] == ' ')) {
-            if (!UnorderedList_flag) {
-                if (!BlockText.empty()) {
-                    RawBlock.push_back(BlockText);
-                    BlockText.clear();
+            if (!unorderedListFlag) {
+                if (!blockText.empty()) {
+                    rawBlock.push_back(blockText);
+                    blockText.clear();
                 }
-                UnorderedList_flag = true;
+                unorderedListFlag = true;
             }
-            BlockText.push_back(curr);
+            blockText.push_back(curr);
             if (!next || *next == "\r" || *next == "\n" || next->empty())
-                UnorderedList_flag = false;
+                unorderedListFlag = false;
             ins++;
             continue;
         }
-        // 引用
         if (curr.size() >= 2 && curr[0] == '>' && curr[1] == ' ') {
-            if (!BlockQuote_flag) {
-                if (!BlockText.empty()) {
-                    RawBlock.push_back(BlockText);
-                    BlockText.clear();
+            if (!blockQuoteFlag) {
+                if (!blockText.empty()) {
+                    rawBlock.push_back(blockText);
+                    blockText.clear();
                 }
-                BlockQuote_flag = true;
+                blockQuoteFlag = true;
             }
-            BlockText.push_back(curr);
+            blockText.push_back(curr);
             if (!next || *next == "\r" || *next == "\n" || next->empty())
-                BlockQuote_flag = false;
+                blockQuoteFlag = false;
             ins++;
             continue;
         }
-        // 引用式链接
-        std::regex ref_regex(R"(^\[([^\]]+)\]:\s*(.+)$)");
+        std::regex refRegex(R"(^\[([^\]]+)\]:\s*(.+)$)");
         std::smatch match;
-        if (std::regex_match(curr, match, ref_regex)) {
+        if (std::regex_match(curr, match, refRegex)) {
             std::string id = match[1].str();
             std::string url = match[2].str();
-            ref_links[id] = url;
+            refLinks[id] = url;
             ins++;
             continue;
         }
-        // 标题
         if (next && !(*next == "\r" || *next == "\n" || next->empty())) {
             if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '='; })
                 && (next->back() == '\r' || next->back() == '\n' || next->back() == '=')) {
-                if (!BlockText.empty()) {
-                    RawBlock.push_back(BlockText);
-                    BlockText.clear();
+                if (!blockText.empty()) {
+                    rawBlock.push_back(blockText);
+                    blockText.clear();
                 }
-                BlockText.push_back("# " + curr);
-                RawBlock.push_back(BlockText);
-                BlockText.clear();
+                blockText.push_back("# " + curr);
+                rawBlock.push_back(blockText);
+                blockText.clear();
                 ins += 2;
                 continue;
             }
             if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '-'; })
                 && (next->back() == '\r' || next->back() == '\n' || next->back() == '-')) {
-                if (!BlockText.empty()) {
-                    RawBlock.push_back(BlockText);
-                    BlockText.clear();
+                if (!blockText.empty()) {
+                    rawBlock.push_back(blockText);
+                    blockText.clear();
                 }
-                BlockText.push_back("## " + curr);
-                RawBlock.push_back(BlockText);
-                BlockText.clear();
+                blockText.push_back("## " + curr);
+                rawBlock.push_back(blockText);
+                blockText.clear();
                 ins += 2;
                 continue;
             }
         }
-        // 标题
         if ((curr.size() >= 2 && curr[0] == '#' && curr[1] == ' ')
             || (curr.size() >= 3 && curr[0] == '#' && curr[1] == '#' && curr[2] == ' ')
             || (curr.size() >= 4 && curr[0] == '#' && curr[1] == '#' && curr[2] == '#'
                 && curr[3] == ' ')) {
-            if (!BlockText.empty()) {
-                RawBlock.push_back(BlockText);
-                BlockText.clear();
+            if (!blockText.empty()) {
+                rawBlock.push_back(blockText);
+                blockText.clear();
             }
-            BlockText.push_back(curr);
-            RawBlock.push_back(BlockText);
-            BlockText.clear();
+            blockText.push_back(curr);
+            rawBlock.push_back(blockText);
+            blockText.clear();
             ins++;
             continue;
         }
-        // 分割线
         if (isHorizontalRules(curr, prev)) {
-            if (!BlockText.empty()) {
-                RawBlock.push_back(BlockText);
-                BlockText.clear();
+            if (!blockText.empty()) {
+                rawBlock.push_back(blockText);
+                blockText.clear();
             }
-            BlockText.push_back(curr);
-            RawBlock.push_back(BlockText);
-            BlockText.clear();
+            blockText.push_back(curr);
+            rawBlock.push_back(blockText);
+            blockText.clear();
             ins++;
             continue;
         }
-        // 正文
         if (!curr.empty()) {
             if (prev && (*prev == "\r" || *prev == "\n" || prev->empty())) {
-                if (!BlockText.empty()) {
-                    RawBlock.push_back(BlockText);
-                    BlockText.clear();
+                if (!blockText.empty()) {
+                    rawBlock.push_back(blockText);
+                    blockText.clear();
                 }
             }
-            BlockText.push_back(curr);
+            blockText.push_back(curr);
             ins++;
             continue;
         }
-        // 空行
-        BlockText.push_back(curr);
+        blockText.push_back(curr);
         ins++;
     }
-    if (!BlockText.empty()) {
-        RawBlock.push_back(BlockText);
+    if (!blockText.empty()) {
+        rawBlock.push_back(blockText);
     }
 }
 
-std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::string &RawText,
-                                                                  std::string &ResText)
+std::vector<MarkdownInlineElement> MarkdownParser::inlineParse(const std::string &rawText,
+                                                               std::string &resText)
 {
-    std::string BufText = "";
-    ResText = "";
-    std::vector<Markdown_InlineElement> ResElem;
+    std::string bufText = "";
+    resText = "";
+    std::vector<MarkdownInlineElement> resElem;
 
     bool space = false;
-    for (size_t i = 0; i < RawText.size(); i++) {
-        std::string token(1, RawText[i]);
-        if (BufText.empty() && token == " ") {
+    for (size_t i = 0; i < rawText.size(); i++) {
+        std::string token(1, rawText[i]);
+        if (bufText.empty() && token == " ") {
             continue;
         }
         if (token == " ") {
@@ -203,237 +192,234 @@ std::vector<Markdown_InlineElement> Markdown_Parser::inline_parse(const std::str
         }
         if (token != " ") {
             if (space) {
-                BufText += " ";
+                bufText += " ";
                 space = false;
             }
-            BufText += token;
+            bufText += token;
         }
     }
 
-    bool Bold_flag = false;
-    bool Italic_flag = false;
-    bool Code_flag = false;
+    bool boldFlag = false;
+    bool italicFlag = false;
+    bool codeFlag = false;
     size_t begin = 0;
     size_t i = 0;
     size_t ins = 0;
 
-    while (i < BufText.size()) {
-        std::string token(1, BufText[i]);
-        if (token == "!" && i + 1 < BufText.size() && BufText[i + 1] == '[') {
-            size_t alt_start = i + 2;
-            size_t alt_end = BufText.find("]", alt_start);
-            if (alt_end != std::string::npos && alt_end + 1 < BufText.size()
-                && BufText[alt_end + 1] == '(') {
-                size_t url_start = alt_end + 2;
-                size_t url_end = BufText.find(")", url_start);
-                if (url_end != std::string::npos) {
-                    std::string alt_text = BufText.substr(alt_start, alt_end - alt_start);
-                    std::string url = BufText.substr(url_start, url_end - url_start);
-
-                    ResElem.push_back(Markdown_InlineElement(InlineType::Image, ins,
-                                                             ins + alt_text.size(), url));
-                    ResText += alt_text;
-
-                    i = url_end + 1;
-                    ins += alt_text.size();
+    while (i < bufText.size()) {
+        std::string token(1, bufText[i]);
+        if (token == "!" && i + 1 < bufText.size() && bufText[i + 1] == '[') {
+            size_t altStart = i + 2;
+            size_t altEnd = bufText.find("]", altStart);
+            if (altEnd != std::string::npos && altEnd + 1 < bufText.size()
+                && bufText[altEnd + 1] == '(') {
+                size_t urlStart = altEnd + 2;
+                size_t urlEnd = bufText.find(")", urlStart);
+                if (urlEnd != std::string::npos) {
+                    std::string altText = bufText.substr(altStart, altEnd - altStart);
+                    std::string url = bufText.substr(urlStart, urlEnd - urlStart);
+                    resElem.push_back(MarkdownInlineElement(InlineType::Image, ins,
+                                                            ins + altText.size(), url));
+                    resText += altText;
+                    i = urlEnd + 1;
+                    ins += altText.size();
                     continue;
                 }
             }
         }
-        if (token == "[" && !Italic_flag && !Bold_flag && !Code_flag) {
-            size_t text_start = i + 1;
-            size_t text_end = BufText.find("]", text_start);
-            if (text_end != std::string::npos && text_end + 1 < BufText.size()
-                && BufText[text_end + 1] == '[') {
-                size_t id_start = text_end + 2;
-                size_t id_end = BufText.find("]", id_start);
-                if (id_end != std::string::npos) {
-                    std::string link_text = BufText.substr(text_start, text_end - text_start);
-                    std::string id = BufText.substr(id_start, id_end - id_start);
-                    if (ref_links.count(id)) {
-                        std::string url = ref_links[id];
-                        ResElem.push_back(Markdown_InlineElement(InlineType::Link, ins,
-                                                                 ins + link_text.size(), url));
-                        ResText += link_text;
-                        i = id_end + 1;
-                        ins += link_text.size();
+        if (token == "[" && !italicFlag && !boldFlag && !codeFlag) {
+            size_t textStart = i + 1;
+            size_t textEnd = bufText.find("]", textStart);
+            if (textEnd != std::string::npos && textEnd + 1 < bufText.size()
+                && bufText[textEnd + 1] == '[') {
+                size_t idStart = textEnd + 2;
+                size_t idEnd = bufText.find("]", idStart);
+                if (idEnd != std::string::npos) {
+                    std::string linkText = bufText.substr(textStart, textEnd - textStart);
+                    std::string id = bufText.substr(idStart, idEnd - idStart);
+                    if (refLinks.count(id)) {
+                        std::string url = refLinks[id];
+                        resElem.push_back(MarkdownInlineElement(InlineType::Link, ins,
+                                                                ins + linkText.size(), url));
+                        resText += linkText;
+                        i = idEnd + 1;
+                        ins += linkText.size();
                         continue;
                     }
                 }
             }
         }
-        // 支持 [text](<url ...>https://...)</url>
-        if (token == "[" && !Italic_flag && !Bold_flag && !Code_flag) {
-            size_t text_start = i + 1;
-            size_t text_end = BufText.find("]", text_start);
-            if (text_end != std::string::npos && text_end + 1 < BufText.size()
-                && BufText[text_end + 1] == '(') {
-                size_t url_start = text_end + 2;
-                size_t url_end = BufText.find(")", url_start);
-                if (url_end != std::string::npos) {
-                    std::string link_text = BufText.substr(text_start, text_end - text_start);
-                    std::string url_full = BufText.substr(url_start, url_end - url_start);
-                    std::regex url_regex(R"(https?://[^\s<]+)");
-                    std::smatch url_match;
-                    if (std::regex_search(url_full, url_match, url_regex)) {
-                        std::string url = url_match.str();
-                        ResElem.push_back(Markdown_InlineElement(InlineType::Link, ins,
-                                                                 ins + link_text.size(), url));
-                        ResText += link_text;
-                        i = url_end + 1;
-                        ins += link_text.size();
+        if (token == "[" && !italicFlag && !boldFlag && !codeFlag) {
+            size_t textStart = i + 1;
+            size_t textEnd = bufText.find("]", textStart);
+            if (textEnd != std::string::npos && textEnd + 1 < bufText.size()
+                && bufText[textEnd + 1] == '(') {
+                size_t urlStart = textEnd + 2;
+                size_t urlEnd = bufText.find(")", urlStart);
+                if (urlEnd != std::string::npos) {
+                    std::string linkText = bufText.substr(textStart, textEnd - textStart);
+                    std::string urlFull = bufText.substr(urlStart, urlEnd - urlStart);
+                    std::regex urlRegex(R"(https?://[^\s<]+)");
+                    std::smatch urlMatch;
+                    if (std::regex_search(urlFull, urlMatch, urlRegex)) {
+                        std::string url = urlMatch.str();
+                        resElem.push_back(MarkdownInlineElement(InlineType::Link, ins,
+                                                                ins + linkText.size(), url));
+                        resText += linkText;
+                        i = urlEnd + 1;
+                        ins += linkText.size();
                         continue;
                     }
                 }
             }
         }
-        if (token == "`" || Code_flag) {
-            if (token == "`" && (!Code_flag)) {
-                Code_flag = true;
+        if (token == "`" || codeFlag) {
+            if (token == "`" && (!codeFlag)) {
+                codeFlag = true;
                 begin = ins;
                 i++;
                 continue;
             }
-            if (token == "`" && Code_flag) {
-                Code_flag = false;
-                ResElem.push_back(Markdown_InlineElement(InlineType::Code, begin, ins));
+            if (token == "`" && codeFlag) {
+                codeFlag = false;
+                resElem.push_back(MarkdownInlineElement(InlineType::Code, begin, ins));
                 i++;
                 continue;
             }
         }
 
-        if ((token == "*" || Bold_flag || Italic_flag) && !Code_flag) {
-            if (token == "*" && (!Bold_flag) && (!Italic_flag)) {
-                std::string token_next(1, BufText[i + 1]);
-                if (token_next != "*") {
-                    Italic_flag = true;
+        if ((token == "*" || boldFlag || italicFlag) && !codeFlag) {
+            if (token == "*" && (!boldFlag) && (!italicFlag)) {
+                std::string tokenNext(1, bufText[i + 1]);
+                if (tokenNext != "*") {
+                    italicFlag = true;
                     begin = ins;
                     i++;
                     continue;
                 } else {
-                    Bold_flag = true;
+                    boldFlag = true;
                     begin = ins;
                     i += 2;
                     continue;
                 }
             }
-            if (token == "*" && Bold_flag && !Italic_flag) {
-                Bold_flag = false;
-                ResElem.push_back(Markdown_InlineElement(InlineType::Bold, begin, ins));
+            if (token == "*" && boldFlag && !italicFlag) {
+                boldFlag = false;
+                resElem.push_back(MarkdownInlineElement(InlineType::Bold, begin, ins));
                 i += 2;
                 continue;
             }
-            if (token == "*" && Italic_flag && !Bold_flag) {
-                Italic_flag = false;
-                ResElem.push_back(Markdown_InlineElement(InlineType::Italic, begin, ins));
+            if (token == "*" && italicFlag && !boldFlag) {
+                italicFlag = false;
+                resElem.push_back(MarkdownInlineElement(InlineType::Italic, begin, ins));
                 i++;
                 continue;
             }
         }
-        ResText += token;
+        resText += token;
         i++;
         ins++;
     }
-    return ResElem;
+    return resElem;
 }
 
-void Markdown_Parser::block_parse(const std::string &RawText,
-                                  std::vector<Markdown_BlockElement> &BlockElem)
+void MarkdownParser::blockParse(const std::string &rawText,
+                                std::vector<MarkdownBlockElement> &blockElem)
 {
-    split(RawText);
-    for (size_t i = 0; i < RawBlock.size(); i++) {
+    split(rawText);
+    for (size_t i = 0; i < rawBlock.size(); i++) {
         BlockType type;
-        std::string token = RawBlock[i][0].substr(0, 3);
+        std::string token = rawBlock[i][0].substr(0, 3);
         if (token == "```") {
             type = BlockType::CodeBlocks;
-            std::vector<LineElement> Lines;
-            Lines.push_back(LineElement(RawBlock[i][0].substr(3)));
-            for (size_t j = 1; j < RawBlock[i].size() - 1; j++) {
-                Lines.push_back(LineElement(RawBlock[i][j]));
+            std::vector<LineElement> lines;
+            lines.push_back(LineElement(rawBlock[i][0].substr(3)));
+            for (size_t j = 1; j < rawBlock[i].size() - 1; j++) {
+                lines.push_back(LineElement(rawBlock[i][j]));
             }
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token.size() >= 2 && token[0] == '1' && token[1] == '.') {
             type = BlockType::OrderedList;
-            std::vector<LineElement> Lines;
-            for (const auto &line : RawBlock[i]) {
-                std::string pure_text;
+            std::vector<LineElement> lines;
+            for (const auto &line : rawBlock[i]) {
+                std::string pureText;
                 if (line.size() >= 2) {
-                    std::vector<Markdown_InlineElement> InlineElem =
-                            inline_parse(line.substr(2), pure_text);
-                    Lines.push_back(LineElement(pure_text, InlineElem));
+                    std::vector<MarkdownInlineElement> inlineElem =
+                            inlineParse(line.substr(2), pureText);
+                    lines.push_back(LineElement(pureText, inlineElem));
                 }
             }
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if ((token.size() >= 2 && token.substr(0, 2) == "* ")
                    || (token.size() >= 2 && token.substr(0, 2) == "+ ")
                    || (token.size() >= 2 && token.substr(0, 2) == "- ")) {
             type = BlockType::UnorderedList;
-            std::vector<LineElement> Lines;
-            for (const auto &line : RawBlock[i]) {
-                std::string pure_text;
+            std::vector<LineElement> lines;
+            for (const auto &line : rawBlock[i]) {
+                std::string pureText;
                 if (line.size() >= 2) {
-                    std::vector<Markdown_InlineElement> InlineElem =
-                            inline_parse(line.substr(2), pure_text);
-                    Lines.push_back(LineElement(pure_text, InlineElem));
+                    std::vector<MarkdownInlineElement> inlineElem =
+                            inlineParse(line.substr(2), pureText);
+                    lines.push_back(LineElement(pureText, inlineElem));
                 }
             }
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token.size() >= 2 && token[0] == '>' && token[1] == ' ') {
             type = BlockType::BlockQuote;
-            std::vector<LineElement> Lines;
-            for (const auto &line : RawBlock[i]) {
-                std::string pure_text;
+            std::vector<LineElement> lines;
+            for (const auto &line : rawBlock[i]) {
+                std::string pureText;
                 if (line.size() >= 2) {
-                    std::vector<Markdown_InlineElement> InlineElem =
-                            inline_parse(line.substr(2), pure_text);
-                    Lines.push_back(LineElement(pure_text, InlineElem));
+                    std::vector<MarkdownInlineElement> inlineElem =
+                            inlineParse(line.substr(2), pureText);
+                    lines.push_back(LineElement(pureText, inlineElem));
                 }
             }
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token == "###") {
             type = BlockType::Headinglevel3;
-            std::vector<LineElement> Lines;
-            std::string pure_text;
-            std::vector<Markdown_InlineElement> InlineElem =
-                    inline_parse(RawBlock[i][0].substr(4), pure_text);
-            Lines.push_back(LineElement(pure_text, InlineElem));
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
+            std::vector<LineElement> lines;
+            std::string pureText;
+            std::vector<MarkdownInlineElement> inlineElem =
+                    inlineParse(rawBlock[i][0].substr(4), pureText);
+            lines.push_back(LineElement(pureText, inlineElem));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token == "## ") {
             type = BlockType::Headinglevel2;
-            std::vector<LineElement> Lines;
-            std::string pure_text;
-            std::vector<Markdown_InlineElement> InlineElem =
-                    inline_parse(RawBlock[i][0].substr(3), pure_text);
-            Lines.push_back(LineElement(pure_text, InlineElem));
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
+            std::vector<LineElement> lines;
+            std::string pureText;
+            std::vector<MarkdownInlineElement> inlineElem =
+                    inlineParse(rawBlock[i][0].substr(3), pureText);
+            lines.push_back(LineElement(pureText, inlineElem));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token.size() >= 1 && token[0] == '#') {
             type = BlockType::Headinglevel1;
-            std::vector<LineElement> Lines;
-            std::string pure_text;
-            std::vector<Markdown_InlineElement> InlineElem =
-                    inline_parse(RawBlock[i][0].substr(2), pure_text);
-            Lines.push_back(LineElement(pure_text, InlineElem));
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
-        } else if (isHorizontalRules(RawBlock[i][0], i ? &RawBlock[i - 1].back() : nullptr)) {
+            std::vector<LineElement> lines;
+            std::string pureText;
+            std::vector<MarkdownInlineElement> inlineElem =
+                    inlineParse(rawBlock[i][0].substr(2), pureText);
+            lines.push_back(LineElement(pureText, inlineElem));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
+        } else if (isHorizontalRules(rawBlock[i][0], i ? &rawBlock[i - 1].back() : nullptr)) {
             type = BlockType::HorizontalRules;
-            std::vector<LineElement> Lines;
-            Lines.push_back(LineElement(""));
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
+            std::vector<LineElement> lines;
+            lines.push_back(LineElement(""));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (!token.empty()) {
             type = BlockType::Paragraph;
-            std::vector<LineElement> Lines;
-            std::string pure_text;
-            for (size_t j = 0; j < RawBlock[i].size(); j++) {
-                std::vector<Markdown_InlineElement> InlineElem =
-                        inline_parse(RawBlock[i][j], pure_text);
-                Lines.push_back(LineElement(pure_text, InlineElem));
+            std::vector<LineElement> lines;
+            std::string pureText;
+            for (size_t j = 0; j < rawBlock[i].size(); j++) {
+                std::vector<MarkdownInlineElement> inlineElem =
+                        inlineParse(rawBlock[i][j], pureText);
+                lines.push_back(LineElement(pureText, inlineElem));
             }
-            BlockElem.push_back(Markdown_BlockElement(type, Lines));
+            blockElem.push_back(MarkdownBlockElement(type, lines));
         }
     }
 }
 
-bool Markdown_Parser::isHorizontalRules(const std::string &lineStr, const std::string *prevLine)
+bool MarkdownParser::isHorizontalRules(const std::string &lineStr, const std::string *prevLine)
 {
     if (lineStr.substr(0, 3) == "***"
         && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '*'; })

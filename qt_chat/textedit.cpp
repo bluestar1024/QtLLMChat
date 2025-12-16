@@ -1,4 +1,5 @@
 #include "textedit.h"
+
 #include <QDebug>
 
 TextEdit::TextEdit(QWidget *parent) : QTextEdit(parent), isSending(false)
@@ -28,16 +29,16 @@ TextEdit::TextEdit(QWidget *parent) : QTextEdit(parent), isSending(false)
     gLayout->setContentsMargins(10, 10, 25, 10);
     gLayout->setSpacing(0);
     connect(this, &QTextEdit::textChanged, this, &TextEdit::sendButtonShow);
-    send_images_path = imagesDir + "/send.png";
-    send_hover_images_path = imagesDir + "/send_hover.png";
-    send_disable_images_path = imagesDir + "/send_disable.png";
+    sendImagesPath = imagesDir + "/send.png";
+    sendHoverImagesPath = imagesDir + "/send_hover.png";
+    sendDisableImagesPath = imagesDir + "/send_disable.png";
     sendButton->setStyleSheet(QString(R"(
         QPushButton{
             border: none;
             image: url("%1");
         }
     )")
-                                      .arg(send_images_path));
+                                      .arg(sendImagesPath));
     setStyleSheet(QString(R"(
         QTextEdit{
             border: none;
@@ -56,9 +57,9 @@ TextEdit::TextEdit(QWidget *parent) : QTextEdit(parent), isSending(false)
 
 TextEdit::~TextEdit() { }
 
-void TextEdit::contextMenuEvent(QContextMenuEvent *event)
+void TextEdit::contextMenuEvent(QContextMenuEvent *e)
 {
-    QMenu *menu = new CustomMenu(this); // 假设有 CustomMenu 类
+    CustomMenu *menu = new CustomMenu(this);
     menu->setStyleSheet(R"(
         QMenu {
             background-color: white;
@@ -73,58 +74,58 @@ void TextEdit::contextMenuEvent(QContextMenuEvent *event)
     )");
     QAction *action1 = menu->addAction("剪切");
     action1->setShortcut(QKeySequence("Ctrl+x"));
-    QString action1_images_path = imagesDir + "/cut.png";
-    action1->setIcon(QIcon(action1_images_path));
+    QString action1ImagesPath = imagesDir + "/cut.png";
+    action1->setIcon(QIcon(action1ImagesPath));
     connect(action1, &QAction::triggered, this, &QTextEdit::cut);
 
     QAction *action2 = menu->addAction("复制");
     action2->setShortcut(QKeySequence("Ctrl+c"));
-    QString action2_images_path = imagesDir + "/menu_copy.png";
-    action2->setIcon(QIcon(action2_images_path));
+    QString action2ImagesPath = imagesDir + "/menu_copy.png";
+    action2->setIcon(QIcon(action2ImagesPath));
     connect(action2, &QAction::triggered, this, &QTextEdit::copy);
 
     QAction *action3 = menu->addAction("粘贴");
     action3->setShortcut(QKeySequence("Ctrl+v"));
-    QString action3_images_path = imagesDir + "/paste.png";
-    action3->setIcon(QIcon(action3_images_path));
+    QString action3ImagesPath = imagesDir + "/paste.png";
+    action3->setIcon(QIcon(action3ImagesPath));
     connect(action3, &QAction::triggered, this, &QTextEdit::paste);
 
-    menu->exec(event->globalPos());
+    menu->exec(e->globalPos());
     delete menu;
 }
 
-void TextEdit::mouseMoveEvent(QMouseEvent *event)
+void TextEdit::mouseMoveEvent(QMouseEvent *e)
 {
-    QTextEdit::mouseMoveEvent(event);
-    event->ignore();
+    QTextEdit::mouseMoveEvent(e);
+    e->ignore();
 }
 
-void TextEdit::mousePressEvent(QMouseEvent *event)
+void TextEdit::mousePressEvent(QMouseEvent *e)
 {
-    QTextEdit::mousePressEvent(event);
-    event->ignore();
+    QTextEdit::mousePressEvent(e);
+    e->ignore();
 }
 
-void TextEdit::mouseReleaseEvent(QMouseEvent *event)
+void TextEdit::mouseReleaseEvent(QMouseEvent *e)
 {
-    QTextEdit::mouseReleaseEvent(event);
-    event->ignore();
+    QTextEdit::mouseReleaseEvent(e);
+    e->ignore();
 }
 
-void TextEdit::keyPressEvent(QKeyEvent *event)
+void TextEdit::keyPressEvent(QKeyEvent *e)
 {
-    if (event->key() == Qt::Key_Return) {
-        if (event->modifiers() == Qt::ShiftModifier) {
-            QTextEdit::keyPressEvent(event);
+    if (e->key() == Qt::Key_Return) {
+        if (e->modifiers() == Qt::ShiftModifier) {
+            QTextEdit::keyPressEvent(e);
         } else {
             emitSendButtonClicked();
-            event->accept();
+            e->accept();
         }
-    } else if (event->key() == Qt::Key_Enter) {
+    } else if (e->key() == Qt::Key_Enter) {
         emitSendButtonClicked();
-        event->accept();
+        e->accept();
     } else {
-        QTextEdit::keyPressEvent(event);
+        QTextEdit::keyPressEvent(e);
     }
 }
 
@@ -159,7 +160,7 @@ void TextEdit::sendButtonShow()
                 image: url("%1");
             }
         )")
-                                          .arg(send_disable_images_path));
+                                          .arg(sendDisableImagesPath));
     } else if (toPlainText().isEmpty()) {
         sendButton->setStyleSheet(QString(R"(
             QPushButton{
@@ -167,7 +168,7 @@ void TextEdit::sendButtonShow()
                 image: url("%1");
             }
         )")
-                                          .arg(send_images_path));
+                                          .arg(sendImagesPath));
     } else {
         sendButton->setStyleSheet(QString(R"(
             QPushButton{
@@ -175,12 +176,12 @@ void TextEdit::sendButtonShow()
                 image: url("%1");
             }
         )")
-                                          .arg(send_hover_images_path));
+                                          .arg(sendHoverImagesPath));
     }
 }
 
 void TextEdit::setSending(bool isSending)
 {
-    isSending = true;
+    this->isSending = isSending;
     emit textChanged();
 }
