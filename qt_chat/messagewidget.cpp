@@ -83,3 +83,13 @@ ListWidget *MessageWidget::getListWidget()
 {
     return listWidget;
 }
+
+bool MessageWidget::hasSelectedText()
+{
+    return false;
+}
+
+QString MessageWidget::getSelectedText()
+{
+    return "";
+}

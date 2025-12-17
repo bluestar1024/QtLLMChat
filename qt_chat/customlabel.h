@@ -1,6 +1,7 @@
 #ifndef CUSTOMLABEL_H
 #define CUSTOMLABEL_H
 
+#pragma once
 #include <QtWidgets/QLabel>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QContextMenuEvent>

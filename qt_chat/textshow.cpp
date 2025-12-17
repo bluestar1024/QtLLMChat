@@ -7,25 +7,26 @@
 TextShow::TextShow(const QString &text, bool isUser, int maxWidth, QWidget *parent)
     : QWidget(parent), text(text.trimmed()), isUser(isUser), maxWidth(maxWidth - 10)
 {
+    bool fontLoaded = false;
     int fontId = QFontDatabase::addApplicationFont(fontFilePath);
-    bool hasFontVar = false;
     if (fontId != -1) {
         QStringList families = QFontDatabase::applicationFontFamilies(fontId);
         if (!families.isEmpty()) {
             font = QFont(families.first());
             font.setPixelSize(windowFontPixelSize);
-            hasFontVar = true;
+            fontLoaded = true;
         }
     }
-    if (hasFontVar)
-        fontMetrics = new QFontMetricsF(font);
-
     label = new CustomLabel();
     label->setTextInteractionFlags(Qt::TextSelectableByMouse);
     label->setWordWrap(true);
     label->setMaximumWidth(this->maxWidth);
-    if (hasFontVar)
+    if (fontLoaded) {
+        fontMetrics = new QFontMetricsF(font);
         label->setFont(font);
+    } else {
+        fontMetrics = new QFontMetricsF(label->font());
+    }
 
     webEngineView = new WebEngineView();
     webEngineView->setMaximumWidth(this->maxWidth);

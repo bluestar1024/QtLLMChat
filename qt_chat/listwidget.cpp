@@ -54,11 +54,7 @@ ListWidget::ListWidget(QWidget *parent)
 
 ListWidget::~ListWidget() { }
 
-void ListWidget::scrollTo(const QModelIndex &index, ScrollHint hint)
-{
-    Q_UNUSED(index);
-    Q_UNUSED(hint);
-}
+void ListWidget::scrollTo(const QModelIndex &, ScrollHint) { }
 
 /* 滚动条范围变化时的槽 */
 void ListWidget::onScrollBarRangeChanged(int min, int max)

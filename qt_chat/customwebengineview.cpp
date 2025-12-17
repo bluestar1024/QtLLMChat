@@ -4,9 +4,8 @@ CustomWebEngineView::CustomWebEngineView(QWidget *parent) : QWebEngineView(paren
 
 CustomWebEngineView::~CustomWebEngineView() { }
 
-CustomWebEngineView *CustomWebEngineView::createWindow(QWebEnginePage::WebWindowType type)
+CustomWebEngineView *CustomWebEngineView::createWindow(QWebEnginePage::WebWindowType)
 {
-    Q_UNUSED(type)
     auto *newView = new CustomWebEngineView();
     auto *newWindow = new QMainWindow();
     newWindow->setCentralWidget(newView);

@@ -16,6 +16,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    copybutton.cpp \
     customlabel.cpp \
     customwebengineview.cpp \
     frame.cpp \
@@ -24,6 +25,7 @@ SOURCES += \
     imagelabel.cpp \
     itemwidget.cpp \
     listwidget.cpp \
+    loadingwidget.cpp \
     main.cpp \
     mainwindow.cpp \
     markdown_block_element.cpp \
@@ -34,14 +36,18 @@ SOURCES += \
     pushbutton.cpp \
     sendbutton.cpp \
     splitter.cpp \
+    textboxwidget.cpp \
     textedit.cpp \
     texteditfull.cpp \
     textshow.cpp \
+    textwidget.cpp \
+    thinkingbutton.cpp \
     webenginepage.cpp \
     webengineview.cpp \
     widget.cpp
 
 HEADERS += \
+    copybutton.h \
     customlabel.h \
     custommenu.h \
     customwebengineview.h \
@@ -51,6 +57,7 @@ HEADERS += \
     imagelabel.h \
     itemwidget.h \
     listwidget.h \
+    loadingwidget.h \
     mainwindow.h \
     markdown_block_element.h \
     markdown_inline_element.h \
@@ -60,9 +67,12 @@ HEADERS += \
     pushbutton.h \
     sendbutton.h \
     splitter.h \
+    textboxwidget.h \
     textedit.h \
     texteditfull.h \
     textshow.h \
+    textwidget.h \
+    thinkingbutton.h \
     webenginepage.h \
     webengineview.h \
     widget.h

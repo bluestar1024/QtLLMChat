@@ -1,6 +1,7 @@
 #ifndef MESSAGETHREAD_H
 #define MESSAGETHREAD_H
 
+#pragma once
 #include <QtCore/QThread>
 #include <QtCore/QString>
 #include <QtCore/QVariantMap>

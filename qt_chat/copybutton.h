@@ -1,25 +1,28 @@
-#ifndef PUSHBUTTON_H
-#define PUSHBUTTON_H
+#ifndef COPYBUTTON_H
+#define COPYBUTTON_H
 
 #pragma once
+#include "messagewidget.h"
+
 #include <QtWidgets/QPushButton>
-#include <QtGui/QMouseEvent>
-#include <QtCore/QEvent>
-#include <QtCore/QPoint>
 #include <QtGui/QFont>
 #include <QtGui/QFontDatabase>
+#include <QtGui/QClipboard>
 #include <QtWidgets/QToolTip>
+#include <QtCore/QEvent>
+#include <QtCore/QPoint>
+#include <QtWidgets/QApplication>
 
 extern const QString fontFilePath;
 extern const int buttonFontPointSize;
 
-class PushButton : public QPushButton
+class CopyButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit PushButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
+    explicit CopyButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
                         QWidget *parent = nullptr);
-    ~PushButton();
+    ~CopyButton();
 
 protected:
     void mousePressEvent(QMouseEvent *e) override;
@@ -31,4 +34,4 @@ private:
     QPoint tipStartPos;
 };
 
-#endif // PUSHBUTTON_H
+#endif // COPYBUTTON_H

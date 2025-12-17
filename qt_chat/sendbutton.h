@@ -26,8 +26,6 @@ protected:
 private:
     QString tipText;
     QPoint tipStartPos;
-    int tipOffsetX;
-    int tipOffsetY;
 };
 
 #endif // SENDBUTTON_H

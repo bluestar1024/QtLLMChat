@@ -37,6 +37,8 @@ public:
     void setText(const QString &text);
     void removeLoadingWidget();
     ListWidget *getListWidget();
+    bool hasSelectedText();
+    QString getSelectedText();
 
 signals:
     void resizeFinished();

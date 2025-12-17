@@ -14,7 +14,7 @@ public:
     ~CustomWebEngineView();
 
 protected:
-    CustomWebEngineView *createWindow(QWebEnginePage::WebWindowType type) override;
+    CustomWebEngineView *createWindow(QWebEnginePage::WebWindowType) override;
 
 private:
     QList<QMainWindow *> windows;

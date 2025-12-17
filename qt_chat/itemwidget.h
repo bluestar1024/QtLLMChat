@@ -1,6 +1,7 @@
 #ifndef ITEMWIDGET_H
 #define ITEMWIDGET_H
 
+#pragma once
 #include <QtWidgets/QWidget>
 
 class ItemWidget : public QWidget

@@ -15,7 +15,7 @@ public:
     ~ListWidget();
 
 protected:
-    void scrollTo(const QModelIndex &index, ScrollHint hint = EnsureVisible) override;
+    void scrollTo(const QModelIndex &, ScrollHint = EnsureVisible) override;
 
     void mouseMoveEvent(QMouseEvent *e) override;
     void mousePressEvent(QMouseEvent *e) override;
