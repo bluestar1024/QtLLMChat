@@ -4,7 +4,6 @@
 #pragma once
 #include "listwidget.h"
 #include "webenginepage.h"
-#include "textshow.h"
 
 #include <QtWebEngineWidgets/QWebEngineView>
 #include <QtGui/QMouseEvent>
@@ -15,6 +14,7 @@
 #include <QtWidgets/QScrollBar>
 #include <QtGui/QPointingDevice>
 
+class TextShow;
 class MessageWidget;
 
 class WebEngineView : public QWebEngineView

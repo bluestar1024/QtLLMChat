@@ -19,7 +19,7 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
 {
     layout = new QHBoxLayout(this);
     layout->setContentsMargins(5, 5, 5, 5);
-    textShow = new TextShow(this->text, this->isUser, this->textMaxWidth, this);
+    textShow = new TextShow(this->text, this->textMaxWidth, this);
     layout->addWidget(textShow);
     // if (!isUser) layout->addStretch();
     // else           layout->setAlignment(Qt::AlignRight);

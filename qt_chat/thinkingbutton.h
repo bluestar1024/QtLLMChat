@@ -1,17 +1,17 @@
 #ifndef THINKINGBUTTON_H
 #define THINKINGBUTTON_H
 
-#include <QWidget>
-#include <QLabel>
-#include <QHBoxLayout>
-#include <QTime>
-#include <QColor>
-#include <QFont>
-#include <QFontDatabase>
-#include <QMouseEvent>
-#include <QPainter>
-#include <QPainterPath>
-#include <QBrush>
+#include <QtWidgets/QWidget>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QHBoxLayout>
+#include <QtCore/QTime>
+#include <QtGui/QColor>
+#include <QtGui/QFont>
+#include <QtGui/QFontDatabase>
+#include <QtGui/QMouseEvent>
+#include <QtGui/QPainter>
+#include <QtGui/QPainterPath>
+#include <QtGui/QBrush>
 
 extern const int windowFontPixelSize;
 extern const QString fontFilePath;
@@ -22,7 +22,10 @@ class ThinkingButton : public QWidget
     Q_OBJECT
 public:
     explicit ThinkingButton(QWidget *parent = nullptr);
+    ~ThinkingButton();
 
+    template <typename T>
+    void connectButtonClick(T *receiver, void (T::*slot)(bool));
     void setIsShowThinkContent(bool show);
     void setThinkEnd();
     void setThinkTimeLength(int secs);
@@ -41,19 +44,25 @@ private:
     void initUI();
     void updateSize();
 
-    bool isShowThinkContent = true;
-    QColor backgroundColor = QColor(248, 248, 248);
+    bool isShowThinkContent;
+    QColor backgroundColor;
     QTime startThinkTime;
 
-    int thinkTimeLength = 0;
+    int thinkTimeLength;
 
-    QLabel *textLabel = nullptr;
-    QLabel *leftIconLabel = nullptr;
-    QLabel *rightIconLabel = nullptr;
+    QLabel *textLabel;
+    QLabel *leftIconLabel;
+    QLabel *rightIconLabel;
 
     QString thinkingIconPath;
     QString arrowUpPath;
     QString arrowDownPath;
 };
+
+template <typename T>
+void ThinkingButton::connectButtonClick(T *receiver, void (T::*slot)(bool))
+{
+    connect(this, &ThinkingButton::clicked, receiver, slot);
+}
 
 #endif // THINKINGBUTTON_H

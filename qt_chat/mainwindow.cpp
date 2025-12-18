@@ -134,7 +134,7 @@ $$\int_{a}^{b} {f(x)} \, \mathrm{d}x = F(b) - F(a)$$
 $$\frac{d}{dx} e^x = e^x$$
 )";
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message("")
 {
     setMinimumSize(1110, 795);
     resize(1220, 820);

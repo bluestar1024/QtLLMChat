@@ -1,10 +1,14 @@
 #include "thinkingbutton.h"
 
-#include <QCursor>
-#include <QPixmap>
+#include <QtGui/QCursor>
+#include <QtGui/QPixmap>
 #include <QtMath>
 
-ThinkingButton::ThinkingButton(QWidget *parent) : QWidget(parent)
+ThinkingButton::ThinkingButton(QWidget *parent)
+    : QWidget{ parent },
+      isShowThinkContent(true),
+      backgroundColor(QColor(248, 248, 248)),
+      thinkTimeLength(0)
 {
     setCursor(Qt::PointingHandCursor);
     startThinkTime = QTime::currentTime();
@@ -15,6 +19,8 @@ ThinkingButton::ThinkingButton(QWidget *parent) : QWidget(parent)
 
     initUI();
 }
+
+ThinkingButton::~ThinkingButton() { }
 
 void ThinkingButton::initUI()
 {
@@ -35,7 +41,7 @@ void ThinkingButton::initUI()
     }
     textLabel->adjustSize();
 
-    int iconSize = qMax(textLabel->height() - 6, 16);
+    int iconSize = textLabel->height() - 6;
 
     leftIconLabel = new QLabel;
     leftIconLabel->setFixedSize(iconSize, iconSize);
@@ -88,7 +94,9 @@ void ThinkingButton::paintEvent(QPaintEvent *)
 
     painter.setPen(Qt::NoPen);
     painter.setBrush(QBrush(backgroundColor));
-    painter.drawPath(path);
+    painter.drawPath(path.simplified());
+
+    painter.end();
 }
 
 void ThinkingButton::mousePressEvent(QMouseEvent *e)
@@ -96,7 +104,7 @@ void ThinkingButton::mousePressEvent(QMouseEvent *e)
     if (e->button() == Qt::LeftButton) {
         isShowThinkContent = !isShowThinkContent;
 
-        int iconSize = rightIconLabel->width();
+        int iconSize = textLabel->height() - 6;
         QString path = isShowThinkContent ? arrowUpPath : arrowDownPath;
         rightIconLabel->setPixmap(QPixmap(path).scaled(iconSize, iconSize, Qt::KeepAspectRatio,
                                                        Qt::SmoothTransformation));
@@ -108,7 +116,7 @@ void ThinkingButton::mousePressEvent(QMouseEvent *e)
 void ThinkingButton::setIsShowThinkContent(bool show)
 {
     isShowThinkContent = show;
-    int iconSize = rightIconLabel->width();
+    int iconSize = textLabel->height() - 6;
     QString path = show ? arrowUpPath : arrowDownPath;
     rightIconLabel->setPixmap(QPixmap(path).scaled(iconSize, iconSize, Qt::KeepAspectRatio,
                                                    Qt::SmoothTransformation));

@@ -41,7 +41,9 @@ SOURCES += \
     texteditfull.cpp \
     textshow.cpp \
     textwidget.cpp \
+    thinkbackwidget.cpp \
     thinkingbutton.cpp \
+    thinkwidget.cpp \
     webenginepage.cpp \
     webengineview.cpp \
     widget.cpp
@@ -72,7 +74,9 @@ HEADERS += \
     texteditfull.h \
     textshow.h \
     textwidget.h \
+    thinkbackwidget.h \
     thinkingbutton.h \
+    thinkwidget.h \
     webenginepage.h \
     webengineview.h \
     widget.h

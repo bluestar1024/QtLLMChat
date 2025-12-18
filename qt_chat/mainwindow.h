@@ -111,16 +111,16 @@ private:
     bool avoidRepeatSelfFun;
     bool first;
 
-    MessageWidget *messageSendWidget = nullptr;
-    MessageWidget *messageRecvWidget = nullptr;
-    ItemWidget *itemSendWidget = nullptr;
-    ItemWidget *itemRecvWidget = nullptr;
-    QHBoxLayout *itemSendHLayout = nullptr;
-    QHBoxLayout *itemRecvHLayout = nullptr;
-    QListWidgetItem *sendItem = nullptr;
-    QListWidgetItem *recvItem = nullptr;
-    MessageThread *thread = nullptr;
-    QString message = "";
+    MessageWidget *messageSendWidget;
+    MessageWidget *messageRecvWidget;
+    ItemWidget *itemSendWidget;
+    ItemWidget *itemRecvWidget;
+    QHBoxLayout *itemSendHLayout;
+    QHBoxLayout *itemRecvHLayout;
+    QListWidgetItem *sendItem;
+    QListWidgetItem *recvItem;
+    MessageThread *thread;
+    QString message;
 
 private slots:
     void onDpiChanged();
