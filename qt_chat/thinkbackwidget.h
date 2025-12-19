@@ -15,7 +15,7 @@ public:
     ~ThinkBackWidget();
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
+    void paintEvent(QPaintEvent *) override;
 };
 
 #endif // THINKBACKWIDGET_H

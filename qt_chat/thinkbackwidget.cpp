@@ -4,7 +4,7 @@ ThinkBackWidget::ThinkBackWidget(QWidget *parent) : QWidget{ parent } { }
 
 ThinkBackWidget::~ThinkBackWidget() { }
 
-void ThinkBackWidget::paintEvent(QPaintEvent * /*event*/)
+void ThinkBackWidget::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
@@ -20,7 +20,6 @@ void ThinkBackWidget::paintEvent(QPaintEvent * /*event*/)
     painter.setBrush(backgroundBrush);
     painter.drawPath(backgroundPath.simplified());
 
-    // 左侧竖线
     QPainterPath path;
     path.addRect(rect().x() + 14, rect().y() + 12, 2, rect().height() - 24);
 

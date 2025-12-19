@@ -5,6 +5,7 @@
 const QString imagesDir = ":/images";
 const QString fontFilePath = ":/font/msyhl.ttc";
 const QString mathjaxScriptPath = "mathjax/es5/tex-mml-chtml.js";
+const QString codeThemeFilePath = ":/config/dark_theme.xml";
 const int windowFontPointSize = 10;
 const int windowFontPixelSize = 20;
 const int titleFontPixelSize = 28;
