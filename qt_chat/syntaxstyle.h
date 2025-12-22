@@ -2,12 +2,12 @@
 #define SYNTAXSTYLE_H
 
 #pragma once
-#include <QObject>
-#include <QXmlStreamReader>
-#include <QTextCharFormat>
-#include <QHash>
-#include <QFile>
-#include <QIODevice>
+#include <QtCore/QObject>
+#include <QtCore/QXmlStreamReader>
+#include <QtGui/QTextCharFormat>
+#include <QtCore/QHash>
+#include <QtCore/QFile>
+#include <QtCore/QIODevice>
 
 extern const QString codeThemeFilePath;
 
@@ -16,17 +16,18 @@ class SyntaxStyle : public QObject
     Q_OBJECT
 public:
     explicit SyntaxStyle(QObject *parent = nullptr);
+    ~SyntaxStyle();
 
     bool load(const QString &xmlContent);
-    QString name() const { return name; }
-    bool isLoaded() const { return loaded; }
+    QString getName();
     QTextCharFormat getFormat(const QString &name) const;
+    bool isLoaded();
     static SyntaxStyle *defaultStyle();
 
 private:
     QString name;
     QHash<QString, QTextCharFormat> data;
-    bool loaded = false;
+    bool loaded;
 };
 
 #endif // SYNTAXSTYLE_H

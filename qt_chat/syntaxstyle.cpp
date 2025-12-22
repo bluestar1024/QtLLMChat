@@ -1,7 +1,10 @@
 #include "syntaxstyle.h"
-#include <QFont>
 
-SyntaxStyle::SyntaxStyle(QObject *parent) : QObject{ parent } { }
+#include <QtGui/QFont>
+
+SyntaxStyle::SyntaxStyle(QObject *parent) : QObject{ parent }, name(""), loaded(false) { }
+
+SyntaxStyle::~SyntaxStyle() { }
 
 bool SyntaxStyle::load(const QString &xmlContent)
 {
@@ -63,9 +66,19 @@ bool SyntaxStyle::load(const QString &xmlContent)
     return loaded;
 }
 
+QString SyntaxStyle::getName()
+{
+    return name;
+}
+
 QTextCharFormat SyntaxStyle::getFormat(const QString &name) const
 {
     return data.value(name, QTextCharFormat());
+}
+
+bool SyntaxStyle::isLoaded()
+{
+    return loaded;
 }
 
 SyntaxStyle *SyntaxStyle::defaultStyle()

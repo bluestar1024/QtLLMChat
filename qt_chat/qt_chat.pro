@@ -20,6 +20,7 @@ SOURCES += \
     copybutton.cpp \
     customlabel.cpp \
     customwebengineview.cpp \
+    cxxhighlighter.cpp \
     frame.cpp \
     funwidget.cpp \
     html_renderer.cpp \
@@ -36,8 +37,10 @@ SOURCES += \
     messagethread.cpp \
     messagewidget.cpp \
     pushbutton.cpp \
+    pythonhighlighter.cpp \
     sendbutton.cpp \
     splitter.cpp \
+    stylesyntaxhighlighter.cpp \
     syntaxstyle.cpp \
     textboxwidget.cpp \
     textedit.cpp \
@@ -57,6 +60,7 @@ HEADERS += \
     customlabel.h \
     custommenu.h \
     customwebengineview.h \
+    cxxhighlighter.h \
     frame.h \
     funwidget.h \
     html_renderer.h \
@@ -72,8 +76,10 @@ HEADERS += \
     messagethread.h \
     messagewidget.h \
     pushbutton.h \
+    pythonhighlighter.h \
     sendbutton.h \
     splitter.h \
+    stylesyntaxhighlighter.h \
     syntaxstyle.h \
     textboxwidget.h \
     textedit.h \
