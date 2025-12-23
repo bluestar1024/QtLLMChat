@@ -1,6 +1,6 @@
 #include "pythonhighlighter.h"
 
-#include <QFile>
+#include <QtCore/QFile>
 
 PythonHighlighter::PythonHighlighter(QTextDocument *parent) : StyleSyntaxHighlighter(parent)
 {
@@ -8,8 +8,10 @@ PythonHighlighter::PythonHighlighter(QTextDocument *parent) : StyleSyntaxHighlig
             R"((?:from\s+(\w+(?:\.\w+)*)\s+)?import\s+((?:\w+(?:\s+as\s+\w+)?)(?:\s*,\s*\w+(?:\s+as\s+\w+)?)*|\*))");
 
     loadLanguageFile(":/config/python.xml");
-    void initRules();
+    initRules();
 }
+
+PythonHighlighter::~PythonHighlighter() { }
 
 void PythonHighlighter::loadLanguageFile(const QString &fileName)
 {
@@ -49,27 +51,21 @@ void PythonHighlighter::initRules()
             { QRegularExpression(R"(''')"), QRegularExpression(R"(''')"), "String" });
 }
 
-void PythonHighlighter::setSyntaxStyle(SyntaxStyle *style)
-{
-    this->style = style;
-}
-
 void PythonHighlighter::highlightBlock(const QString &text)
 {
-    if (!style)
-        return;
-
-    auto it = includePattern.globalMatch(text);
-    while (it.hasNext()) {
-        auto m = it.next();
-        setFormat(m.capturedStart(), m.capturedLength(), style->getFormat("Module"));
+    auto matchIterator = includePattern.globalMatch(text);
+    while (matchIterator.hasNext()) {
+        auto match = matchIterator.next();
+        setFormat(match.capturedStart(), match.capturedLength(),
+                  getSyntaxStyle()->getFormat("Module"));
     }
 
     for (const HighlightRule &rule : highlightRules) {
-        auto it = rule.pattern.globalMatch(text);
-        while (it.hasNext()) {
-            auto m = it.next();
-            setFormat(m.capturedStart(), m.capturedLength(), style->getFormat(rule.formatName));
+        auto matchIterator = rule.pattern.globalMatch(text);
+        while (matchIterator.hasNext()) {
+            auto match = matchIterator.next();
+            setFormat(match.capturedStart(), match.capturedLength(),
+                      getSyntaxStyle()->getFormat(rule.formatName));
         }
     }
 
@@ -88,65 +84,62 @@ void PythonHighlighter::highlightBlock(const QString &text)
             if (idx >= 0 && (best == -1 || idx < best))
                 best = idx;
         }
-        if (best != -1) {
+        if (best != -1)
             ruleId = candidates.indexOf(best) + 1;
-            startIndex = best;
-        }
+        startIndex = best;
     }
 
+    HighlightBlockRule blockRule;
+    QRegularExpressionMatch startMatch;
     if (startIndex >= 0) {
-        const auto &blockRule = highlightBlockRules[ruleId - 1];
-        QRegularExpressionMatch startMatch;
+        blockRule = highlightBlockRules[ruleId - 1];
         if (previousBlockState() <= 0)
             startMatch = blockRule.begin.match(text);
+    }
 
-        if (!text.isEmpty() && startIndex != 0)
-            singleLineStrHighlight(text, 0, startIndex);
+    if (!text.isEmpty() && startIndex != 0)
+        singleLineStrHighlight(text, 0, startIndex);
 
-        while (startIndex >= 0) {
-            QRegularExpressionMatch endMatch;
-            int startLen =
-                    (previousBlockState() > 0 && startIndex == 0) ? 0 : startMatch.capturedLength();
-            endMatch = blockRule.end.match(text, startIndex + startLen);
-            int endIndex = endMatch.capturedStart();
-            int matchLen = 0;
+    while (startIndex >= 0) {
+        QRegularExpressionMatch endMatch;
+        int startLen =
+                (previousBlockState() > 0 && startIndex == 0) ? 0 : startMatch.capturedLength();
+        endMatch = blockRule.end.match(text, startIndex + startLen);
+        int endIndex = endMatch.capturedStart();
+        int matchLen = 0;
 
-            if (endIndex == -1) {
-                setCurrentBlockState(ruleId);
-                matchLen = text.length() - startIndex;
-            } else {
-                matchLen = endIndex - startIndex + endMatch.capturedLength();
-            }
-            setFormat(startIndex, matchLen, style->getFormat(blockRule.formatName));
-
-            candidates.clear();
-            for (int i = 0; i < highlightBlockRules.size(); ++i) {
-                auto m = highlightBlockRules[i].begin.match(text, startIndex + matchLen);
-                candidates.append(m.capturedStart());
-            }
-            int best = -1;
-            for (int idx : candidates) {
-                if (idx >= 0 && (best == -1 || idx < best))
-                    best = idx;
-            }
-            if (best != -1) {
-                ruleId = candidates.indexOf(best) + 1;
-                startMatch =
-                        highlightBlockRules[ruleId - 1].begin.match(text, startIndex + matchLen);
-            }
-            int stringStart = startIndex + matchLen;
-            startIndex = best;
-            if (stringStart != text.length() && stringStart != startIndex)
-                singleLineStrHighlight(text, stringStart, startIndex);
+        if (endIndex == -1) {
+            setCurrentBlockState(ruleId);
+            matchLen = text.length() - startIndex;
+        } else {
+            matchLen = endIndex - startIndex + endMatch.capturedLength();
         }
-    } else {
-        singleLineStrHighlight(text, 0, -1);
+        setFormat(startIndex, matchLen, getSyntaxStyle()->getFormat(blockRule.formatName));
+
+        candidates.clear();
+        for (int i = 0; i < highlightBlockRules.size(); ++i) {
+            auto m = highlightBlockRules[i].begin.match(text, startIndex + matchLen);
+            candidates.append(m.capturedStart());
+        }
+        int best = -1;
+        for (int idx : candidates) {
+            if (idx >= 0 && (best == -1 || idx < best))
+                best = idx;
+        }
+        if (best != -1) {
+            ruleId = candidates.indexOf(best) + 1;
+            startMatch = highlightBlockRules[ruleId - 1].begin.match(text, startIndex + matchLen);
+        }
+        int stringStart = startIndex + matchLen;
+        startIndex = best;
+        if (stringStart != text.length() && stringStart != startIndex)
+            singleLineStrHighlight(text, stringStart, startIndex);
     }
 }
 
 void PythonHighlighter::singleLineStrHighlight(const QString &text, int start, int end)
 {
-    QStringRef slice = (end == -1) ? text.midRef(start) : text.midRef(start, end - start);
+    QStringRef slice = (end == -1) ? text.midRef(start) : text.midRef(start, end - start + 1);
     if (slice.isEmpty())
         return;
 
@@ -175,7 +168,8 @@ void PythonHighlighter::singleLineStrHighlight(const QString &text, int start, i
         auto m = rule.pattern.match(slice.toString(), offset);
         if (!m.hasMatch())
             break;
-        setFormat(start + m.capturedStart(), m.capturedLength(), style->getFormat(rule.formatName));
+        setFormat(start + m.capturedStart(), m.capturedLength(),
+                  getSyntaxStyle()->getFormat(rule.formatName));
         offset = m.capturedStart() + m.capturedLength();
 
         cands.clear();

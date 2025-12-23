@@ -3,6 +3,7 @@
 
 #pragma once
 #include "stylesyntaxhighlighter.h"
+#include "languang.h"
 
 #include <QtGui/QTextDocument>
 #include <QtCore/QRegularExpression>
@@ -16,12 +17,12 @@ struct HighlightRule
     QString format;
 };
 
-class QCXXHighlighter : public StyleSyntaxHighlighter
+class CXXHighlighter : public StyleSyntaxHighlighter
 {
     Q_OBJECT
 public:
-    explicit QCXXHighlighter(QTextDocument *parent = nullptr);
-    ~QCXXHighlighter();
+    explicit CXXHighlighter(QTextDocument *parent = nullptr);
+    ~CXXHighlighter();
 
 protected:
     virtual void highlightBlock(const QString &text) override;

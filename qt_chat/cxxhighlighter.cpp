@@ -2,7 +2,7 @@
 
 #include <QtCore/QFile>
 
-QCXXHighlighter::QCXXHighlighter(QTextDocument *parent) : StyleSyntaxHighlighter(parent)
+CXXHighlighter::CXXHighlighter(QTextDocument *parent) : StyleSyntaxHighlighter(parent)
 {
     includePattern.setPattern(R"(^\s*#\s*include\s*([<"][^:?"<>\|]+[">]))");
     commentStartPattern.setPattern(R"(/\*)");
@@ -12,9 +12,9 @@ QCXXHighlighter::QCXXHighlighter(QTextDocument *parent) : StyleSyntaxHighlighter
     initRules();
 }
 
-QCXXHighlighter::~QCXXHighlighter() { }
+CXXHighlighter::~CXXHighlighter() { }
 
-void QCXXHighlighter::loadLanguageFile(const QString &fileName)
+void CXXHighlighter::loadLanguageFile(const QString &fileName)
 {
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -36,7 +36,7 @@ void QCXXHighlighter::loadLanguageFile(const QString &fileName)
     }
 }
 
-void QCXXHighlighter::initRules()
+void CXXHighlighter::initRules()
 {
     HighlightRule number;
     number.pattern.setPattern(
@@ -60,7 +60,7 @@ void QCXXHighlighter::initRules()
     highlightRules.append(single);
 }
 
-void QCXXHighlighter::highlightBlock(const QString &text)
+void CXXHighlighter::highlightBlock(const QString &text)
 {
     auto matchIterator = includePattern.globalMatch(text);
     while (matchIterator.hasNext()) {

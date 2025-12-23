@@ -2,13 +2,12 @@
 #define PYTHONHIGHLIGHTER_H
 
 #pragma once
-#include "syntaxstyle.h"
 #include "stylesyntaxhighlighter.h"
+#include "languang.h"
 
-#include <QTextDocument>
-#include <QRegularExpression>
-#include <QXmlStreamReader>
-#include <QFile>
+#include <QtGui/QTextDocument>
+#include <QtCore/QRegularExpression>
+#include <QtCore/QXmlStreamReader>
 
 struct HighlightRule
 {
@@ -28,7 +27,7 @@ class PythonHighlighter : public StyleSyntaxHighlighter
     Q_OBJECT
 public:
     explicit PythonHighlighter(QTextDocument *doc = nullptr);
-    void setSyntaxStyle(SyntaxStyle *style);
+    ~PythonHighlighter();
 
 protected:
     virtual void highlightBlock(const QString &text) override;
@@ -38,7 +37,6 @@ private:
     void initRules();
     void singleLineStrHighlight(const QString &text, int start, int end);
 
-    SyntaxStyle *style;
     QVector<HighlightRule> highlightRules;
     QVector<HighlightRule> highlightStringRules;
     QVector<HighlightBlockRule> highlightBlockRules;

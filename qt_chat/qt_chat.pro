@@ -23,6 +23,7 @@ SOURCES += \
     cxxhighlighter.cpp \
     frame.cpp \
     funwidget.cpp \
+    glslhighlighter.cpp \
     html_renderer.cpp \
     imagelabel.cpp \
     itemwidget.cpp \
@@ -63,6 +64,7 @@ HEADERS += \
     cxxhighlighter.h \
     frame.h \
     funwidget.h \
+    glslhighlighter.h \
     html_renderer.h \
     imagelabel.h \
     itemwidget.h \
