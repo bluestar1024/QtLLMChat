@@ -1,18 +1,19 @@
 #include "glslhighlighter.h"
 
-#include <QFile>
+#include <QtCore/QFile>
 
 GLSLHighlighter::GLSLHighlighter(QTextDocument *parent) : StyleSyntaxHighlighter(parent)
 {
-    includePattern = QRegularExpression(R"(#include\s+([<"][a-zA-Z0-9*._]+[">]))");
+    includePattern = QRegularExpression(R"((#include\s+([<"][a-zA-Z0-9*._]+[">])))");
     functionPattern = QRegularExpression(R"((\b([A-Za-z0-9_]+(?:\s+|::))*([A-Za-z0-9_]+)(?= $))))");
-    defTypePattern = QRegularExpression(R"((\b([A-Za-z0-9_]+)\s+[A-Za-z]{1}[A-Za-z0-9_]+\s*[;=]))");
-    commentStartPattern = QRegularExpression(R"(/\*)");
-    commentEndPattern = QRegularExpression(R"(\*/)");
+    commentStartPattern = QRegularExpression(R"((/\*))");
+    commentEndPattern = QRegularExpression(R"((\*/))");
 
     loadLanguageFile(":/config/glsl.xml");
     initRules();
 }
+
+GLSLHighlighter::~GLSLHighlighter() { }
 
 void GLSLHighlighter::loadLanguageFile(const QString &fileName)
 {
@@ -24,12 +25,14 @@ void GLSLHighlighter::loadLanguageFile(const QString &fileName)
     if (!language.isLoaded())
         return;
 
-    const QStringList keys = language.keys();
+    const QStringList keys = language.getKeys();
     for (const QString &key : keys) {
-        const QStringList names = language.names(key);
+        const QStringList names = language.getNames(key);
         for (const QString &name : names) {
-            QRegularExpression re(QString(R"(\b%1\b)").arg(name));
-            m_highlightRules.append({ re, key });
+            HighlightRule rule;
+            rule.pattern.setPattern(QString(R"(\b%1\b)").arg(name));
+            rule.format = key;
+            highlightRules.append(rule);
         }
     }
 }
@@ -43,29 +46,30 @@ void GLSLHighlighter::initRules()
 
 void GLSLHighlighter::highlightBlock(const QString &text)
 {
-    auto it = includePattern.globalMatch(text);
-    while (it.hasNext()) {
-        auto match = it.next();
+    auto matchIterator = includePattern.globalMatch(text);
+    while (matchIterator.hasNext()) {
+        auto match = matchIterator.next();
         setFormat(match.capturedStart(), match.capturedLength(),
-                  syntaxStyle()->getFormat("Preprocessor"));
-        setFormat(match.capturedStart(1), match.capturedLength(1),
-                  syntaxStyle()->getFormat("String"));
+                  getSyntaxStyle()->getFormat("Preprocessor"));
+        setFormat(match.capturedStart(2), match.capturedLength(2),
+                  getSyntaxStyle()->getFormat("String"));
     }
 
-    it = functionPattern.globalMatch(text);
-    while (it.hasNext()) {
-        auto match = it.next();
-        setFormat(match.capturedStart(), match.capturedLength(), syntaxStyle()->getFormat("Type"));
+    matchIterator = functionPattern.globalMatch(text);
+    while (matchIterator.hasNext()) {
+        auto match = matchIterator.next();
+        setFormat(match.capturedStart(), match.capturedLength(),
+                  getSyntaxStyle()->getFormat("Type"));
         setFormat(match.capturedStart(3), match.capturedLength(3),
-                  syntaxStyle()->getFormat("Function"));
+                  getSyntaxStyle()->getFormat("Function"));
     }
 
     for (const HighlightRule &rule : qAsConst(highlightRules)) {
-        it = rule.first.globalMatch(text);
-        while (it.hasNext()) {
-            auto match = it.next();
+        matchIterator = rule.pattern.globalMatch(text);
+        while (matchIterator.hasNext()) {
+            auto match = matchIterator.next();
             setFormat(match.capturedStart(), match.capturedLength(),
-                      syntaxStyle()->getFormat(rule.second));
+                      getSyntaxStyle()->getFormat(rule.format));
         }
     }
 
@@ -74,18 +78,18 @@ void GLSLHighlighter::highlightBlock(const QString &text)
     if (previousBlockState() != 1)
         startIndex = text.indexOf(commentStartPattern);
 
+    QRegularExpressionMatch endMatch;
+    int endIndex;
+    int commentLen = 0;
     while (startIndex >= 0) {
-        QRegularExpressionMatch endMatch;
-        int endIndex = text.indexOf(commentEndPattern, startIndex, &endMatch);
-        int commentLen;
+        endIndex = text.indexOf(commentEndPattern, startIndex, &endMatch);
         if (endIndex == -1) {
             setCurrentBlockState(1);
             commentLen = text.length() - startIndex;
         } else {
             commentLen = endIndex - startIndex + endMatch.capturedLength();
         }
-        setFormat(startIndex, commentLen, syntaxStyle()->getFormat("Comment"));
-
+        setFormat(startIndex, commentLen, getSyntaxStyle()->getFormat("Comment"));
         startIndex = text.indexOf(commentStartPattern, startIndex + commentLen);
     }
 }

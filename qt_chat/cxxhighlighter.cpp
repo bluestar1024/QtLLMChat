@@ -4,9 +4,9 @@
 
 CXXHighlighter::CXXHighlighter(QTextDocument *parent) : StyleSyntaxHighlighter(parent)
 {
-    includePattern.setPattern(R"(^\s*#\s*include\s*([<"][^:?"<>\|]+[">]))");
-    commentStartPattern.setPattern(R"(/\*)");
-    commentEndPattern.setPattern(R"(\*/)");
+    includePattern.setPattern(R"((^\s*#\s*include\s*([<"][^:?"<>\|]+[">])))");
+    commentStartPattern.setPattern(R"((/\*))");
+    commentEndPattern.setPattern(R"((\*/))");
 
     loadLanguageFile(":/config/cpp.xml");
     initRules();
@@ -66,9 +66,9 @@ void CXXHighlighter::highlightBlock(const QString &text)
     while (matchIterator.hasNext()) {
         auto match = matchIterator.next();
         setFormat(match.capturedStart(), match.capturedLength(),
-                  syntaxStyle()->getFormat("Preprocessor"));
-        setFormat(match.capturedStart(1), match.capturedLength(1),
-                  syntaxStyle()->getFormat("String"));
+                  getSyntaxStyle()->getFormat("Preprocessor"));
+        setFormat(match.capturedStart(2), match.capturedLength(2),
+                  getSyntaxStyle()->getFormat("String"));
     }
 
     for (const auto &rule : qAsConst(highlightRules)) {
@@ -76,7 +76,7 @@ void CXXHighlighter::highlightBlock(const QString &text)
         while (matchIterator.hasNext()) {
             auto match = matchIterator.next();
             setFormat(match.capturedStart(), match.capturedLength(),
-                      syntaxStyle()->getFormat(rule.format));
+                      getSyntaxStyle()->getFormat(rule.format));
         }
     }
 
@@ -97,7 +97,7 @@ void CXXHighlighter::highlightBlock(const QString &text)
         } else {
             commentLen = endMatch.capturedEnd() - startIndex + 1;
         }
-        setFormat(startIndex, commentLen, syntaxStyle()->getFormat("Comment"));
+        setFormat(startIndex, commentLen, getSyntaxStyle()->getFormat("Comment"));
 
         auto nextMatch = commentStartPattern.match(text, startIndex + commentLen);
         startIndex = nextMatch.capturedStart();

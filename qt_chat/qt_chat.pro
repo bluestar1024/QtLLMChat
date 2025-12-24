@@ -27,9 +27,11 @@ SOURCES += \
     html_renderer.cpp \
     imagelabel.cpp \
     itemwidget.cpp \
+    language.cpp \
     linenumberarea.cpp \
     listwidget.cpp \
     loadingwidget.cpp \
+    luahighlighter.cpp \
     main.cpp \
     mainwindow.cpp \
     markdown_block_element.cpp \
@@ -68,9 +70,11 @@ HEADERS += \
     html_renderer.h \
     imagelabel.h \
     itemwidget.h \
+    language.h \
     linenumberarea.h \
     listwidget.h \
     loadingwidget.h \
+    luahighlighter.h \
     mainwindow.h \
     markdown_block_element.h \
     markdown_inline_element.h \
