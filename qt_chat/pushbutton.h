@@ -21,6 +21,9 @@ public:
                         QWidget *parent = nullptr);
     ~PushButton();
 
+    void setTipText(QString tipText);
+    QString getTipText();
+
 protected:
     void mousePressEvent(QMouseEvent *e) override;
     void mouseReleaseEvent(QMouseEvent *e) override;

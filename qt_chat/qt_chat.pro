@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     codeeditor.cpp \
+    codeshow.cpp \
     copybutton.cpp \
     customlabel.cpp \
     customwebengineview.cpp \
@@ -59,6 +60,7 @@ SOURCES += \
 
 HEADERS += \
     codeeditor.h \
+    codeshow.h \
     copybutton.h \
     customlabel.h \
     custommenu.h \

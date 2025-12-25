@@ -42,3 +42,13 @@ bool PushButton::event(QEvent *e)
     }
     return QPushButton::event(e);
 }
+
+void PushButton::setTipText(QString tipText)
+{
+    this->tipText = tipText;
+}
+
+QString PushButton::getTipText()
+{
+    return tipText;
+}

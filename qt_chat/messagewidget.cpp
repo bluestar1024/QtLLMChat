@@ -30,6 +30,79 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
                   "}");
 }
 
+MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
+                             std::function<void()> renewResponseFun, bool isUser, int textMaxWidth,
+                             QWidget *parent)
+    : QWidget(parent),
+      text(text),
+      copyFun(std::move(copyFun)),
+      renewResponseFun(std::move(renewResponseFun)),
+      isUser(isUser),
+      textMaxWidth(textMaxWidth)
+{
+    setMouseTracking(true);
+    aiUpdateSizeTimer.setSingleShot(true);
+    connect(&aiUpdateSizeTimer, &QTimer::timeout, this, &MessageWidget::onAiUpdateSize);
+
+    imageLabel = new ImageLabel(isUser, this);
+
+    textWidget = new QWidget(this);
+    textLayout = new QVBoxLayout(textWidget);
+    textLayout->setContentsMargins(15, 5, 15, 5);
+
+    textBoxWidget = new QWidget(this);
+    textBoxLayout = new QVBoxLayout(textBoxWidget);
+    textBoxLayout->setSpacing(0);
+    textBoxLayout->setContentsMargins(0, 0, 0, 0);
+
+    funWidget = new QWidget(this);
+    auto *funLay = new QHBoxLayout(funWidget);
+    funLay->setContentsMargins(5, 5, 5, 5);
+    copyButton = new QPushButton(funWidget);
+    copyButton->setFixedSize(16, 16);
+    copyButton->setCursor(Qt::PointingHandCursor);
+    copyButton->setToolTip("复制");
+    copyButton->setStyleSheet("QPushButton{ border-image:url(:/icons/copy.png); }"
+                              "QPushButton:hover{ border-image:url(:/icons/copy_hover.png); }");
+    connect(copyButton, &QPushButton::clicked, copyFun);
+    funLay->addWidget(copyButton);
+    copyButton->hide();
+
+    if (!isUser) {
+        renewButton = new QPushButton(funWidget);
+        renewButton->setFixedSize(16, 16);
+        renewButton->setToolTip("重新生成响应");
+        renewButton->setStyleSheet(
+                "QPushButton{ border-image:url(:/icons/renewResponse.png); }"
+                "QPushButton:hover{ border-image:url(:/icons/renewResponse_hover.png); }");
+        connect(renewButton, &QPushButton::clicked, renewFun);
+        funLay->addWidget(renewButton);
+        renewButton->hide();
+        renewButtonIsRemove = false;
+        funWidget->setFixedSize(52, 26);
+    } else {
+        funWidget->setFixedSize(26, 26);
+    }
+
+    if (isUser)
+        buildUserUi();
+    else
+        buildAiUi();
+
+    auto *mainLay = new QHBoxLayout(this);
+    mainLay->setContentsMargins(0, 0, 0, 0);
+    mainLay->setSpacing(5);
+    if (isUser) {
+        mainLay->addWidget(textBoxWidget);
+        mainLay->addWidget(imageLabel);
+    } else {
+        mainLay->addWidget(imageLabel);
+        mainLay->addWidget(textBoxWidget);
+    }
+    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+                 qMax(imageLabel->height(), textBoxWidget->height()));
+}
+
 MessageWidget::~MessageWidget() { }
 
 bool MessageWidget::getIsUser()
