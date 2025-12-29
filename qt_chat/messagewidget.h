@@ -1,14 +1,27 @@
 #ifndef MESSAGEWIDGET_H
-#  define MESSAGEWIDGET_H
+#define MESSAGEWIDGET_H
 
-#  pragma once
-#  include "listwidget.h"
-#  include "textshow.h"
+#pragma once
+#include "listwidget.h"
+#include "thinkingbutton.h"
+#include "thinkbackwidget.h"
+#include "textshow.h"
+#include "codeshow.h"
+#include "textwidget.h"
+#include "loadingwidget.h"
+#include "copybutton.h"
+#include "pushbutton.h"
+#include "textboxwidget.h"
+#include "imagelabel.h"
 
-#  include <QtWidgets/QWidget>
-#  include <QtWidgets/QHBoxLayout>
-#  include <QtWidgets/QLabel>
-#  include <QtCore/QString>
+#include <QtWidgets/QWidget>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QLabel>
+#include <QtCore/QTimer>
+#include <QtCore/QRegularExpression>
+
+extern const QString imagesDir;
 
 class MessageWidget : public QWidget
 {
@@ -21,9 +34,6 @@ public:
                            QWidget *parent = nullptr);
     ~MessageWidget();
 
-    bool getIsUser();
-    QString getText();
-    void updateFunWidgetSize(qreal curDpi, qreal initDpi);
     template <typename T>
     void connectResizeFinished(T *receiver, void (T::*slot)());
     template <typename T>
@@ -33,91 +43,17 @@ public:
     void toggleWidget();
     void breakHandle();
     void removeRenewResponseButton();
-    void setSize();
-    void setText(const QString &text);
-    void removeLoadingWidget();
-    ListWidget *getListWidget();
-    bool hasSelectedText();
-    QString getSelectedText();
-
-signals:
-    void resizeFinished();
-    void setTexting(bool state);
-
-private:
-    void onSizeFinshed();
-
-    QString text;
-    std::function<void()> copyFun;
-    std::function<void()> renewResponseFun;
-    ListWidget *listWidget = nullptr;
-    QList<int> &thinkTimeLengthList;
-    int thinkTimeIndex;
-    bool isUser;
-    bool thinkIsExpand;
-    int textMaxWidth;
-
-    QHBoxLayout *layout;
-    TextShow *textShow;
-};
-
-template <typename T>
-void MessageWidget::connectResizeFinished(T *receiver, void (T::*slot)())
-{
-    connect(this, &MessageWidget::resizeFinished, receiver, slot);
-}
-
-template <typename T>
-void MessageWidget::connectSetTexting(T *receiver, void (T::*slot)(bool))
-{
-    connect(this, &MessageWidget::setTexting, receiver, slot);
-}
-
-template <typename T>
-void MessageWidget::connectExecuteNext(T *receiver, void (T::*slot)())
-{
-    if (isUser)
-        textShow->connectExecuteNext(receiver, slot);
-}
-
-#endif // MESSAGEWIDGET_H
-
-#pragma once
-#include <QWidget>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QPushButton>
-#include <QTimer>
-#include <QRegularExpression>
-
-QT_BEGIN_NAMESPACE
-class TextShow;
-class CodeShow;
-class ThinkingButton;
-class LoadingWidget;
-class ImageLabel;
-QT_END_NAMESPACE
-
-extern const QString imagesDir;
-
-class MessageWidget : public QWidget
-{
-    Q_OBJECT
-public:
-    explicit MessageWidget(const QString &text, std::function<void()> copyFun,
-                           std::function<void()> renewResponseFun, bool isUser = true,
-                           int textMaxWidth = 877, QWidget *parent = nullptr);
-    ~MessageWidget();
-
-    void setText(const QString &text);
-    QString getText() const { return text; }
-    bool getIsUser() const { return isUser; }
-
-    void setSize();
     void removeLoadingWidget();
     void showFunWidget();
     void hideFunWidget();
+
+    void setSize();
+    void setText(const QString &text);
+    QString getText() const { return text; }
+    bool getIsUser() const { return isUser; }
+    ListWidget *getListWidget();
+    bool hasSelectedText();
+    QString getSelectedText();
 
 signals:
     void resizeFinished();
@@ -131,8 +67,9 @@ private slots:
 private:
     void buildUserUi();
     void buildAiUi();
-    void parseThinkAndResult(const QString &txt, QString &think, QString &result, bool &thinkEnd);
     QList<CodeBlock> extractCodeBlocks(const QString &text);
+    void parseThinkAndResult(const QString &txt, QString &think, QString &result, bool &thinkEnd);
+    void adjustAiTextWidgetSize();
     void updateFunWidgetSize(int curDpi, int initDpi);
 
     QString copyImagesPath;
@@ -144,21 +81,24 @@ private:
     {
         QString language;
         QString code;
-        bool hasEndMarker;
+        QString endMarker;
     };
 
     QString text;
-    bool isUser;
-    int textMaxWidth;
     std::function<void()> copyFun;
     std::function<void()> renewResponseFun;
+    ListWidget *listWidget;
+    QList<int> &thinkTimeLengthList;
+    int thinkTimeIndex;
+    bool isUser;
+    bool thinkIsExpand = true;
+    int textMaxWidth;
 
     bool thinkButtonHaveCreated = false;
     QString thinkText;
     QString resultText;
     bool thinkTextIsRecvEnd = false;
     bool isRecvFirst = true;
-    bool thinkIsExpand = true;
 
     ImageLabel *imageLabel = nullptr;
     TextWidget *textWidget = nullptr;
@@ -185,3 +125,24 @@ private:
 
     QTimer aiUpdateSizeTimer;
 };
+
+template <typename T>
+void MessageWidget::connectResizeFinished(T *receiver, void (T::*slot)())
+{
+    connect(this, &MessageWidget::resizeFinished, receiver, slot);
+}
+
+template <typename T>
+void MessageWidget::connectSetTexting(T *receiver, void (T::*slot)(bool))
+{
+    connect(this, &MessageWidget::setTexting, receiver, slot);
+}
+
+template <typename T>
+void MessageWidget::connectExecuteNext(T *receiver, void (T::*slot)())
+{
+    if (isUser)
+        textShow->connectExecuteNext(receiver, slot);
+}
+
+#endif // MESSAGEWIDGET_H
