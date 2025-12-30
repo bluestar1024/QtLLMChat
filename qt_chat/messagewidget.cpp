@@ -58,7 +58,7 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     textBoxLayout->setContentsMargins(0, 0, 0, 0);
 
     funWidget = new QWidget();
-    auto *funHLayout = new QHBoxLayout(funWidget);
+    funHLayout = new QHBoxLayout(funWidget);
     funHLayout->setContentsMargins(5, 5, 5, 5);
     copyButton = new CopyButton("复制", 15, 35, this);
     copyButton->setFixedSize(16, 16);
@@ -124,7 +124,6 @@ void MessageWidget::buildUserUi()
 
 void MessageWidget::buildAiUi()
 {
-    QString thinkText, resultText;
     parseThinkAndResult(text, thinkText, resultText, thinkTextIsRecvEnd);
 
     thinkBackWidget = new ThinkBackWidget(this);
@@ -139,19 +138,18 @@ void MessageWidget::buildAiUi()
         for (const auto &codeBlock : thinkCodeBlocks) {
             int idx = thinkTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
             thinkSplitTextList.append(thinkTempText.left(idx));
-            if (!codeBlock.endMarker.isEmpty()) {
+            if (!codeBlock.endMarker.isEmpty())
                 thinkTempText =
                         thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                           + codeBlock.code.size() + 3);
-            } else {
+            else
                 thinkTempText =
                         thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                           + codeBlock.code.size());
-            }
-            auto *code = new CodeShow(codeBlock.code, codeBlock.language,
-                                      textMaxWidth - imageLabel->width() - 80, this);
-            code->connectCodeCopyButtonClick(copyFun);
-            thinkCodeShowList.append(code);
+            auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language,
+                                          textMaxWidth - imageLabel->width() - 80, this);
+            codeShow->connectCodeCopyButtonClick(this, copyFun);
+            thinkCodeShowList.append(codeShow);
         }
         thinkSplitTextList.append(thinkTempText);
         for (const auto &splitText : thinkSplitTextList) {
@@ -189,19 +187,18 @@ void MessageWidget::buildAiUi()
         for (const auto &codeBlock : resultCodeBlocks) {
             int idx = resultTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
             resultSplitTextList.append(resultTempText.left(idx));
-            if (!codeBlock.endMarker.isEmpty()) {
+            if (!codeBlock.endMarker.isEmpty())
                 resultTempText =
                         resultTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                            + codeBlock.code.size() + 3);
-            } else {
+            else
                 resultTempText =
                         resultTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                            + codeBlock.code.size());
-            }
-            auto *code = new CodeShow(codeBlock.code, codeBlock.language,
-                                      textMaxWidth - imageLabel->width() - 35, this);
-            code->connectCodeCopyButtonClick(copyFun);
-            resultCodeShowList.append(code);
+            auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language,
+                                          textMaxWidth - imageLabel->width() - 35, this);
+            codeShow->connectCodeCopyButtonClick(this, copyFun);
+            resultCodeShowList.append(codeShow);
         }
         resultSplitTextList.append(resultTempText);
         for (const auto &splitText : resultSplitTextList) {
@@ -330,6 +327,14 @@ void MessageWidget::adjustAiTextWidgetSize()
     textWidget->setFixedSize(qMax(thinkWidth, resultWidth) + 30, thinkHeight + resultHeight + 10);
 }
 
+bool MessageWidget::getThinkIsExpanded()
+{
+    if (!isUser)
+        return thinkIsExpand;
+    else
+        return false;
+}
+
 void MessageWidget::thinkButtonClicked()
 {
     thinkIsExpand = !thinkIsExpand;
@@ -341,6 +346,12 @@ void MessageWidget::onAiUpdateSize()
 {
     emit resizeFinished();
     emit setTexting(false);
+    if (!thinkText.isEmpty() && !QString('</think>').contains(thinkText)) {
+        if (thinkButton->getThinkTimeLength() == 0)
+            thinkButton->setThinkTimeLength(thinkTimeLengthList[thinkTimeIndex]);
+        else
+            thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
+    }
 }
 
 void MessageWidget::showFunWidget()
@@ -373,27 +384,215 @@ QString MessageWidget::getText()
     return text;
 }
 
+TextWidget *MessageWidget::getTextWidget()
+{
+    return textWidget;
+}
+
+TextBoxWidget *MessageWidget::getTextBoxWidget()
+{
+    return textBoxWidget;
+}
+
 void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
 {
-    Q_UNUSED(curDpi);
-    Q_UNUSED(initDpi);
+    if (initDpi <= 0)
+        return;
+    const qreal ratio = qreal(curDpi) / initDpi;
+    auto scale = [=](int v) { return qRound(v * ratio); };
+
+    copyButton->setFixedSize(scale(copyButton->width()), scale(copyButton->height()));
+    QMargins m = funHLayout->contentsMargins();
+    funHLayout->setContentsMargins(scale(m.left()), scale(m.top()), scale(m.right()),
+                                   scale(m.bottom()));
+    if (isUser) {
+        funWidget->setFixedSize(scale(funWidget->width()), scale(funWidget->height()));
+        textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
+                                    textWidget->height() + funWidget->height());
+    } else {
+        if (!renewResponseButtonIsRemove) {
+            renewResponseButton->setFixedSize(scale(renewResponseButton->width()),
+                                              scale(renewResponseButton->height()));
+            funHLayout->setSpacing(scale(funHLayout->spacing()));
+        }
+        funWidget->setFixedSize(scale(funWidget->width()), scale(funWidget->height()));
+        if (!loadingWidgetIsRemove)
+            return;
+        textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
+                                    textWidget->height() + funWidget->height());
+    }
+    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+                 qMax(imageLabel->height(), textBoxWidget->height()));
 }
 
 void MessageWidget::toggleWidget()
 {
-    connect(textShow, &TextShow::setSizeFinished, this, &MessageWidget::onSizeFinished);
-    textShow->toggleWidget();
+    if (isUser) {
+        if (textShow) {
+            connect(textShow, &TextShow::setSizeFinished, this, &MessageWidget::onSizeFinished);
+            textShow->toggleWidget();
+        }
+    } else {
+        for (auto *thinkWidget : thinkTextShowList) {
+            connect(thinkWidget, &TextShow::setSizeFinished, this, &MessageWidget::onSizeFinished);
+            thinkWidget->toggleWidget();
+        }
+        for (auto *textShow : resultTextShowList) {
+            connect(textShow, &TextShow::setSizeFinished, this, &MessageWidget::onSizeFinished);
+            textShow->toggleWidget();
+        }
+    }
 }
 
-void MessageWidget::breakHandle() { }
+void MessageWidget::breakHandle()
+{
+    if (!thinkTextIsRecvEnd) {
+        thinkButton->setThinkEnd();
+        thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
+    }
+}
 
 void MessageWidget::removeRenewResponseButton() { }
 
 void MessageWidget::setText(const QString &text)
 {
     this->text = text;
-    textShow->setText(text);
-    setFixedSize(textShow->size() + QSize(10, 0));
+    if (isUser) {
+        if (textShow)
+            textShow->setText(this->text);
+        setSize();
+        return;
+    }
+
+    emit setTexting(true);
+
+    parseThinkAndResult(this->text, thinkText, resultText, thinkTextIsRecvEnd);
+
+    if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
+        auto thinkCodeBlocks = extractCodeBlocks(thinkText);
+        QStringList thinkSplitTextList;
+        QString thinkTempText = thinkText;
+        int thinkCodeShowListLastLen = thinkCodeShowList.size() - 1;
+        for (int i = 0; i < thinkCodeBlocks.size(); i++) {
+            int idx = thinkTempText.indexOf(QString("```%1\n").arg(thinkCodeBlocks[i].language));
+            thinkSplitTextList.append(thinkTempText.left(idx));
+            if (!thinkCodeBlocks[i].endMarker.isEmpty()) {
+                thinkTempText = thinkTempText.mid(
+                        idx + QString("```%1\n").arg(thinkCodeBlocks[i].language).size()
+                        + thinkCodeBlocks[i].code.size() + 3);
+            } else {
+                thinkTempText = thinkTempText.mid(
+                        idx + QString("```%1\n").arg(thinkCodeBlocks[i].language).size()
+                        + thinkCodeBlocks[i].code.size());
+            }
+            if (thinkCodeShowListLastLen < i) {
+                auto *codeShow = new CodeShow(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language,
+                                              textMaxWidth - imageLabel->width() - 80, this);
+                codeShow->connectCodeCopyButtonClick(this, copyFun);
+                codeShow->setVisible(thinkIsExpand);
+                thinkCodeShowList.append(codeShow);
+            } else {
+                thinkCodeShowList[i]->setText(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language);
+            }
+        }
+        thinkSplitTextList.append(thinkTempText);
+        if (!thinkButtonHaveCreated) {
+            thinkButton = new ThinkingButton();
+            thinkButton->setIsShowThinkContent(thinkIsExpand);
+            thinkButton->connectButtonClick(this, &MessageWidget::thinkButtonClicked);
+            thinkButtonHaveCreated = true;
+            textLayout->addWidget(thinkButton);
+            textLayout->addWidget(thinkBackWidget);
+            thinkBackWidget->setVisible(thinkIsExpand);
+        }
+        int i = 0;
+        int thinkTextShowListLastLen = thinkTextShowList.size() - 1;
+        for (const auto &splitText : thinkSplitTextList) {
+            if (!splitText.isEmpty()) {
+                if (thinkTextShowListLastLen < i) {
+                    ThinkWidget *thinkWidget = new ThinkWidget(
+                            splitText, textMaxWidth - imageLabel->width() - 80, this);
+                    thinkWidget.setVisible(thinkIsExpand);
+                    thinkTextShowList.append(thinkWidget);
+                } else {
+                    thinkTextShowList[i]->setText(splitText);
+                }
+                i += 1;
+            }
+        }
+        int j = 0;
+        for (int i = 0; i < thinkCodeShowList.size(); ++i) {
+            if (!thinkSplitTextList[i].isEmpty()) {
+                if (thinkTextShowListLastLen < i - j)
+                    thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
+            } else {
+                j += 1;
+            }
+            if (thinkCodeShowListLastLen < i)
+                thinkBackVLayout->addWidget(thinkCodeShowList[i]);
+        }
+        if (thinkTextShowListLastLen < thinkTextShowList.size() - 1 - j
+            && !thinkSplitTextList.last().isEmpty())
+            thinkBackVLayout->addWidget(thinkTextShowList.last());
+        if (thinkTextIsRecvEnd && isRecvFirst) {
+            thinkButton->setThinkEnd();
+            isRecvFirst = false;
+        }
+    }
+
+    if (!resultText.isEmpty()) {
+        auto resultCodeBlocks = extractCodeBlocks(resultText);
+        QStringList resultSplitTextList;
+        QString resultTempText = resultText;
+        int resultCodeShowListLastLen = resultCodeShowList.size() - 1;
+        for (int i = 0; i < resultCodeBlocks.size(); i++) {
+            int idx = resultTempText.indexOf(QString("```%1\n").arg(resultCodeBlocks[i].language));
+            resultSplitTextList.append(resultTempText.left(idx));
+            resultTempText = resultTempText.mid(
+                    idx + QString("```%1\n").arg(resultCodeBlocks[i].language).size()
+                    + resultCodeBlocks[i].code.size() + 3);
+            if (resultCodeShowListLastLen < i) {
+                auto *codeShow =
+                        new CodeShow(resultCodeBlocks[i].code, resultCodeBlocks[i].language,
+                                     textMaxWidth - imageLabel->width() - 35, this);
+                codeShow->connectCodeCopyButtonClick(this, copyFun);
+                resultCodeShowList.append(codeShow);
+            } else {
+                resultCodeShowList[i]->setText(resultCodeBlocks[i].code,
+                                               resultCodeBlocks[i].language);
+            }
+        }
+        resultSplitTextList.append(resultTempText);
+        int i = 0;
+        int resultTextShowListLastLen = resultTextShowList.size() - 1;
+        for (const auto &splitText : resultSplitTextList) {
+            if (!splitText.isEmpty()) {
+                if (resultTextShowListLastLen < i)
+                    resultTextShowList.append(
+                            TextShow(splitText, textMaxWidth - imageLabel->width() - 35, this));
+                else
+                    resultTextShowList[i]->setText(splitText);
+                i += 1;
+            }
+        }
+        int j = 0;
+        for (int i = 0; i < resultCodeShowList.size(); ++i) {
+            if (!resultSplitTextList[i].isEmpty()) {
+                if (resultTextShowListLastLen < i - j)
+                    textLayout->addWidget(resultTextShowList[i - j]);
+            } else {
+                j += 1;
+            }
+            if (resultCodeShowListLastLen < i)
+                textLayout->addWidget(resultCodeShowList[i]);
+        }
+        if (resultTextShowListLastLen < resultTextShowList.size() - 1 - j
+            && !resultSplitTextList.last().isEmpty())
+            textLayout->addWidget(resultTextShowList.last());
+    }
+
+    setSize();
+    emit setTexting(false);
 }
 
 void MessageWidget::removeLoadingWidget()

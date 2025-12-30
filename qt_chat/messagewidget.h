@@ -5,6 +5,7 @@
 #include "listwidget.h"
 #include "thinkingbutton.h"
 #include "thinkbackwidget.h"
+#include "thinkwidget.h"
 #include "textshow.h"
 #include "codeshow.h"
 #include "textwidget.h"
@@ -107,6 +108,7 @@ private:
     QVBoxLayout *textBoxLayout = nullptr;
 
     QWidget *funWidget = nullptr;
+    QHBoxLayout *funHLayout = nullptr;
     CopyButton *copyButton = nullptr;
     PushButton *renewResponseButton = nullptr;
     bool funWidgetIsShow = false;
@@ -118,7 +120,7 @@ private:
     QVBoxLayout *thinkBackVLayout = nullptr;
     LoadingWidget *loadingWidget = nullptr;
 
-    QList<TextShow *> thinkTextShowList;
+    QList<ThinkWidget *> thinkTextShowList;
     QList<CodeShow *> thinkCodeShowList;
     QList<TextShow *> resultTextShowList;
     QList<CodeShow *> resultCodeShowList;
