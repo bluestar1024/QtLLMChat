@@ -1,6 +1,6 @@
 #include "stylesyntaxhighlighter.h"
 
-StyleSyntaxHighlighter::StyleSyntaxHighlighter(QTextDocument *parent)
+StyleSyntaxHighlighter::StyleSyntaxHighlighter(QObject *parent)
     : QSyntaxHighlighter(parent), syntaxStyle(nullptr)
 {
 }

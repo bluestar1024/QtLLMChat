@@ -3,7 +3,7 @@
 
 #pragma once
 #include "stylesyntaxhighlighter.h"
-#include "languang.h"
+#include "language.h"
 
 #include <QtGui/QTextDocument>
 #include <QtCore/QRegularExpression>
@@ -11,17 +11,11 @@
 #include <QtCore/QXmlStreamReader>
 #include <QtGui/QTextCharFormat>
 
-struct HighlightRule
-{
-    QRegularExpression pattern;
-    QString format;
-};
-
 class CXXHighlighter : public StyleSyntaxHighlighter
 {
     Q_OBJECT
 public:
-    explicit CXXHighlighter(QTextDocument *parent = nullptr);
+    explicit CXXHighlighter(QObject *parent = nullptr);
     ~CXXHighlighter();
 
 protected:
@@ -30,6 +24,12 @@ protected:
 private:
     void loadLanguageFile(const QString &fileName);
     void initRules();
+
+    struct HighlightRule
+    {
+        QRegularExpression pattern;
+        QString format;
+    };
 
     QVector<HighlightRule> highlightRules;
     QRegularExpression includePattern;

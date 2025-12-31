@@ -10,6 +10,7 @@
 #include "codeshow.h"
 #include "textwidget.h"
 #include "loadingwidget.h"
+#include "funwidget.h"
 #include "copybutton.h"
 #include "pushbutton.h"
 #include "textboxwidget.h"
@@ -45,6 +46,7 @@ public:
     void breakHandle();
     void removeRenewResponseButton();
     void removeLoadingWidget();
+    void updateFunWidgetSize(int curDpi, int initDpi);
     void showFunWidget();
     void hideFunWidget();
 
@@ -66,24 +68,23 @@ private slots:
     void thinkButtonClicked();
 
 private:
-    void buildUserUi();
-    void buildAiUi();
-    QList<CodeBlock> extractCodeBlocks(const QString &text);
-    void parseThinkAndResult(const QString &txt, QString &think, QString &result, bool &thinkEnd);
-    void adjustAiTextWidgetSize();
-    void updateFunWidgetSize(int curDpi, int initDpi);
-
-    QString copyImagesPath;
-    QString copyHoverImagesPath;
-    QString renewResponseImagesPath;
-    QString renewResponseHoverImagesPath;
-
     struct CodeBlock
     {
         QString language;
         QString code;
         QString endMarker;
     };
+
+    void buildUserUi();
+    void buildAiUi();
+    QList<CodeBlock> extractCodeBlocks(const QString &text);
+    void parseThinkAndResult(const QString &txt, QString &think, QString &result, bool &thinkEnd);
+    void adjustAiTextWidgetSize();
+
+    QString copyImagesPath;
+    QString copyHoverImagesPath;
+    QString renewResponseImagesPath;
+    QString renewResponseHoverImagesPath;
 
     QString text;
     std::function<void()> copyFun;
@@ -92,40 +93,38 @@ private:
     QList<int> &thinkTimeLengthList;
     int thinkTimeIndex;
     bool isUser;
-    bool thinkIsExpand = true;
+    bool thinkIsExpand;
     int textMaxWidth;
 
-    bool thinkButtonHaveCreated = false;
+    ImageLabel *imageLabel;
+    TextShow *textShow;
+    TextWidget *textWidget;
+    QVBoxLayout *textLayout;
+    TextBoxWidget *textBoxWidget;
+    QVBoxLayout *textBoxLayout;
+    ThinkingButton *thinkButton;
+    ThinkBackWidget *thinkBackWidget;
+    QVBoxLayout *thinkBackVLayout;
+    LoadingWidget *loadingWidget;
+    FunWidget *funWidget;
+    QHBoxLayout *funHLayout;
+    CopyButton *copyButton;
+    PushButton *renewResponseButton;
+    QTimer aiUpdateSizeTimer;
+
+    bool thinkButtonHaveCreated;
     QString thinkText;
     QString resultText;
-    bool thinkTextIsRecvEnd = false;
-    bool isRecvFirst = true;
-
-    ImageLabel *imageLabel = nullptr;
-    TextWidget *textWidget = nullptr;
-    QVBoxLayout *textLayout = nullptr;
-    TextBoxWidget *textBoxWidget = nullptr;
-    QVBoxLayout *textBoxLayout = nullptr;
-
-    QWidget *funWidget = nullptr;
-    QHBoxLayout *funHLayout = nullptr;
-    CopyButton *copyButton = nullptr;
-    PushButton *renewResponseButton = nullptr;
-    bool funWidgetIsShow = false;
-    bool loadingWidgetIsRemove = true;
-    bool renewResponseButtonIsRemove = true;
-
-    ThinkingButton *thinkButton = nullptr;
-    ThinkBackWidget *thinkBackWidget = nullptr;
-    QVBoxLayout *thinkBackVLayout = nullptr;
-    LoadingWidget *loadingWidget = nullptr;
+    bool thinkTextIsRecvEnd;
+    bool isRecvFirst;
+    bool funWidgetIsShow;
+    bool loadingWidgetIsRemove;
+    bool renewResponseButtonIsRemove;
 
     QList<ThinkWidget *> thinkTextShowList;
     QList<CodeShow *> thinkCodeShowList;
     QList<TextShow *> resultTextShowList;
     QList<CodeShow *> resultCodeShowList;
-
-    QTimer aiUpdateSizeTimer;
 };
 
 template <typename T>

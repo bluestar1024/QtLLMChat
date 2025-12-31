@@ -7,11 +7,11 @@
 #include <QtGui/QSyntaxHighlighter>
 #include <QtGui/QTextDocument>
 
-class StyleSyntaxHighlighter : public SyntaxHighlighter
+class StyleSyntaxHighlighter : public QSyntaxHighlighter
 {
     Q_OBJECT
 public:
-    explicit StyleSyntaxHighlighter(QTextDocument *parent = nullptr);
+    explicit StyleSyntaxHighlighter(QObject *parent = nullptr);
     ~StyleSyntaxHighlighter();
 
     void setSyntaxStyle(SyntaxStyle *style);

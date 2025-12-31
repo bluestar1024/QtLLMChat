@@ -4,7 +4,11 @@
 #pragma once
 #include "linenumberarea.h"
 #include "syntaxstyle.h"
-#include "syntaxhighlighter.h"
+#include "stylesyntaxhighlighter.h"
+#include "pythonhighlighter.h"
+#include "cxxhighlighter.h"
+#include "glslhighlighter.h"
+#include "luahighlighter.h"
 
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QScrollBar>
@@ -13,7 +17,7 @@
 #include <QtGui/QFontDatabase>
 
 extern const int windowFontPointSize;
-extern const QString codeThemeFilePath;
+extern QString codeThemeFilePath;
 
 class CodeEditor : public QTextEdit
 {
@@ -37,11 +41,11 @@ protected:
 
 private:
     void updateLineNumberAreaWidth();
-    void setHighlighter(QSyntaxHighlighter *high);
+    void setHighlighter(StyleSyntaxHighlighter *high);
 
     LineNumberArea *lineNumberArea;
-    QHash<QString, QSyntaxHighlighter *> highlighters;
-    QSyntaxHighlighter *highlighter;
+    QHash<QString, StyleSyntaxHighlighter *> highlighters;
+    StyleSyntaxHighlighter *highlighter;
     QString text;
     QString lexerName;
     bool isResetText;

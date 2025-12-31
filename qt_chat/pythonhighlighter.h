@@ -3,36 +3,35 @@
 
 #pragma once
 #include "stylesyntaxhighlighter.h"
-#include "languang.h"
+#include "language.h"
 
 #include <QtGui/QTextDocument>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QXmlStreamReader>
 
-struct HighlightRule
-{
-    QRegularExpression pattern;
-    QString formatName;
-};
-
-struct HighlightBlockRule
-{
-    QRegularExpression begin;
-    QRegularExpression end;
-    QString formatName;
-};
-
 class PythonHighlighter : public StyleSyntaxHighlighter
 {
     Q_OBJECT
 public:
-    explicit PythonHighlighter(QTextDocument *doc = nullptr);
+    explicit PythonHighlighter(QObject *parent = nullptr);
     ~PythonHighlighter();
 
 protected:
     virtual void highlightBlock(const QString &text) override;
 
 private:
+    struct HighlightRule
+    {
+        QRegularExpression pattern;
+        QString formatName;
+    };
+    struct HighlightBlockRule
+    {
+        QRegularExpression begin;
+        QRegularExpression end;
+        QString formatName;
+    };
+
     void loadLanguageFile(const QString &fileName);
     void initRules();
     void singleLineStrHighlight(const QString &text, int start, int end);

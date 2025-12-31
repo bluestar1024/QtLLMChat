@@ -26,6 +26,7 @@
 extern const QString imagesDir;
 extern const QString fontFilePath;
 extern const QString mathjaxScriptPath;
+extern QString codeThemeFilePath;
 extern const int windowFontPointSize;
 extern const int windowFontPixelSize;
 extern const int titleFontPixelSize;

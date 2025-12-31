@@ -6,7 +6,7 @@
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
 #include <QtGui/QTextBlock>
-#include <QtGui/QFontMetrics>
+#include <QtGui/QAbstractTextDocumentLayout>
 
 class CodeEditor;
 

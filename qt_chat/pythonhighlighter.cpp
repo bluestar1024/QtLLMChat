@@ -2,7 +2,7 @@
 
 #include <QtCore/QFile>
 
-PythonHighlighter::PythonHighlighter(QTextDocument *parent) : StyleSyntaxHighlighter(parent)
+PythonHighlighter::PythonHighlighter(QObject *parent) : StyleSyntaxHighlighter(parent)
 {
     includePattern = QRegularExpression(
             R"((?:from\s+(\w+(?:\.\w+)*)\s+)?import\s+((?:\w+(?:\s+as\s+\w+)?)(?:\s*,\s*\w+(?:\s+as\s+\w+)?)*|\*))");
@@ -19,7 +19,7 @@ void PythonHighlighter::loadLanguageFile(const QString &fileName)
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return;
 
-    Language language(file);
+    Language language(&file);
     if (!language.isLoaded())
         return;
 

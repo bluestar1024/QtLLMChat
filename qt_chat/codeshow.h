@@ -3,6 +3,7 @@
 
 #pragma once
 #include "codeeditor.h"
+#include "pushbutton.h"
 
 #include <QtWidgets/QWidget>
 #include <QtWidgets/QHBoxLayout>

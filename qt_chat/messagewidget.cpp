@@ -1,44 +1,27 @@
 #include "messagewidget.h"
 
-#include <QTimer>
-
 MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
                              std::function<void()> renewResponseFun, ListWidget *listWidget,
                              QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser,
                              bool thinkIsExpand, int textMaxWidth, QWidget *parent)
     : QWidget(parent),
       text(text),
-      copyFun(copyFun),
-      renewResponseFun(renewResponseFun),
+      copyFun(std::move(copyFun)),
+      renewResponseFun(std::move(renewResponseFun)),
       listWidget(listWidget),
       thinkTimeLengthList(thinkTimeLengthList),
       thinkTimeIndex(thinkTimeIndex),
       isUser(isUser),
       thinkIsExpand(thinkIsExpand),
-      textMaxWidth(textMaxWidth - 10)
-{
-    layout = new QHBoxLayout(this);
-    layout->setContentsMargins(5, 5, 5, 5);
-    textShow = new TextShow(this->text, this->textMaxWidth, this);
-    layout->addWidget(textShow);
-    // if (!isUser) layout->addStretch();
-    // else           layout->setAlignment(Qt::AlignRight);
-    setFixedSize(textShow->size() + QSize(10, 0));
-    setObjectName("messageWidget");
-    setStyleSheet("#messageWidget{"
-                  "background: green;"
-                  "}");
-}
-
-MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
-                             std::function<void()> renewResponseFun, bool isUser, int textMaxWidth,
-                             QWidget *parent)
-    : QWidget(parent),
-      text(text),
-      copyFun(std::move(copyFun)),
-      renewResponseFun(std::move(renewResponseFun)),
-      isUser(isUser),
-      textMaxWidth(textMaxWidth)
+      textMaxWidth(textMaxWidth - 10),
+      thinkButtonHaveCreated(false),
+      thinkText(""),
+      resultText(""),
+      thinkTextIsRecvEnd(false),
+      isRecvFirst(true),
+      funWidgetIsShow(false),
+      loadingWidgetIsRemove(true),
+      renewResponseButtonIsRemove(true)
 {
     setMouseTracking(true);
     aiUpdateSizeTimer.setSingleShot(true);
@@ -113,7 +96,7 @@ MessageWidget::~MessageWidget() { }
 
 void MessageWidget::buildUserUi()
 {
-    auto *textShow = new TextShow(text, textMaxWidth - imageLabel->width() - 15);
+    textShow = new TextShow(text, textMaxWidth - imageLabel->width() - 15);
     textLayout->addWidget(textShow);
     textWidget->setFixedSize(textShow->width() + 10, textShow->height());
     textBoxLayout->addWidget(textWidget);
@@ -358,9 +341,11 @@ void MessageWidget::showFunWidget()
 {
     if (funWidgetIsShow)
         return;
+    if (!loadingWidgetIsRemove)
+        return;
     copyButton->show();
-    if (!renewButtonIsRemove)
-        renewButton->show();
+    if (!renewResponseButtonIsRemove)
+        renewResponseButton->show();
     funWidgetIsShow = true;
 }
 
@@ -369,8 +354,8 @@ void MessageWidget::hideFunWidget()
     if (!funWidgetIsShow)
         return;
     copyButton->hide();
-    if (!renewButtonIsRemove)
-        renewButton->hide();
+    if (!renewResponseButtonIsRemove)
+        renewResponseButton->hide();
     funWidgetIsShow = false;
 }
 
@@ -452,7 +437,19 @@ void MessageWidget::breakHandle()
     }
 }
 
-void MessageWidget::removeRenewResponseButton() { }
+void MessageWidget::removeRenewResponseButton()
+{
+    if (isUser || renewResponseButtonIsRemove)
+        return;
+    funHLayout->removeWidget(renewResponseButton);
+    renewResponseButton->deleteLater();
+    renewResponseButtonIsRemove = true;
+    int w = copyButton->width() + funHLayout->contentsMargins().left()
+            + funHLayout->contentsMargins().right();
+    int h = copyButton->height() + funHLayout->contentsMargins().top()
+            + funHLayout->contentsMargins().bottom();
+    funWidget->setFixedSize(w, h);
+}
 
 void MessageWidget::setText(const QString &text)
 {
@@ -569,7 +566,7 @@ void MessageWidget::setText(const QString &text)
             if (!splitText.isEmpty()) {
                 if (resultTextShowListLastLen < i)
                     resultTextShowList.append(
-                            TextShow(splitText, textMaxWidth - imageLabel->width() - 35, this));
+                            new TextShow(splitText, textMaxWidth - imageLabel->width() - 35, this));
                 else
                     resultTextShowList[i]->setText(splitText);
                 i += 1;
@@ -592,7 +589,6 @@ void MessageWidget::setText(const QString &text)
     }
 
     setSize();
-    emit setTexting(false);
 }
 
 void MessageWidget::removeLoadingWidget()
@@ -603,6 +599,7 @@ void MessageWidget::removeLoadingWidget()
     loadingWidget->deleteLater();
     loadingWidgetIsRemove = true;
     textBoxLayout->addWidget(funWidget);
+    textBoxLayout->setSpacing(0);
     textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                 textWidget->height() + funWidget->height());
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
@@ -624,10 +621,40 @@ ListWidget *MessageWidget::getListWidget()
 
 bool MessageWidget::hasSelectedText()
 {
+    if (isUser) {
+        return textShow ? textShow->hasSelectedText() : false;
+    }
+    for (auto *thinkWidget : thinkTextShowList)
+        if (thinkWidget->hasSelectedText())
+            return true;
+    for (auto *codeShow : thinkCodeShowList)
+        if (codeShow->hasSelectedText())
+            return true;
+    for (auto *textShow : resultTextShowList)
+        if (textShow->hasSelectedText())
+            return true;
+    for (auto *codeShow : resultCodeShowList)
+        if (codeShow->hasSelectedText())
+            return true;
     return false;
 }
 
 QString MessageWidget::getSelectedText()
 {
+    if (isUser) {
+        return (textShow && textShow->hasSelectedText()) ? textShow->getSelectedText() : "";
+    }
+    for (auto *thinkWidget : thinkTextShowList)
+        if (thinkWidget->hasSelectedText())
+            return thinkWidget->getSelectedText();
+    for (auto *codeShow : thinkCodeShowList)
+        if (codeShow->hasSelectedText())
+            return codeShow->getSelectedText();
+    for (auto *textShow : resultTextShowList)
+        if (textShow->hasSelectedText())
+            return textShow->getSelectedText();
+    for (auto *codeShow : resultCodeShowList)
+        if (codeShow->hasSelectedText())
+            return codeShow->getSelectedText();
     return "";
 }

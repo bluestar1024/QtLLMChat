@@ -21,15 +21,15 @@ bool Language::load(QIODevice *device)
         QXmlStreamReader::TokenType token = reader.readNext();
 
         if (token == QXmlStreamReader::StartElement) {
-            QStringRef nameRef = reader.name();
+            QString name = reader.name().toString();
 
-            if (nameRef == QLatin1String("section")) {
+            if (name == QLatin1String("section")) {
                 if (!stringList.isEmpty()) {
                     list[currentName] = stringList;
                     stringList.clear();
                 }
                 currentName = reader.attributes().value(QLatin1String("name")).toString();
-            } else if (nameRef == QLatin1String("name")) {
+            } else if (name == QLatin1String("name")) {
                 readText = true;
             }
         } else if (token == QXmlStreamReader::Characters && readText) {

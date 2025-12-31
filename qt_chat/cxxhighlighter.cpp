@@ -2,7 +2,7 @@
 
 #include <QtCore/QFile>
 
-CXXHighlighter::CXXHighlighter(QTextDocument *parent) : StyleSyntaxHighlighter(parent)
+CXXHighlighter::CXXHighlighter(QObject *parent) : StyleSyntaxHighlighter(parent)
 {
     includePattern.setPattern(R"((^\s*#\s*include\s*([<"][^:?"<>\|]+[">])))");
     commentStartPattern.setPattern(R"((/\*))");
@@ -20,7 +20,7 @@ void CXXHighlighter::loadLanguageFile(const QString &fileName)
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return;
 
-    Language language(file);
+    Language language(&file);
     if (!language.isLoaded())
         return;
 

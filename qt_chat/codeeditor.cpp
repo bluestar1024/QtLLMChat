@@ -24,10 +24,10 @@ CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
     updateLineNumberAreaWidth();
 
     highlighters.insert("None", nullptr);
-    highlighters.insert("Python", new QPythonHighlighter(this));
-    highlighters.insert("C++", new QCXXHighlighter(this));
-    highlighters.insert("GLSL", new QGLSLHighlighter(this));
-    highlighters.insert("LUA", new QLuaHighlighter(this));
+    highlighters.insert("Python", new PythonHighlighter(this));
+    highlighters.insert("C++", new CXXHighlighter(this));
+    highlighters.insert("GLSL", new GLSLHighlighter(this));
+    highlighters.insert("LUA", new LuaHighlighter(this));
     highlighter = highlighters["None"];
 
     connect(this, &QTextEdit::textChanged, this, &CodeEditor::adjustHeight);
@@ -120,7 +120,7 @@ void CodeEditor::adjustHeight()
 void CodeEditor::resizeEvent(QResizeEvent *e)
 {
     QTextEdit::resizeEvent(e);
-    if (height() != int(document().size().height()) + 15)
+    if (height() != int(document()->size().height()) + 15)
         adjustHeight();
 }
 
@@ -134,7 +134,7 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
     this->text = text;
     lexerName = lexer;
 
-    QSyntaxHighlighter *next = nullptr;
+    StyleSyntaxHighlighter *next = nullptr;
     if (lexer == "cpp")
         next = highlighters["C++"];
     else if (lexer == "python")
@@ -163,7 +163,7 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
     }
 }
 
-void CodeEditor::setHighlighter(QSyntaxHighlighter *high)
+void CodeEditor::setHighlighter(StyleSyntaxHighlighter *high)
 {
     if (highlighter != high) {
         highlighter = high;
@@ -171,5 +171,5 @@ void CodeEditor::setHighlighter(QSyntaxHighlighter *high)
     if (highlighter && highlighter->document() != document())
         highlighter->setDocument(document());
     if (highlighter)
-        highlighter->setSyntaxStyle(QSyntaxStyle::defaultStyle());
+        highlighter->setSyntaxStyle(SyntaxStyle::defaultStyle());
 }

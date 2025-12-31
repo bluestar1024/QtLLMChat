@@ -43,8 +43,8 @@ void CodeShow::setupUI()
 
     toggleThemeButton = new PushButton("日间主题", 15, 35);
     toggleThemeButton->setFixedSize(topHeight - 10, topHeight - 10);
-    lightThemeImagesPath = imageDir + "/light_theme.png";
-    darkThemeImagesPath = imageDir + "/dark_theme.png";
+    lightThemeImagesPath = imagesDir + "/light_theme.png";
+    darkThemeImagesPath = imagesDir + "/dark_theme.png";
     toggleThemeButton->setIcon(QIcon(lightThemeImagesPath));
     toggleThemeButton->setIconSize(QSize(topHeight - 10, topHeight - 10));
     toggleThemeButton->setStyleSheet("border: none; background: transparent;");
@@ -52,10 +52,10 @@ void CodeShow::setupUI()
 
     wordWrapButton = new PushButton("折叠成单行", 15, 35);
     wordWrapButton->setFixedSize(topHeight - 10, topHeight - 10);
-    lightWordWrapImagesPath = imageDir + "/light_word_wrap.png";
-    lightSingleLineImagesPath = imageDir + "/light_single_line.png";
-    darkWordWrapImagesPath = imageDir + "/dark_word_wrap.png";
-    darkSingleLineImagesPath = imageDir + "/dark_single_line.png";
+    lightWordWrapImagesPath = imagesDir + "/light_word_wrap.png";
+    lightSingleLineImagesPath = imagesDir + "/light_single_line.png";
+    darkWordWrapImagesPath = imagesDir + "/dark_word_wrap.png";
+    darkSingleLineImagesPath = imagesDir + "/dark_single_line.png";
     wordWrapButton->setIcon(QIcon(lightSingleLineImagesPath));
     wordWrapButton->setIconSize(QSize(topHeight - 10, topHeight - 10));
     wordWrapButton->setStyleSheet("border: none; background: transparent;");
@@ -63,8 +63,8 @@ void CodeShow::setupUI()
 
     codeCopyButton = new PushButton("复制代码", 15, 35);
     codeCopyButton->setFixedSize(topHeight - 10, topHeight - 10);
-    lightCodeCopyImagesPath = imageDir + "light_code_copy.png";
-    darkCodeCopyImagesPath = imageDir + "dark_code_copy.png";
+    lightCodeCopyImagesPath = imagesDir + "light_code_copy.png";
+    darkCodeCopyImagesPath = imagesDir + "dark_code_copy.png";
     codeCopyButton->setIcon(QIcon(lightCodeCopyImagesPath));
     codeCopyButton->setIconSize(QSize(topHeight - 10, topHeight - 10));
     codeCopyButton->setStyleSheet("border: none; background: transparent;");
