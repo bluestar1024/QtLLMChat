@@ -23,7 +23,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>
 
-extern const QString imagesDir;
+// extern const QString imagesDir;
 
 class MessageWidget : public QWidget
 {
@@ -46,14 +46,17 @@ public:
     void breakHandle();
     void removeRenewResponseButton();
     void removeLoadingWidget();
-    void updateFunWidgetSize(int curDpi, int initDpi);
+    void updateFunWidgetSize(qreal curDpi, qreal initDpi);
+    bool getThinkIsExpanded();
     void showFunWidget();
     void hideFunWidget();
 
     void setSize();
     void setText(const QString &text);
-    QString getText() const { return text; }
-    bool getIsUser() const { return isUser; }
+    QString getText();
+    bool getIsUser();
+    TextWidget *getTextWidget();
+    TextBoxWidget *getTextBoxWidget();
     ListWidget *getListWidget();
     bool hasSelectedText();
     QString getSelectedText();

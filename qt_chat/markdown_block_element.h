@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-// 枚举语法类型
 enum class BlockType {
     Paragraph,
     Headinglevel1,

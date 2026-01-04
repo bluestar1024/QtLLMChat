@@ -1,4 +1,5 @@
 #include "thinkingbutton.h"
+#include "globalvariables.h"
 
 #include <QtGui/QCursor>
 #include <QtGui/QPixmap>

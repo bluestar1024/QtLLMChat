@@ -1,4 +1,5 @@
 #include "messagewidget.h"
+#include "globalvariables.h"
 
 MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
                              std::function<void()> renewResponseFun, ListWidget *listWidget,
@@ -6,8 +7,8 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
                              bool thinkIsExpand, int textMaxWidth, QWidget *parent)
     : QWidget(parent),
       text(text),
-      copyFun(std::move(copyFun)),
-      renewResponseFun(std::move(renewResponseFun)),
+      copyFun(copyFun),
+      renewResponseFun(renewResponseFun),
       listWidget(listWidget),
       thinkTimeLengthList(thinkTimeLengthList),
       thinkTimeIndex(thinkTimeIndex),
@@ -40,7 +41,7 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     textBoxLayout->setSpacing(0);
     textBoxLayout->setContentsMargins(0, 0, 0, 0);
 
-    funWidget = new QWidget();
+    funWidget = new FunWidget();
     funHLayout = new QHBoxLayout(funWidget);
     funHLayout->setContentsMargins(5, 5, 5, 5);
     copyButton = new CopyButton("复制", 15, 35, this);
@@ -131,7 +132,7 @@ void MessageWidget::buildAiUi()
                                           + codeBlock.code.size());
             auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language,
                                           textMaxWidth - imageLabel->width() - 80, this);
-            codeShow->connectCodeCopyButtonClick(this, copyFun);
+            codeShow->connectCodeCopyButtonClick(copyFun);
             thinkCodeShowList.append(codeShow);
         }
         thinkSplitTextList.append(thinkTempText);
@@ -180,7 +181,7 @@ void MessageWidget::buildAiUi()
                                            + codeBlock.code.size());
             auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language,
                                           textMaxWidth - imageLabel->width() - 35, this);
-            codeShow->connectCodeCopyButtonClick(this, copyFun);
+            codeShow->connectCodeCopyButtonClick(copyFun);
             resultCodeShowList.append(codeShow);
         }
         resultSplitTextList.append(resultTempText);
@@ -329,7 +330,7 @@ void MessageWidget::onAiUpdateSize()
 {
     emit resizeFinished();
     emit setTexting(false);
-    if (!thinkText.isEmpty() && !QString('</think>').contains(thinkText)) {
+    if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
         if (thinkButton->getThinkTimeLength() == 0)
             thinkButton->setThinkTimeLength(thinkTimeLengthList[thinkTimeIndex]);
         else
@@ -485,7 +486,7 @@ void MessageWidget::setText(const QString &text)
             if (thinkCodeShowListLastLen < i) {
                 auto *codeShow = new CodeShow(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language,
                                               textMaxWidth - imageLabel->width() - 80, this);
-                codeShow->connectCodeCopyButtonClick(this, copyFun);
+                codeShow->connectCodeCopyButtonClick(copyFun);
                 codeShow->setVisible(thinkIsExpand);
                 thinkCodeShowList.append(codeShow);
             } else {
@@ -509,7 +510,7 @@ void MessageWidget::setText(const QString &text)
                 if (thinkTextShowListLastLen < i) {
                     ThinkWidget *thinkWidget = new ThinkWidget(
                             splitText, textMaxWidth - imageLabel->width() - 80, this);
-                    thinkWidget.setVisible(thinkIsExpand);
+                    thinkWidget->setVisible(thinkIsExpand);
                     thinkTextShowList.append(thinkWidget);
                 } else {
                     thinkTextShowList[i]->setText(splitText);
@@ -552,7 +553,7 @@ void MessageWidget::setText(const QString &text)
                 auto *codeShow =
                         new CodeShow(resultCodeBlocks[i].code, resultCodeBlocks[i].language,
                                      textMaxWidth - imageLabel->width() - 35, this);
-                codeShow->connectCodeCopyButtonClick(this, copyFun);
+                codeShow->connectCodeCopyButtonClick(copyFun);
                 resultCodeShowList.append(codeShow);
             } else {
                 resultCodeShowList[i]->setText(resultCodeBlocks[i].code,

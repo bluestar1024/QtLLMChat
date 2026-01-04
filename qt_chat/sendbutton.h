@@ -9,8 +9,8 @@
 #include <QtWidgets/QToolTip>
 #include <QtCore/QPoint>
 
-extern const QString fontFilePath;
-extern const int buttonFontPointSize;
+// extern const QString fontFilePath;
+// extern const int buttonFontPointSize;
 
 class SendButton : public QPushButton
 {

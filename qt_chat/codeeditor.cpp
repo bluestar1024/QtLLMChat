@@ -1,4 +1,5 @@
 #include "codeeditor.h"
+#include "globalvariables.h"
 
 #include <QtGui/QFontMetrics>
 #include <QtGui/QTextBlock>

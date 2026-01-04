@@ -1,4 +1,5 @@
 #include "imagelabel.h"
+#include "globalvariables.h"
 
 #include <QPixmap>
 

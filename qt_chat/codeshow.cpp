@@ -1,4 +1,5 @@
 #include "codeshow.h"
+#include "globalvariables.h"
 
 #include <QtGui/QIcon>
 #include <QtGui/QPalette>
@@ -201,4 +202,20 @@ void CodeShow::setLineWordWrapMode()
 void CodeShow::copyCode()
 {
     QApplication::clipboard()->setText(codeText);
+}
+
+void CodeShow::connectCodeCopyButtonClick(std::function<void()> fun)
+{
+    connect(codeCopyButton, &QPushButton::clicked, [=](bool) {
+        if (fun)
+            fun();
+    });
+}
+
+void CodeShow::connectCodeCopyButtonClick(std::function<void(bool)> fun)
+{
+    connect(codeCopyButton, &QPushButton::clicked, this, [=](bool checked) {
+        if (fun)
+            fun(checked);
+    });
 }

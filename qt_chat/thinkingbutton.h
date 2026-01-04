@@ -13,9 +13,9 @@
 #include <QtGui/QPainterPath>
 #include <QtGui/QBrush>
 
-extern const int windowFontPixelSize;
-extern const QString fontFilePath;
-extern const QString imagesDir;
+// extern const int windowFontPixelSize;
+// extern const QString fontFilePath;
+// extern const QString imagesDir;
 
 class ThinkingButton : public QWidget
 {
@@ -25,7 +25,7 @@ public:
     ~ThinkingButton();
 
     template <typename T>
-    void connectButtonClick(T *receiver, void (T::*slot)(bool));
+    void connectButtonClick(T *receiver, void (T::*slot)());
     void setIsShowThinkContent(bool show);
     void setThinkEnd();
     void setThinkTimeLength(int secs);
@@ -60,7 +60,7 @@ private:
 };
 
 template <typename T>
-void ThinkingButton::connectButtonClick(T *receiver, void (T::*slot)(bool))
+void ThinkingButton::connectButtonClick(T *receiver, void (T::*slot)())
 {
     connect(this, &ThinkingButton::clicked, receiver, slot);
 }

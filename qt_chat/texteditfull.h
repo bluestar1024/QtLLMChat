@@ -16,10 +16,10 @@
 #include <QtGui/QColor>
 #include <QtCore/QMetaMethod>
 
-extern const QColor textEditFullBGColor;
-extern const QColor textEditFullBGTColor;
-extern const QColor textEditFullBTColor;
-extern const QColor textEditFullBColor;
+// extern const QColor textEditFullBGColor;
+// extern const QColor textEditFullBGTColor;
+// extern const QColor textEditFullBTColor;
+// extern const QColor textEditFullBColor;
 
 class TextEditFull : public QWidget
 {

@@ -1,4 +1,5 @@
 #include "thinkwidget.h"
+#include "globalvariables.h"
 
 #include <QDebug>
 
@@ -338,7 +339,7 @@ bool ThinkWidget::hasSelectedText() const
     return isLabel ? label->hasSelectedText() : webEngineView->hasSelection();
 }
 
-QString ThinkWidget::selectedText() const
+QString ThinkWidget::getSelectedText() const
 {
     return isLabel ? label->selectedText() : webEngineView->selectedText();
 }

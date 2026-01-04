@@ -1,4 +1,5 @@
 #include "sendbutton.h"
+#include "globalvariables.h"
 
 SendButton::SendButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
     : QPushButton(parent), tipText(tipText)

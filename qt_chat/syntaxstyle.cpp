@@ -1,4 +1,5 @@
 #include "syntaxstyle.h"
+#include "globalvariables.h"
 
 #include <QtGui/QFont>
 

@@ -1,4 +1,5 @@
 #include "funwidget.h"
+#include "globalvariables.h"
 
 FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
 {

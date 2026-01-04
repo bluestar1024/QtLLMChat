@@ -1,4 +1,5 @@
 #include "texteditfull.h"
+#include "globalvariables.h"
 
 TextEditFull::TextEditFull(QWidget *parent) : QWidget(parent), backgroundColorIsLight(false)
 {

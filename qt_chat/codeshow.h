@@ -15,9 +15,9 @@
 #include <QtGui/QPainter>
 #include <QtWidgets/QApplication>
 
-extern const QString imagesDir;
-extern const QString fontFilePath;
-extern const int windowFontPointSize;
+// extern const QString imagesDir;
+// extern const QString fontFilePath;
+// extern const int windowFontPointSize;
 
 class CodeShow : public QWidget
 {
@@ -28,10 +28,8 @@ public:
                       QWidget *parent = nullptr);
     ~CodeShow();
 
-    template <typename T>
-    void connectCodeCopyButtonClick(T *receiver, void (T::*slot)());
-    template <typename T>
-    void connectCodeCopyButtonClick(T *receiver, void (T::*slot)(bool));
+    void connectCodeCopyButtonClick(std::function<void()> fun);
+    void connectCodeCopyButtonClick(std::function<void(bool)> fun);
     QString getText() const;
     void setText(const QString &codeText, const QString &lexerName = "cpp");
     QString getLexerName() const;
@@ -78,17 +76,5 @@ private:
 
     QColor borderColor;
 };
-
-template <typename T>
-void CodeShow::connectCodeCopyButtonClick(T *receiver, void (T::*slot)())
-{
-    connect(codeCopyButton, &QPushButton::clicked, [=](bool) { (receiver->*slot)(); });
-}
-
-template <typename T>
-void CodeShow::connectCodeCopyButtonClick(T *receiver, void (T::*slot)(bool))
-{
-    connect(codeCopyButton, &QPushButton::clicked, receiver, slot);
-}
 
 #endif // CODESHOW_H

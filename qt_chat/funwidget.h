@@ -20,9 +20,9 @@
 #include <QtCore/QDir>
 #include <QtCore/QVariant>
 
-extern const QString imagesDir;
-extern const QString fontFilePath;
-extern const int titleFontPixelSize;
+// extern const QString imagesDir;
+// extern const QString fontFilePath;
+// extern const int titleFontPixelSize;
 
 class FunWidget : public QWidget
 {

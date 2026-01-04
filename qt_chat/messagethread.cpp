@@ -1,4 +1,5 @@
 #include "messagethread.h"
+#include "globalvariables.h"
 
 MessageThread::MessageThread(const QString &contentInput, const QList<QVariantMap> &context,
                              bool useStream, QObject *parent)

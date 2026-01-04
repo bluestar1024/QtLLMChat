@@ -18,7 +18,7 @@ public:
     ~LuaHighlighter();
 
 protected:
-    virtual void highlightBlock(const QString &text) override = 0;
+    virtual void highlightBlock(const QString &text) override;
 
 private:
     void loadLanguageFile(const QString &fileName);

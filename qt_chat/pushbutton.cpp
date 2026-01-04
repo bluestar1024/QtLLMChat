@@ -1,4 +1,5 @@
 #include "pushbutton.h"
+#include "globalvariables.h"
 
 PushButton::PushButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
     : QPushButton(parent), tipText(tipText)

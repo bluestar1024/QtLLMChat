@@ -10,8 +10,8 @@
 #include <QtGui/QFontDatabase>
 #include <QtWidgets/QToolTip>
 
-extern const QString fontFilePath;
-extern const int buttonFontPointSize;
+// extern const QString fontFilePath;
+// extern const int buttonFontPointSize;
 
 class PushButton : public QPushButton
 {

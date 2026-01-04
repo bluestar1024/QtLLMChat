@@ -2,8 +2,6 @@
 #define COPYBUTTON_H
 
 #pragma once
-#include "messagewidget.h"
-
 #include <QtWidgets/QPushButton>
 #include <QtGui/QFont>
 #include <QtGui/QFontDatabase>
@@ -13,8 +11,8 @@
 #include <QtCore/QPoint>
 #include <QtWidgets/QApplication>
 
-extern const QString fontFilePath;
-extern const int buttonFontPointSize;
+// extern const QString fontFilePath;
+// extern const int buttonFontPointSize;
 
 class CopyButton : public QPushButton
 {

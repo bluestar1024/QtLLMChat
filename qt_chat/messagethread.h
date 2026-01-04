@@ -6,7 +6,7 @@
 #include <QtCore/QString>
 #include <QtCore/QVariantMap>
 
-extern const QString testText;
+// extern const QString testText;
 
 class MessageThread : public QThread
 {

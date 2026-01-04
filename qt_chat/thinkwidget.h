@@ -16,9 +16,9 @@
 #include <QtCore/QUrl>
 #include <QtCore/QFileInfo>
 
-extern const QString fontFilePath;
-extern const QString mathjaxScriptPath;
-extern const int windowFontPixelSize;
+// extern const QString fontFilePath;
+// extern const QString mathjaxScriptPath;
+// extern const int windowFontPixelSize;
 
 class WebEngineView;
 
@@ -32,7 +32,7 @@ public:
     void setText(const QString &text);
     void toggleWidget();
     bool hasSelectedText() const;
-    QString selectedText() const;
+    QString getSelectedText() const;
 
     WebEngineView *webEngineView;
     QTimer *updateSizeTimer;

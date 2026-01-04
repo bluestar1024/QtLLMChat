@@ -9,7 +9,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QIODevice>
 
-extern const QString codeThemeFilePath;
+// extern QString codeThemeFilePath;
 
 class SyntaxStyle : public QObject
 {

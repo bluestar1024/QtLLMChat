@@ -29,7 +29,7 @@ void PythonHighlighter::loadLanguageFile(const QString &fileName)
         for (const QString &name : names) {
             HighlightRule rule;
             rule.pattern.setPattern(QString(R"(\b%1\b)").arg(QRegularExpression::escape(name)));
-            rule.format = key;
+            rule.formatName = key;
             highlightRules.append(rule);
         }
     }
@@ -139,7 +139,7 @@ void PythonHighlighter::highlightBlock(const QString &text)
 
 void PythonHighlighter::singleLineStrHighlight(const QString &text, int start, int end)
 {
-    QStringRef slice = (end == -1) ? text.midRef(start) : text.midRef(start, end - start + 1);
+    QString slice = (end == -1) ? text.mid(start) : text.mid(start, end - start + 1);
     if (slice.isEmpty())
         return;
 
@@ -151,7 +151,7 @@ void PythonHighlighter::singleLineStrHighlight(const QString &text, int start, i
     QVector<Cand> cands;
 
     for (int i = 0; i < highlightStringRules.size(); ++i) {
-        auto m = highlightStringRules[i].pattern.match(slice.toString());
+        auto m = highlightStringRules[i].pattern.match(slice);
         if (m.hasMatch())
             cands.append({ m.capturedStart(), i });
     }
@@ -165,7 +165,7 @@ void PythonHighlighter::singleLineStrHighlight(const QString &text, int start, i
     while (!cands.isEmpty()) {
         Cand best = cands.takeFirst();
         const auto &rule = highlightStringRules[best.ruleIdx];
-        auto m = rule.pattern.match(slice.toString(), offset);
+        auto m = rule.pattern.match(slice, offset);
         if (!m.hasMatch())
             break;
         setFormat(start + m.capturedStart(), m.capturedLength(),
@@ -174,7 +174,7 @@ void PythonHighlighter::singleLineStrHighlight(const QString &text, int start, i
 
         cands.clear();
         for (int i = 0; i < highlightStringRules.size(); ++i) {
-            auto mm = highlightStringRules[i].pattern.match(slice.toString(), offset);
+            auto mm = highlightStringRules[i].pattern.match(slice, offset);
             if (mm.hasMatch())
                 cands.append({ mm.capturedStart(), i });
         }

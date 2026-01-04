@@ -68,6 +68,7 @@ HEADERS += \
     cxxhighlighter.h \
     frame.h \
     funwidget.h \
+    globalvariables.h \
     glslhighlighter.h \
     html_renderer.h \
     imagelabel.h \

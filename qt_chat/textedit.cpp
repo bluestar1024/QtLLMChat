@@ -1,4 +1,5 @@
 #include "textedit.h"
+#include "globalvariables.h"
 
 #include <QDebug>
 

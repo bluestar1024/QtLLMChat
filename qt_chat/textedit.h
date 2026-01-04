@@ -19,10 +19,10 @@
 #include <QtGui/QKeyEvent>
 #include <QtCore/QMetaMethod>
 
-extern const QString imagesDir;
-extern const QString fontFilePath;
-extern const int windowFontPointSize;
-extern const int windowFontPixelSize;
+// extern const QString imagesDir;
+// extern const QString fontFilePath;
+// extern const int windowFontPointSize;
+// extern const int windowFontPixelSize;
 
 class TextEdit : public QTextEdit
 {

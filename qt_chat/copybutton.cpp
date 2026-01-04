@@ -1,4 +1,6 @@
 #include "copybutton.h"
+#include "messagewidget.h"
+#include "globalvariables.h"
 
 CopyButton::CopyButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
     : QPushButton(parent), tipText(tipText)

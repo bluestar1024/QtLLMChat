@@ -16,8 +16,8 @@
 #include <QtGui/QTextCursor>
 #include <QtGui/QFontDatabase>
 
-extern const int windowFontPointSize;
-extern QString codeThemeFilePath;
+// extern const int windowFontPointSize;
+// extern QString codeThemeFilePath;
 
 class CodeEditor : public QTextEdit
 {

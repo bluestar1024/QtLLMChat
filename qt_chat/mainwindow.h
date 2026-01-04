@@ -12,6 +12,7 @@
 #include "messagewidget.h"
 #include "itemwidget.h"
 #include "messagethread.h"
+#include "globalvariables.h"
 
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QGraphicsDropShadowEffect>
@@ -22,20 +23,6 @@
 #include <QtGui/QScreen>
 #include <QtWidgets/QApplication>
 #include <QtCore/QVariant>
-
-extern const QString imagesDir;
-extern const QString fontFilePath;
-extern const QString mathjaxScriptPath;
-extern QString codeThemeFilePath;
-extern const int windowFontPointSize;
-extern const int windowFontPixelSize;
-extern const int titleFontPixelSize;
-extern const int buttonFontPointSize;
-extern const QColor textEditFullBGColor;
-extern const QColor textEditFullBGTColor;
-extern const QColor textEditFullBTColor;
-extern const QColor textEditFullBColor;
-extern const QString testText;
 
 enum class RegionEnum : int {
     Left = 0,
