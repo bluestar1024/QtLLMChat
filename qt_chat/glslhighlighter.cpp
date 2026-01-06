@@ -5,7 +5,7 @@
 GLSLHighlighter::GLSLHighlighter(QObject *parent) : StyleSyntaxHighlighter(parent)
 {
     includePattern = QRegularExpression(R"((#include\s+([<"][a-zA-Z0-9*._]+[">])))");
-    functionPattern = QRegularExpression(R"((\b([A-Za-z0-9_]+(?:\s+|::))*([A-Za-z0-9_]+)(?= $))))");
+    functionPattern = QRegularExpression(R"((\b([A-Za-z0-9_]+(?:\s+|::))*([A-Za-z0-9_]+)(?=$)))");
     commentStartPattern = QRegularExpression(R"((/\*))");
     commentEndPattern = QRegularExpression(R"((\*/))");
 

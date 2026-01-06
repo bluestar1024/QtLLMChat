@@ -11,20 +11,26 @@ LineNumberArea::~LineNumberArea() { }
 
 void LineNumberArea::setLightTheme()
 {
-    backgroundColor = QColor(255, 255, 255);
+    backgroundColor = new QColor(255, 255, 255);
     numberColor = QColor(78, 86, 92);
     update();
 }
 
 void LineNumberArea::setDarkTheme()
 {
-    backgroundColor = QColor(20, 20, 28);
+    qDebug() << "LineNumberArea setDarkTheme start";
+    qDebug() << "LineNumberArea setDarkTheme ing1";
+    backgroundColor = new QColor(20, 20, 28);
+    qDebug() << "LineNumberArea setDarkTheme ing2";
     numberColor = QColor(178, 170, 164);
+    qDebug() << "LineNumberArea setDarkTheme ing0";
     update();
+    qDebug() << "LineNumberArea setDarkTheme end";
 }
 
 void LineNumberArea::paintEvent(QPaintEvent *event)
 {
+    qDebug() << "LineNumberArea paintEvent start";
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
@@ -37,12 +43,13 @@ void LineNumberArea::paintEvent(QPaintEvent *event)
     path.addRect(rect.width() - 7, rect.height() - 7, 7, 7);
 
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QBrush(backgroundColor));
+    painter.setBrush(QBrush(*backgroundColor));
     painter.drawPath(path.simplified());
 
     painter.setPen(QPen(numberColor));
     painter.setFont(editor->font());
 
+    qDebug() << "LineNumberArea paintEvent ing0";
     int hAdvance = editor->fontMetrics().horizontalAdvance('9');
     int blockNumber = editor->getFirstVisibleBlockNumber();
     QTextBlock block = editor->document()->findBlockByNumber(blockNumber);
@@ -55,6 +62,7 @@ void LineNumberArea::paintEvent(QPaintEvent *event)
             + static_cast<int>(
                          editor->document()->documentLayout()->blockBoundingRect(block).height());
 
+    qDebug() << "LineNumberArea paintEvent ing1";
     while (block.isValid() && top <= event->rect().bottom()) {
         if (block.isVisible() && bottom >= event->rect().top()) {
             QString number = QString::number(blockNumber + 1);
@@ -72,9 +80,11 @@ void LineNumberArea::paintEvent(QPaintEvent *event)
                                        ->blockBoundingRect(block)
                                        .translated(0, -editor->verticalScrollBar()->value())
                                        .top());
+        qDebug() << "LineNumberArea paintEvent ing2";
         bottom = top
                 + static_cast<int>(
                          editor->document()->documentLayout()->blockBoundingRect(block).height());
         ++blockNumber;
     }
+    qDebug() << "LineNumberArea paintEvent end";
 }

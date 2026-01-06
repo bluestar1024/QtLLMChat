@@ -80,7 +80,6 @@ void CXXHighlighter::highlightBlock(const QString &text)
         }
     }
 
-    // 3. 多行注释 /* ... */
     setCurrentBlockState(0);
     int startIndex = 0;
     if (previousBlockState() != 1) {

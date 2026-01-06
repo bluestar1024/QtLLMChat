@@ -250,13 +250,16 @@ void MessageWidget::parseThinkAndResult(const QString &txt, QString &think, QStr
 
 void MessageWidget::setSize()
 {
+    qDebug() << "MessageWidget setSize start";
     if (isUser) {
+        qDebug() << "MessageWidget setSize ing0";
         if (!textShow)
             return;
         textWidget->setFixedSize(textShow->width() + 10, textShow->height());
         textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                     textWidget->height() + funWidget->height());
     } else {
+        qDebug() << "MessageWidget setSize ing1";
         adjustAiTextWidgetSize();
         if (loadingWidgetIsRemove)
             textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
@@ -265,8 +268,10 @@ void MessageWidget::setSize()
             textBoxWidget->setFixedSize(qMax(textWidget->width(), loadingWidget->width()),
                                         textWidget->height() + loadingWidget->height());
     }
+    qDebug() << "MessageWidget setSize ing2";
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
                  qMax(imageLabel->height(), textBoxWidget->height()));
+    qDebug() << "MessageWidget setSize end";
 }
 
 void MessageWidget::adjustAiTextWidgetSize()
@@ -454,6 +459,7 @@ void MessageWidget::removeRenewResponseButton()
 
 void MessageWidget::setText(const QString &text)
 {
+    qDebug() << "MessageWidget setText start";
     this->text = text;
     if (isUser) {
         if (textShow)
@@ -465,8 +471,9 @@ void MessageWidget::setText(const QString &text)
     emit setTexting(true);
 
     parseThinkAndResult(this->text, thinkText, resultText, thinkTextIsRecvEnd);
-
+    qDebug() << "MessageWidget setText ing0";
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
+        qDebug() << "MessageWidget setText ing1";
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
         QString thinkTempText = thinkText;
@@ -539,6 +546,7 @@ void MessageWidget::setText(const QString &text)
     }
 
     if (!resultText.isEmpty()) {
+        qDebug() << "MessageWidget setText ing2";
         auto resultCodeBlocks = extractCodeBlocks(resultText);
         QStringList resultSplitTextList;
         QString resultTempText = resultText;
@@ -550,11 +558,14 @@ void MessageWidget::setText(const QString &text)
                     idx + QString("```%1\n").arg(resultCodeBlocks[i].language).size()
                     + resultCodeBlocks[i].code.size() + 3);
             if (resultCodeShowListLastLen < i) {
+                qDebug() << "MessageWidget setText ing3";
                 auto *codeShow =
                         new CodeShow(resultCodeBlocks[i].code, resultCodeBlocks[i].language,
                                      textMaxWidth - imageLabel->width() - 35, this);
+                qDebug() << "MessageWidget setText ing4";
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 resultCodeShowList.append(codeShow);
+                qDebug() << "MessageWidget setText ing5";
             } else {
                 resultCodeShowList[i]->setText(resultCodeBlocks[i].code,
                                                resultCodeBlocks[i].language);
@@ -590,6 +601,7 @@ void MessageWidget::setText(const QString &text)
     }
 
     setSize();
+    qDebug() << "MessageWidget setText end";
 }
 
 void MessageWidget::removeLoadingWidget()

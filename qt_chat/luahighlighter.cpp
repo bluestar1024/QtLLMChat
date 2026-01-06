@@ -5,7 +5,7 @@
 LuaHighlighter::LuaHighlighter(QObject *parent) : StyleSyntaxHighlighter(parent)
 {
     requirePattern = QRegularExpression(R"((require\s*([(\"'][a-zA-Z0-9*._]+['\")])))");
-    functionPattern = QRegularExpression(R"((\b([A-Za-z0-9_]+(?:\s+|::))*([A-Za-z0-9_]+)(?= $)))");
+    functionPattern = QRegularExpression(R"((\b([A-Za-z0-9_]+(?:\s+|::))*([A-Za-z0-9_]+)(?=$)))");
     defTypePattern =
             QRegularExpression(R"((\b([A-Za-z0-9_]+)\s+([A-Za-z]{1}[A-Za-z0-9_]+)\s*[=]))");
 
@@ -43,10 +43,10 @@ void LuaHighlighter::initRules()
     highlightRules.append({ QRegularExpression(R"(["][^\n"]*["]|['][^\n']*['])"), "String" });
     highlightRules.append({ QRegularExpression(R"(#\![a-zA-Z_]+)"), "Preprocessor" });
     highlightRules.append({ QRegularExpression(R"(--[^\n]*)"), "Comment" });
+    highlightBlockRules.append({ QRegularExpression(R"(-- \$\$ \$\$)"),
+                                 QRegularExpression(R"(--\$\$ \$\$ )"), "Comment" });
     highlightBlockRules.append(
-            { QRegularExpression(R"(-- $$ $$))"), QRegularExpression(R"(--$$ $$ ))"), "Comment" });
-    highlightBlockRules.append(
-            { QRegularExpression(R"( $$ $$))"), QRegularExpression(R"($$ $$ )"), "String" });
+            { QRegularExpression(R"( \$\$ \$\$)"), QRegularExpression(R"(\$\$ \$\$ )"), "String" });
 }
 
 void LuaHighlighter::highlightBlock(const QString &text)
