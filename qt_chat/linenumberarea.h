@@ -25,7 +25,7 @@ protected:
 
 private:
     CodeEditor *editor;
-    QColor *backgroundColor;
+    QColor backgroundColor;
     QColor numberColor;
 };
 

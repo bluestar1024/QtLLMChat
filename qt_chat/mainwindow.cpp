@@ -14,7 +14,602 @@ const QColor textEditFullBGColor = QColor(224, 224, 224);
 const QColor textEditFullBGTColor = QColor(224, 224, 224, 0);
 const QColor textEditFullBTColor = QColor(100, 100, 100);
 const QColor textEditFullBColor = QColor(100, 100, 100, 0);
-const QString testText = R"(
+const QString testText = R"(<think>
+让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
+
+那我先写出循环的方法。代码结构大概是：
+
+```cpp
+int sum = 0;
+for (int i = 1; i <= 100; ++i) {
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    sum += i;
+}
+std::cout << sum << std::endl;
+
+#include <iostream>
+#include <QDebug>
+
+#sdfgs	"fdgdf"
+#cfdsf	546
+
+int main()
+{
+    int n, sum = 0;
+
+    std::cout << "Enter a positive integer: ";
+    std::cin >> n;
+
+    for (int i = 1; i <= n; ++i)
+    {
+        sum += i;
+    }
+
+    std::cout << "Sum = " << sum;
+    return 0;
+}
+int fun()
+fun()
+std:: fun()
+int std::fun ()
+float std::std::fun()
+fun
+
+// sdassadfsa sda
+
+// sada
+
+/* jkhj
+jkk
+gjh */
+
+int xf;
+int ydsf = 1;
+int sdy=0
+int xv + =1
+int xvbd+ =1
+int xf+=1
+int xfddd - =1
+int fvdx * =1
+int xfg / =1
+int xh % =1
+int xnb , y ;
+int xdgf = 1,
+
+a.b.fun()
+12.3
+```
+
+或者用公式：
+
+```cpp
+int n = 100;
+int sum = n * (n + 1) / 2;
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+std::cout << sum << std::endl;
+```
+
+同样，两种方法都适用。可能用公式更好。
+
+然后是Python的部分。Python的语法更简单，循环的话：
+
+```python
+sum = 0
+for i in range(1, 101):
+    sum += i
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(sum)
+
+import sys
+from PyQt5.QtWidgets import QTextEdit, QApplication, QWidget
+from PyQt5.QtGui import QTextCharFormat, QColor, QPainter, QFont
+from PyQt5.QtCore import Qt, QRect
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
+
+class LineNumberArea(QWidget):
+    def __init__(self, editor):
+        super().__init__(editor)
+        self.editor = editor
+        xd - = 8
+        fy += 6
+        ztrh *= 7
+        xr /= 7
+        yrte % = 9
+        self.editor.document().blockCountChanged.connect(self.update_width)
+        """ self.editor.updateRequest.connect(self.update) """
+        print(self.editor.document())
+
+    def update_width(self, block_count):
+        # 计算行号区域宽度
+        self.setFixedWidth(self.editor.fontMetrics().horizontalAdvance('9') *
+        len(str(block_count)) + 20)
+        #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1,
+        # self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+
+    def paintEvent(self, event):
+        """ painter = QPainter(self)
+        painter.fillRect(event.rect(), QColor(240, 240, 240))
+        block = self.editor.document().begin()
+        while block and block.isValid():
+            line_number = block.blockNumber() + 1
+            painter.drawText(0, block.position() -
+            self.editor.contentOffset().y(), str(line_number))
+            block = block.next() """
+        painter = QPainter(self)
+        painter.fillRect(event.rect(), QColor(240, 240, 240))
+        """ for count in range(0, self.editor.document().blockCount()): """
+        block = self.editor.document().begin()
+        while block and block.isValid():
+            line_number = block.blockNumber() + 1
+            painter.drawText(0, block.position(), str(line_number))
+            block = block.next()
+        painter.end()
+
+class CodeEditor(QTextEdit):
+    def __init__(self):
+        super().__init__()
+        self.setTabStopWidth(4)
+        self.lineNumberArea = LineNumberArea(self)
+
+    def highlight_code(self, text):
+        print('highlight_code')
+        lexer = PythonLexer()
+        formatter = HtmlFormatter(style='colorful', noclasses=True)
+        html = highlight(text, lexer, formatter)
+        self.setHtml(html)
+        # 调整行号区域宽度
+        self.lineNumberArea.update_width(self.document().blockCount())
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # 更新行号区域位置
+        cr = self.contentsRect()
+        self.lineNumberArea.setGeometry(QRect(cr.left(), cr.top(),
+        self.lineNumberArea.width(), cr.height()))
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = CodeEditor()
+    window.show()
+    sys.exit(app.exec_())
+```
+
+或者，直接用公式：
+
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+```glsl
+precision mediump float;
+
+uniform vec2 resolution;
+uniform float time;
+
+vec3 trans(vec3 p)
+{
+    return mod(p, 8.0)-4.0;
+}
+
+float distanceFunction(vec3 pos)
+{
+    return length(trans(pos)) - 1.5;
+}
+
+vec3 getNormal(vec3 p)
+{
+    const float d = 0.0001;
+    return
+      normalize
+      (
+        vec3
+        (
+          distanceFunction(p+vec3(d,   0.0, 0))-distanceFunction(p+vec3(-d,0.0,0.0)),
+          distanceFunction(p+vec3(0.0, d,   0.0))-distanceFunction(p+vec3(0.0,-d,0.0)),
+          distanceFunction(p+vec3(0.0, 0.0, d))-distanceFunction(p+vec3(0.0,0.0,-d))
+        )
+      );
+}
+
+void main() {
+    vec2 pos = (gl_FragCoord.xy*2.0 -resolution) / resolution.y;
+
+    vec3 camPos = vec3(0.0, 0.0, 3.0);
+    vec3 camDir = vec3(0.0, 0.0, -1.0);
+    vec3 camUp = vec3(0.0, 1.0, 0.0);
+    vec3 camSide = cross(camDir, camUp);
+    float focus = sin(time)*1.5+4.0;
+
+    mat3 lense = mat3(1.,0.,0.,
+                        0.,888989898989898989,0.,
+                        0.,0.,1.);
+        vec3 pos3 = vec3(pos,camDir.z*10.);
+        camDir = vec3(
+                camDir.x,
+                camDir.y,
+                camDir.z);
+        camDir*=normalize(dot(camDir,pos3));
+    vec3 rayDir = normalize(camSide*pos.x + camUp*pos.y + camDir*focus);
+
+    float t = 0.0, d;
+    vec3 posOnRay = camPos;
+
+    for(int i=0; i<64; ++i)
+    {
+        d = distanceFunction(posOnRay);
+        t += d;
+        posOnRay = camPos + t*rayDir;
+    }
+
+    vec3 normal = getNormal(posOnRay);
+    if(abs(d) < 0.001)
+    {
+        gl_FragColor = vec4(normal, 1.0);
+    }else
+    {
+        gl_FragColor = vec4(0.0);
+    }
+}
+```
+
+这样应该就能得到结果了。或者直接用公式的话，可能更简洁：
+
+```lua
+-- Two dashes start a one-line comment.
+--[[
+   Adding two ['s and ]'s makes it a
+   multi-line comment.
+--]]
+
+----------------------------------------------------
+-- 1. Variables and flow control.
+----------------------------------------------------
+
+num = 42  -- All numbers are doubles.
+-- Don't freak out, 64-bit doubles have 52 bits for
+-- storing exact int values; machine precision is
+-- not a problem for ints that need < 52 bits.
+
+s = 'walternate'  -- Immutable strings like Python.
+t = "double-quotes are also fine"
+u = [[ Double brackets
+     start and end
+     multi-line strings.]]
+t = nil  -- Undefines t; Lua has garbage collection.
+
+print('the way of the future')
+num = num - 1
+until num == 0
+
+----------------------------------------------------
+-- 2. Functions.
+----------------------------------------------------
+
+function fib(n)
+if n < 2 then return 1 end
+return fib(n - 2) + fib(n - 1)
+end
+
+-- Closures and anonymous functions are ok:
+function adder(x)
+-- The returned function is created when adder is
+-- called, and remembers the value of x:
+return function (y) return x + y end
+end
+a1 = adder(9)
+a2 = adder(36)
+print(a1(16))  --> 25
+print(a2(64))  --> 100
+
+-- Returns, func calls, and assignments all work
+-- with lists that may be mismatched in length.
+-- Unmatched receivers are nil;
+-- unmatched senders are discarded.
+
+x, y, z = 1, 2, 3, 4
+-- Now x = 1, y = 2, z = 3, and 4 is thrown away.
+
+function bar(a, b, c)
+print(a, b, c)
+return 4, 8, 15, 16, 23, 42
+end
+
+x, y = bar('zaphod')  --> print zaphod  nil nil
+-- Now x = 4, y = 8, values 15..42 are discarded.
+
+-- __add(a, b)                     for a + b
+-- __sub(a, b)                     for a - b
+-- __mul(a, b)                     for a * b
+-- __div(a, b)                     for a / b
+-- __mod(a, b)                     for a % b
+-- __pow(a, b)                     for a ^ b
+-- __unm(a)                        for -a
+-- __concat(a, b)                  for a .. b
+-- __len(a)                        for #a
+-- __eq(a, b)                      for a == b
+-- __lt(a, b)                      for a < b
+-- __le(a, b)                      for a <= b
+-- __index(a, b)  <fn or a table>  for a.b
+-- __newindex(a, b, c)             for a.b = c
+-- __call(a, ...)                  for a(...)
+
+----------------------------------------------------
+-- 3.2 Class-like tables and inheritance.
+----------------------------------------------------
+
+http://learnxinyminutes.com/
+
+Have fun with Lua!
+
+--]]
+```
+
+这两种方法都可行，我觉得第二种更好，因为效率更高而且代码更简洁。
+
+现在整理一下：
+
+C++：
+同样，两种方法都可以。
+
+Python：
+可以用循环、公式，或者生成一个range然后求和。
+
+那现在我来写出这三种语言的代码：
+
+C++：
+```cpp
+#include <iostream>
+
+using namespace std;
+
+int main() {
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    int n = 100;
+    int sum = n * (n + 1) / 2;
+    cout << sum << endl;
+    return 0;
+}
+```
+
+或者循环：
+
+```cpp
+#include <iostream>
+
+using namespace std;
+
+int main() {
+    int sum = 0;
+    for (int i = 1; i <= 100; ++i) {
+        sum += i;
+    }
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    cout << sum << endl;
+    return 0;
+}
+```
+
+Python：
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+或者循环：
+
+```python
+sum = 0
+for i in range(1, 101):
+    sum += i
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(sum)
+```
+
+或者使用range和sum函数：
+
+print(sum(range(1, 101)))
+
+嗯，我觉得这三种方法都是可行的。现在，我需要把它们分别用C++和Python写出来。
+
+总结一下，每个语言可以有两种实现方式，但问题可能只需要一种，所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
+</think>
+
+以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
+
+### C++
+```cpp
+#include <iostream>
+
+using namespace std;
+
+int main() {
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    int n = 100;
+    int sum = n * (n + 1) / 2;
+    cout << sum << endl;
+    return 0;
+}
+```
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+)";
+
+const QString testText2 = R"(<think>
+让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
+
+那我先写出循环的方法。代码结构大概是：
+
+```cpp
+int sum = 0;
+for (int i = 1; i <= 100; ++i) {
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    sum += i;
+}
+std::cout << sum << std::endl;
+
+#include <iostream>
+#include <QDebug>
+
+#sdfgs	"fdgdf"
+#cfdsf	546
+
+int main()
+{
+    int n, sum = 0;
+
+    std::cout << "Enter a positive integer: ";
+    std::cin >> n;
+
+    for (int i = 1; i <= n; ++i)
+    {
+        sum += i;
+    }
+
+    std::cout << "Sum = " << sum;
+    return 0;
+}
+int fun()
+fun()
+std:: fun()
+int std::fun ()
+float std::std::fun()
+fun
+
+// sdassadfsa sda
+
+// sada
+
+/* jkhj
+jkk
+gjh */
+
+int xf;
+int ydsf = 1;
+int sdy=0
+int xv + =1
+int xvbd+ =1
+int xf+=1
+int xfddd - =1
+int fvdx * =1
+int xfg / =1
+int xh % =1
+int xnb , y ;
+int xdgf = 1,
+
+a.b.fun()
+12.3
+```
+
+然后是Python的部分。Python的语法更简单，循环的话：
+### jfdls;lf
+```python
+sum = 0
+for i in range(1, 101):
+    sum += i
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(sum)
+
+import sys
+from PyQt5.QtWidgets import QTextEdit, QApplication, QWidget
+from PyQt5.QtGui import QTextCharFormat, QColor, QPainter, QFont
+from PyQt5.QtCore import Qt, QRect
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
+
+class LineNumberArea(QWidget):
+    def __init__(self, editor):
+        super().__init__(editor)
+        self.editor = editor
+        xd - = 8
+        fy += 6
+        ztrh *= 7
+        xr /= 7
+        yrte % = 9
+        self.editor.document().blockCountChanged.connect(self.update_width)
+        """ self.editor.updateRequest.connect(self.update) """
+        print(self.editor.document())
+
+    def paintEvent(self, event):
+        """ painter = QPainter(self)
+        painter.fillRect(event.rect(), QColor(240, 240, 240))
+        block = self.editor.document().begin()
+        while block and block.isValid():
+            line_number = block.blockNumber() + 1
+            painter.drawText(0, block.position() -
+            self.editor.contentOffset().y(), str(line_number))
+            block = block.next() """
+        painter = QPainter(self)
+        painter.fillRect(event.rect(), QColor(240, 240, 240))
+        """ for count in range(0, self.editor.document().blockCount()): """
+        painter.end()
+
+class CodeEditor(QTextEdit):
+    def __init__(self):
+        super().__init__()
+        self.setTabStopWidth(4)
+        self.lineNumberArea = LineNumberArea(self)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # 更新行号区域位置
+        cr = self.contentsRect()
+        self.lineNumberArea.setGeometry(QRect(cr.left(), cr.top(),
+        self.lineNumberArea.width(), cr.height()))
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = CodeEditor()
+    window.show()
+    sys.exit(app.exec_())
+```
+
+总结一下，每个语言可以有两种实现方式，但问题可能只需要一种，所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
+</think>
+
+以下是分别计算整数 1 到 100 的和的代码示例：
+
+### C++
+```cpp
+#include <iostream>
+
+using namespace std;
+
+int main() {
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    int n = 100;
+    int sum = n * (n + 1) / 2;
+    cout << sum << endl;
+    return 0;
+}
+```
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+)";
+
+const QString testText1 = R"(
 一级标题
 ========
 二级标题

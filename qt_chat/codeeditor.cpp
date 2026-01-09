@@ -30,10 +30,10 @@ CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
 
     qDebug() << "CodeEditor ing2";
     highlighters.insert("None", nullptr);
-    highlighters.insert("Python", new PythonHighlighter(this));
-    highlighters.insert("C++", new CXXHighlighter(this));
-    highlighters.insert("GLSL", new GLSLHighlighter(this));
-    highlighters.insert("LUA", new LuaHighlighter(this));
+    highlighters.insert("Python", new PythonHighlighter());
+    highlighters.insert("C++", new CXXHighlighter());
+    highlighters.insert("GLSL", new GLSLHighlighter());
+    highlighters.insert("LUA", new LuaHighlighter());
     highlighter = highlighters["None"];
 
     qDebug() << "CodeEditor ing3";
@@ -172,6 +172,9 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
     setHighlighter(next);
 
     qDebug() << "CodeEditor highlightCode ing1";
+    qDebug() << "text:" << text;
+    qDebug() << "lexer:" << lexer;
+    qDebug() << "isResetText:" << isResetText;
     if (!isResetText) {
         qDebug() << "CodeEditor highlightCode ing2";
         setUpdatesEnabled(false);

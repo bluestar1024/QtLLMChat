@@ -11,7 +11,7 @@ LineNumberArea::~LineNumberArea() { }
 
 void LineNumberArea::setLightTheme()
 {
-    backgroundColor = new QColor(255, 255, 255);
+    backgroundColor = QColor(255, 255, 255);
     numberColor = QColor(78, 86, 92);
     update();
 }
@@ -20,7 +20,7 @@ void LineNumberArea::setDarkTheme()
 {
     qDebug() << "LineNumberArea setDarkTheme start";
     qDebug() << "LineNumberArea setDarkTheme ing1";
-    backgroundColor = new QColor(20, 20, 28);
+    backgroundColor = QColor(20, 20, 28);
     qDebug() << "LineNumberArea setDarkTheme ing2";
     numberColor = QColor(178, 170, 164);
     qDebug() << "LineNumberArea setDarkTheme ing0";
@@ -43,7 +43,7 @@ void LineNumberArea::paintEvent(QPaintEvent *event)
     path.addRect(rect.width() - 7, rect.height() - 7, 7, 7);
 
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QBrush(*backgroundColor));
+    painter.setBrush(QBrush(backgroundColor));
     painter.drawPath(path.simplified());
 
     painter.setPen(QPen(numberColor));

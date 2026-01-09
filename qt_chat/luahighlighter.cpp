@@ -76,8 +76,13 @@ void LuaHighlighter::highlightBlock(const QString &text)
                   getSyntaxStyle()->getFormat("Type"));
     }
 
-    for (const auto &rule : highlightRules) {
+    for (const HighlightRule &rule : highlightRules) {
         matchIterator = rule.pattern.globalMatch(text);
+        qDebug() << "text:" << text;
+        qDebug() << "rule format:" << rule.format;
+        if (getSyntaxStyle())
+            qDebug() << "has getSyntaxStyle";
+        qDebug() << "getFormat():" << getSyntaxStyle()->getFormat(rule.format);
         while (matchIterator.hasNext()) {
             auto match = matchIterator.next();
             setFormat(match.capturedStart(), match.capturedLength(),
