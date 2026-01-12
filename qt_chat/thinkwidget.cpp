@@ -18,16 +18,16 @@ ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
             fontLoaded = true;
         }
     }
-    label = new CustomLabel();
-    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    label->setWordWrap(true);
-    label->setMaximumWidth(this->maxWidth);
-    if (fontLoaded) {
-        fontMetrics = new QFontMetricsF(font);
-        label->setFont(font);
-    } else {
-        fontMetrics = new QFontMetricsF(label->font());
-    }
+    // label = new CustomLabel();
+    // label->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    // label->setWordWrap(true);
+    // label->setMaximumWidth(this->maxWidth);
+    // if (fontLoaded) {
+    //     fontMetrics = new QFontMetricsF(font);
+    //     label->setFont(font);
+    // } else {
+    //     fontMetrics = new QFontMetricsF(label->font());
+    // }
 
     webEngineView = new WebEngineView();
     webEngineView->setMaximumWidth(this->maxWidth);
@@ -38,9 +38,139 @@ ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
 
     isLabel = true;
     mainHLayout = new QHBoxLayout(this);
-    mainHLayout->addWidget(label);
+    // mainHLayout->addWidget(label);
     mainHLayout->setContentsMargins(5, 0, 5, 0);
-    setText(this->text);
+    // setText(this->text);
+
+    htmlText.clear();
+    fullHtmlText.clear();
+
+    fontMetrics = new QFontMetricsF(QFont());
+    if (fontLoaded) {
+        fontMetrics = new QFontMetricsF(font);
+    } else {
+        fontMetrics = new QFontMetricsF(QFont());
+    }
+
+    int initWidth = int(fontMetrics->horizontalAdvance(text));
+    if (initWidth > maxWidth)
+        webEngineView->setFixedWidth(maxWidth);
+    else {
+        if (text.isEmpty())
+            webEngineView->setFixedSize(20, 66);
+        else
+            webEngineView->setFixedWidth(initWidth);
+    }
+    // ---- MathJax 头 ----
+    mathJaxCdn = QString(R"(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+MathJax = {
+  options: { enableMenu: false },
+  tex: { inlineMath:[["$","$"],["\ $","\$"]], displayMath:[["$$","$$"],["\
+ $$","\$$ "]] },
+  svg:  { fontCache: 'global' }
+};
+</script>
+<script src="%1"></script>
+<style>
+table{width:50%;border-collapse:collapse;margin:10px 0;}
+th,td{border:1px solid #000;padding:8px;}
+th{background-color:#b0b0b0;}
+.left-align{text-align:left;}
+.center-align{text-align:center;}
+.right-align{text-align:right;}
+body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-size:%2px;}
+.content{width:auto;height:auto;display:flex;flex-direction:column;justify-content:center;}
+</style>
+</head>
+<body>
+<div class="content">
+)")
+                         .arg(mathjaxScriptPath, windowFontPixelSize);
+    // ---- markdown → html ----
+    if (!text.isEmpty()) {
+        TableInfo tbl = getTable(text);
+        if (tbl.complete) {
+            QStringList parts = text.split(tbl.tableText);
+            QString before = htmlReplaceText(parts.value(0));
+            QString after = htmlReplaceText(parts.value(1));
+
+            //            m_htmlText = mistune::markdown(before.toStdString()).c_str();
+            MarkdownParser beforeParser;
+            std::vector<MarkdownBlockElement> beforeBlocks;
+            HtmlRenderer beforeHtml;
+            beforeParser.blockParse(before.toStdString(), beforeBlocks);
+            //            beforeHtml.Init();
+            for (size_t i = 0; i < beforeBlocks.size(); i++) {
+                beforeHtml.blockHtml(beforeBlocks[i]);
+            }
+            //            beforeHtml.Tail();
+            htmlText = beforeHtml.getHtml().c_str();
+
+            htmlText += "<table><thead><tr>";
+            for (int i = 0; i < tbl.col; ++i)
+                htmlText +=
+                        QString("<th class='%1'>%2</th>")
+                                .arg(getAlignmentClass(tbl.alignList.value(i)), tbl.items.value(i));
+            htmlText += "</tr></thead><tbody>";
+            for (int r = 1; r < tbl.row; ++r) {
+                htmlText += "<tr>";
+                for (int c = 0; c < tbl.col; ++c)
+                    htmlText += QString("<td class='%1'>%2</td>")
+                                        .arg(getAlignmentClass(tbl.alignList.value(c)),
+                                             tbl.items.value(r * tbl.col + c));
+                htmlText += "</tr>";
+            }
+            htmlText += "</tbody></table>";
+            //            htmlText += mistune::markdown(after.toStdString()).c_str();
+            MarkdownParser afterParser;
+            std::vector<MarkdownBlockElement> afterBlocks;
+            HtmlRenderer afterHtml;
+            afterParser.blockParse(after.toStdString(), afterBlocks);
+            //            afterHtml.Init();
+            for (size_t i = 0; i < afterBlocks.size(); i++) {
+                afterHtml.blockHtml(afterBlocks[i]);
+            }
+            //            afterHtml.Tail();
+            htmlText += afterHtml.getHtml().c_str();
+        } else {
+            QString md = htmlReplaceText(text);
+            //            m_htmlText = mistune::markdown(md.toStdString()).c_str();
+            MarkdownParser parser;
+            std::vector<MarkdownBlockElement> blocks;
+            HtmlRenderer html;
+            parser.blockParse(md.toStdString(), blocks);
+            //            html.Init();
+            for (size_t i = 0; i < blocks.size(); i++) {
+                html.blockHtml(blocks[i]);
+            }
+            //            html.Tail();
+            htmlText += html.getHtml().c_str();
+        }
+        fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
+        // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
+        QUrl base =
+                QUrl::fromLocalFile(QFileInfo(QFileInfo(".").absolutePath()).absolutePath() + "/");
+        qDebug() << "base:" << base;
+
+        // mainHLayout->removeWidget(label);
+        // label->deleteLater();
+        mainHLayout->addWidget(webEngineView);
+        webEngineView->setHtml(fullHtmlText, base);
+        isLabel = false;
+    } else {
+        // mainHLayout->removeWidget(label);
+        // label->deleteLater();
+        mainHLayout->addWidget(webEngineView);
+        setFixedSize(webEngineView->size() + QSize(10, 0));
+        emit setSizeFinished();
+        isLabel = false;
+    }
 
     updateSizeTimer = new QTimer(this);
     updateSizeTimer->setSingleShot(true);
@@ -52,17 +182,132 @@ ThinkWidget::~ThinkWidget() { }
 
 void ThinkWidget::setText(const QString &text)
 {
-    this->text = text.trimmed();
-    int labelWidth = 0, labelHeight = 0;
-    if (!this->text.isEmpty()) {
-        measureText(this->text, labelWidth, labelHeight);
-        label->setText(this->text);
-        label->setFixedSize(labelWidth, labelHeight);
-        setFixedSize(labelWidth + 10, labelHeight);
-    } else {
-        int h = int(fontMetrics->height());
-        label->setFixedSize(h, h);
-        setFixedSize(label->size() + QSize(10, 0));
+    // this->text = text.trimmed();
+    // int labelWidth = 0, labelHeight = 0;
+    // if (!this->text.isEmpty()) {
+    //     measureText(this->text, labelWidth, labelHeight);
+    //     label->setText(this->text);
+    //     label->setFixedSize(labelWidth, labelHeight);
+    //     setFixedSize(labelWidth + 10, labelHeight);
+    // } else {
+    //     int h = int(fontMetrics->height());
+    //     label->setFixedSize(h, h);
+    //     setFixedSize(label->size() + QSize(10, 0));
+    // }
+
+    htmlText.clear();
+    fullHtmlText.clear();
+
+    int initWidth = int(fontMetrics->horizontalAdvance(text));
+    if (initWidth > maxWidth)
+        webEngineView->setFixedWidth(maxWidth);
+    else {
+        if (text.isEmpty())
+            webEngineView->setFixedSize(20, 66);
+        else
+            webEngineView->setFixedWidth(initWidth);
+    }
+    // ---- MathJax 头 ----
+    mathJaxCdn = QString(R"(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>
+MathJax = {
+  options: { enableMenu: false },
+  tex: { inlineMath:[["$","$"],["\ $","\$"]], displayMath:[["$$","$$"],["\
+ $$","\$$ "]] },
+  svg:  { fontCache: 'global' }
+};
+</script>
+<script src="%1"></script>
+<style>
+table{width:50%;border-collapse:collapse;margin:10px 0;}
+th,td{border:1px solid #000;padding:8px;}
+th{background-color:#b0b0b0;}
+.left-align{text-align:left;}
+.center-align{text-align:center;}
+.right-align{text-align:right;}
+body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-size:%2px;}
+.content{width:auto;height:auto;display:flex;flex-direction:column;justify-content:center;}
+</style>
+</head>
+<body>
+<div class="content">
+)")
+                         .arg(mathjaxScriptPath, windowFontPixelSize);
+    // ---- markdown → html ----
+    if (!text.isEmpty()) {
+        TableInfo tbl = getTable(text);
+        if (tbl.complete) {
+            QStringList parts = text.split(tbl.tableText);
+            QString before = htmlReplaceText(parts.value(0));
+            QString after = htmlReplaceText(parts.value(1));
+
+            //            m_htmlText = mistune::markdown(before.toStdString()).c_str();
+            MarkdownParser beforeParser;
+            std::vector<MarkdownBlockElement> beforeBlocks;
+            HtmlRenderer beforeHtml;
+            beforeParser.blockParse(before.toStdString(), beforeBlocks);
+            //            beforeHtml.Init();
+            for (size_t i = 0; i < beforeBlocks.size(); i++) {
+                beforeHtml.blockHtml(beforeBlocks[i]);
+            }
+            //            beforeHtml.Tail();
+            htmlText = beforeHtml.getHtml().c_str();
+
+            htmlText += "<table><thead><tr>";
+            for (int i = 0; i < tbl.col; ++i)
+                htmlText +=
+                        QString("<th class='%1'>%2</th>")
+                                .arg(getAlignmentClass(tbl.alignList.value(i)), tbl.items.value(i));
+            htmlText += "</tr></thead><tbody>";
+            for (int r = 1; r < tbl.row; ++r) {
+                htmlText += "<tr>";
+                for (int c = 0; c < tbl.col; ++c)
+                    htmlText += QString("<td class='%1'>%2</td>")
+                                        .arg(getAlignmentClass(tbl.alignList.value(c)),
+                                             tbl.items.value(r * tbl.col + c));
+                htmlText += "</tr>";
+            }
+            htmlText += "</tbody></table>";
+            //            htmlText += mistune::markdown(after.toStdString()).c_str();
+            MarkdownParser afterParser;
+            std::vector<MarkdownBlockElement> afterBlocks;
+            HtmlRenderer afterHtml;
+            afterParser.blockParse(after.toStdString(), afterBlocks);
+            //            afterHtml.Init();
+            for (size_t i = 0; i < afterBlocks.size(); i++) {
+                afterHtml.blockHtml(afterBlocks[i]);
+            }
+            //            afterHtml.Tail();
+            htmlText += afterHtml.getHtml().c_str();
+        } else {
+            QString md = htmlReplaceText(text);
+            //            m_htmlText = mistune::markdown(md.toStdString()).c_str();
+            MarkdownParser parser;
+            std::vector<MarkdownBlockElement> blocks;
+            HtmlRenderer html;
+            parser.blockParse(md.toStdString(), blocks);
+            //            html.Init();
+            for (size_t i = 0; i < blocks.size(); i++) {
+                html.blockHtml(blocks[i]);
+            }
+            //            html.Tail();
+            htmlText += html.getHtml().c_str();
+        }
+        fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
+        // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
+        QUrl base =
+                QUrl::fromLocalFile(QFileInfo(QFileInfo(".").absolutePath()).absolutePath() + "/");
+        qDebug() << "base:" << base;
+
+        // mainHLayout->removeWidget(label);
+        // label->deleteLater();
+        // mainHLayout->addWidget(webEngineView);
+        webEngineView->setHtml(fullHtmlText, base);
     }
 }
 

@@ -912,7 +912,7 @@ void MainWindow::sendMessage()
             messageSendWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
             messageSendWidget->connectSetTexting(this, &MainWindow::getSetTexting);
             messageSendWidget->connectExecuteNext(this, &MainWindow::onExecuteNext);
-            messageSendWidget->toggleWidget();
+            // messageSendWidget->toggleWidget();
             messageWidgetList.append(messageSendWidget);
 
             itemSendWidget = new ItemWidget(this);
@@ -1019,7 +1019,7 @@ void MainWindow::messageFinish()
     chatInput->setSending(false);
     messageRecvWidget->removeLoadingWidget();
     messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
-    messageRecvWidget->toggleWidget();
+    // messageRecvWidget->toggleWidget();
 
     itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
     itemRecvHLayout->setContentsMargins(0, 5, itemRecvWidget->width() - messageRecvWidget->width(),
