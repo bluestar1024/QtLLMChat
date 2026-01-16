@@ -10,25 +10,25 @@
 CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
     : QTextEdit(parent), text(""), lexerName(""), isResetText(false)
 {
-    qDebug() << "CodeEditor start";
+    // qDebug() << "CodeEditor start" << this;
     setFixedWidth(maxWidth);
     horizontalScrollBar()->setCursor(Qt::PointingHandCursor);
 
-    qDebug() << "CodeEditor ing0";
+    // qDebug() << "CodeEditor ing0" << this;
     QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     font.setFixedPitch(true);
     font.setPointSize(windowFontPointSize);
     setFont(font);
 
-    qDebug() << "CodeEditor ing1";
+    // qDebug() << "CodeEditor ing1" << this;
     lineNumberArea = new LineNumberArea(this);
     lineNumberArea->move(0, 0);
     updateLineNumberAreaWidth();
 
-    qDebug() << "CodeEditor ing4";
+    // qDebug() << "CodeEditor ing4" << this;
     setThemeStyle(false);
 
-    qDebug() << "CodeEditor ing2";
+    // qDebug() << "CodeEditor ing2" << this;
     highlighters.insert("None", nullptr);
     highlighters.insert("Python", new PythonHighlighter());
     highlighters.insert("C++", new CXXHighlighter());
@@ -36,11 +36,11 @@ CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
     highlighters.insert("LUA", new LuaHighlighter());
     highlighter = highlighters["None"];
 
-    qDebug() << "CodeEditor ing3";
+    // qDebug() << "CodeEditor ing3" << this;
     connect(this, &QTextEdit::textChanged, this, &CodeEditor::adjustHeight);
     connect(verticalScrollBar(), &QScrollBar::valueChanged, lineNumberArea,
             QOverload<>::of(&QWidget::update));
-    qDebug() << "CodeEditor end";
+    // qDebug() << "CodeEditor end" << this;
 }
 
 CodeEditor::~CodeEditor()
@@ -50,9 +50,9 @@ CodeEditor::~CodeEditor()
 
 void CodeEditor::setThemeStyle(bool light)
 {
-    qDebug() << "CodeEditor setThemeStyle start";
+    // qDebug() << "CodeEditor setThemeStyle start" << this;
     if (light) {
-        qDebug() << "CodeEditor setThemeStyle ing0";
+        // qDebug() << "CodeEditor setThemeStyle ing0" << this;
         setStyleSheet(
                 "QTextEdit{ border:none; background:#ffffff;"
                 "border-bottom-left-radius:7px; border-bottom-right-radius:7px; }"
@@ -64,14 +64,14 @@ void CodeEditor::setThemeStyle(bool light)
                 "background:transparent; }"
                 "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal{ width:0px; }");
         QPalette p = palette();
-        qDebug() << "CodeEditor setThemeStyle ing1";
+        // qDebug() << "CodeEditor setThemeStyle ing1" << this;
         p.setColor(QPalette::Text, QColor(78, 86, 92));
         setPalette(p);
         lineNumberArea->setLightTheme();
         codeThemeFilePath = ":/config/light_theme.xml";
-        qDebug() << "CodeEditor setThemeStyle ing2";
+        // qDebug() << "CodeEditor setThemeStyle ing2" << this;
     } else {
-        qDebug() << "CodeEditor setThemeStyle ing3";
+        // qDebug() << "CodeEditor setThemeStyle ing3" << this;
         setStyleSheet(
                 "QTextEdit{ border:none; background:#14141c;"
                 "border-bottom-left-radius:7px; border-bottom-right-radius:7px; }"
@@ -83,17 +83,17 @@ void CodeEditor::setThemeStyle(bool light)
                 "background:transparent; }"
                 "QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal{ width:0px; }");
         QPalette p = palette();
-        qDebug() << "CodeEditor setThemeStyle ing4";
+        // qDebug() << "CodeEditor setThemeStyle ing4" << this;
         p.setColor(QPalette::Text, QColor(178, 170, 164));
         setPalette(p);
-        qDebug() << "CodeEditor setThemeStyle ing6";
+        // qDebug() << "CodeEditor setThemeStyle ing6" << this;
         lineNumberArea->setDarkTheme();
-        qDebug() << "CodeEditor setThemeStyle ing7";
+        // qDebug() << "CodeEditor setThemeStyle ing7" << this;
         codeThemeFilePath = ":/config/dark_theme.xml";
-        qDebug() << "CodeEditor setThemeStyle ing5";
+        // qDebug() << "CodeEditor setThemeStyle ing5" << this;
     }
     highlightCode(text, lexerName);
-    qDebug() << "CodeEditor setThemeStyle end";
+    // qDebug() << "CodeEditor setThemeStyle end" << this;
 }
 
 int CodeEditor::getFirstVisibleBlockNumber() const
@@ -128,27 +128,27 @@ void CodeEditor::updateLineNumberAreaWidth()
 
 void CodeEditor::adjustHeight()
 {
-    qDebug() << "CodeEditor adjustHeight start";
+    // qDebug() << "CodeEditor adjustHeight start" << this;
     int h = int(document()->size().height()) + 15;
     setFixedHeight(h);
     updateLineNumberAreaWidth();
     lineNumberArea->update();
     emit setSizeFinished();
-    qDebug() << "CodeEditor adjustHeight end";
+    // qDebug() << "CodeEditor adjustHeight end" << this;
 }
 
 void CodeEditor::resizeEvent(QResizeEvent *e)
 {
-    qDebug() << "CodeEditor resizeEvent start";
+    // qDebug() << "CodeEditor resizeEvent start" << this;
     QTextEdit::resizeEvent(e);
     if (height() != int(document()->size().height()) + 15)
         adjustHeight();
-    qDebug() << "CodeEditor resizeEvent end";
+    // qDebug() << "CodeEditor resizeEvent end" << this;
 }
 
 void CodeEditor::highlightCode(const QString &text, const QString &lexer)
 {
-    qDebug() << "CodeEditor highlightCode start";
+    // qDebug() << "CodeEditor highlightCode start" << this;
     QString appendText = text;
     if (!this->text.isEmpty() && text.contains(this->text))
         appendText = text.mid(this->text.length());
@@ -157,7 +157,7 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
     this->text = text;
     lexerName = lexer;
 
-    qDebug() << "CodeEditor highlightCode ing0";
+    // qDebug() << "CodeEditor highlightCode ing0" << this;
     StyleSyntaxHighlighter *next = nullptr;
     if (lexer == "cpp")
         next = highlighters["C++"];
@@ -171,33 +171,33 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
         next = highlighters["C++"];
     setHighlighter(next);
 
-    qDebug() << "CodeEditor highlightCode ing1";
-    qDebug() << "text:" << text;
-    qDebug() << "lexer:" << lexer;
-    qDebug() << "isResetText:" << isResetText;
+    // qDebug() << "CodeEditor highlightCode ing1" << this;
+    // qDebug() << "text:" << text << this;
+    // qDebug() << "lexer:" << lexer << this;
+    // qDebug() << "isResetText:" << isResetText << this;
     if (!isResetText) {
-        qDebug() << "CodeEditor highlightCode ing2";
+        // qDebug() << "CodeEditor highlightCode ing2" << this;
         setUpdatesEnabled(false);
-        qDebug() << "CodeEditor highlightCode ing6";
+        // qDebug() << "CodeEditor highlightCode ing6" << this;
         QTextCursor c(document());
-        qDebug() << "CodeEditor highlightCode ing7";
+        // qDebug() << "CodeEditor highlightCode ing7" << this;
         c.movePosition(QTextCursor::End);
         c.beginEditBlock();
         c.insertText(appendText);
-        qDebug() << "CodeEditor highlightCode ing8";
+        // qDebug() << "CodeEditor highlightCode ing8" << this;
         c.endEditBlock();
-        qDebug() << "CodeEditor highlightCode ing9";
+        // qDebug() << "CodeEditor highlightCode ing9" << this;
         setUpdatesEnabled(true);
-        qDebug() << "CodeEditor highlightCode ing3";
+        // qDebug() << "CodeEditor highlightCode ing3" << this;
     } else {
-        qDebug() << "CodeEditor highlightCode ing4";
+        // qDebug() << "CodeEditor highlightCode ing4" << this;
         setUpdatesEnabled(false);
         setPlainText(this->text);
         setUpdatesEnabled(true);
         isResetText = false;
-        qDebug() << "CodeEditor highlightCode ing5";
+        // qDebug() << "CodeEditor highlightCode ing5" << this;
     }
-    qDebug() << "CodeEditor highlightCode end";
+    // qDebug() << "CodeEditor highlightCode end" << this;
 }
 
 void CodeEditor::setHighlighter(StyleSyntaxHighlighter *high)

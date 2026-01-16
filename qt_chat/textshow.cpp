@@ -30,7 +30,7 @@ getPageSize();
             return;
         int w = list[0].toInt();
         int h = list[1].toInt();
-        qDebug() << "WebEngineView get size:" << w << h;
+        qDebug() << "WebEngineView get size:" << w << h << this;
         if (w <= 0 || h <= 0)
             return;
         webEngineView->setFixedSize(w, h);
@@ -39,8 +39,8 @@ getPageSize();
         if (firstExecuteNextEmit) {
             firstExecuteNextEmit = false;
             emit executeNext();
-            qDebug() << "ThinkWidget executeNext emit";
+            qDebug() << "textShow executeNext emit" << this;
         }
-        qDebug() << "ThinkWidget onUpdateSize end";
+        qDebug() << "textShow onUpdateSize end" << this;
     });
 }

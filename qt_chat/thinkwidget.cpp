@@ -45,11 +45,10 @@ ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
     htmlText.clear();
     fullHtmlText.clear();
 
-    fontMetrics = new QFontMetricsF(QFont());
     if (fontLoaded) {
         fontMetrics = new QFontMetricsF(font);
     } else {
-        fontMetrics = new QFontMetricsF(QFont());
+        fontMetrics = new QFontMetricsF(webEngineView->font());
     }
 
     int initWidth = int(fontMetrics->horizontalAdvance(text));
@@ -156,13 +155,18 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
         QUrl base =
                 QUrl::fromLocalFile(QFileInfo(QFileInfo(".").absolutePath()).absolutePath() + "/");
-        qDebug() << "base:" << base;
+        qDebug() << "base:" << base << this;
 
         // mainHLayout->removeWidget(label);
         // label->deleteLater();
         mainHLayout->addWidget(webEngineView);
         webEngineView->setHtml(fullHtmlText, base);
         isLabel = false;
+
+        // QSize webEngineSize = webEngineView->page()->contentsSize().toSize();
+        // webEngineView->setFixedSize(webEngineSize);
+        // setFixedSize(webEngineSize + QSize(10, 0));
+        // qDebug() << "webEngineSize:" << webEngineSize << this;
     } else {
         // mainHLayout->removeWidget(label);
         // label->deleteLater();
@@ -175,7 +179,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
     updateSizeTimer = new QTimer(this);
     updateSizeTimer->setSingleShot(true);
     connect(updateSizeTimer, &QTimer::timeout, this, &ThinkWidget::onUpdateSize);
-    qDebug() << "ThinkWidget init end";
+    qDebug() << "ThinkWidget init end" << this;
 }
 
 ThinkWidget::~ThinkWidget() { }
@@ -302,12 +306,24 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
         QUrl base =
                 QUrl::fromLocalFile(QFileInfo(QFileInfo(".").absolutePath()).absolutePath() + "/");
-        qDebug() << "base:" << base;
+        qDebug() << "base:" << base << this;
 
         // mainHLayout->removeWidget(label);
         // label->deleteLater();
         // mainHLayout->addWidget(webEngineView);
         webEngineView->setHtml(fullHtmlText, base);
+
+        // QSize webEngineSize = webEngineView->page()->contentsSize().toSize();
+        // webEngineView->setFixedSize(webEngineSize);
+        // setFixedSize(webEngineSize + QSize(10, 0));
+        // qDebug() << "webEngineSize:" << webEngineSize << this;
+    } else {
+        // mainHLayout->removeWidget(label);
+        // label->deleteLater();
+        mainHLayout->addWidget(webEngineView);
+        setFixedSize(webEngineView->size() + QSize(10, 0));
+        emit setSizeFinished();
+        isLabel = false;
     }
 }
 
@@ -349,6 +365,7 @@ void ThinkWidget::toggleWidget()
         else
             webEngineView->setFixedWidth(initWidth);
     }
+    qDebug() << "webEngineView:" << webEngineView->size();
     // ---- MathJax 头 ----
     mathJaxCdn = QString(R"(
 <!DOCTYPE html>
@@ -467,13 +484,13 @@ void ThinkWidget::onPageLoadFinished(bool success)
 {
     if (success)
         webEngineView->page()->runJavaScript("document.body.style.overflowY='hidden';");
-    qDebug() << "onPageLoadFinished";
+    qDebug() << "onPageLoadFinished" << this;
 }
 
 void ThinkWidget::onContentsSizeChanged(const QSizeF &)
 {
     updateSizeTimer->start(20);
-    qDebug() << "onContentsSizeChanged";
+    qDebug() << "onContentsSizeChanged" << this;
 }
 
 void ThinkWidget::onUpdateSize()
@@ -489,6 +506,7 @@ function getPageSize(){
 }
 getPageSize();
 )";
+    static int funi = 0;
     webEngineView->page()->runJavaScript(js, [this](const QVariant &res) {
         if (res.isNull()) {
             updateSizeTimer->start(10);
@@ -499,13 +517,15 @@ getPageSize();
             return;
         int w = list[0].toInt();
         int h = list[1].toInt();
-        qDebug() << "WebEngineView get size:" << w << h;
+        qDebug() << "WebEngineView get size:" << w << h << this;
         if (w <= 0 || h <= 0)
             return;
+        funi += 1;
+        qDebug() << "funi:" << funi << this;
         webEngineView->setFixedSize(w, h);
         setFixedSize(w + 10, h);
         emit setSizeFinished();
-        qDebug() << "ThinkWidget onUpdateSize end";
+        qDebug() << "ThinkWidget onUpdateSize end" << this;
     });
 }
 

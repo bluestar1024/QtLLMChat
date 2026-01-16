@@ -109,7 +109,7 @@ void MessageWidget::buildUserUi()
 void MessageWidget::buildAiUi()
 {
     parseThinkAndResult(text, thinkText, resultText, thinkTextIsRecvEnd);
-
+    qDebug() << "parseThinkAndResult:" << thinkText << "and" << resultText << this;
     thinkBackWidget = new ThinkBackWidget(this);
     thinkBackVLayout = new QVBoxLayout(thinkBackWidget);
     thinkBackVLayout->setContentsMargins(30, 0, 15, 0);
@@ -119,6 +119,7 @@ void MessageWidget::buildAiUi()
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
         QString thinkTempText = thinkText;
+        qDebug() << "thinkText:" << thinkText << this;
         for (const auto &codeBlock : thinkCodeBlocks) {
             int idx = thinkTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
             thinkSplitTextList.append(thinkTempText.left(idx));
@@ -168,6 +169,7 @@ void MessageWidget::buildAiUi()
         auto resultCodeBlocks = extractCodeBlocks(resultText);
         QStringList resultSplitTextList;
         QString resultTempText = resultText;
+        qDebug() << "resultText:" << resultText << this;
         for (const auto &codeBlock : resultCodeBlocks) {
             int idx = resultTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
             resultSplitTextList.append(resultTempText.left(idx));
@@ -250,16 +252,16 @@ void MessageWidget::parseThinkAndResult(const QString &txt, QString &think, QStr
 
 void MessageWidget::setSize()
 {
-    qDebug() << "MessageWidget setSize start";
+    qDebug() << "MessageWidget setSize start" << this;
     if (isUser) {
-        qDebug() << "MessageWidget setSize ing0";
+        qDebug() << "MessageWidget setSize ing0" << this;
         if (!textShow)
             return;
         textWidget->setFixedSize(textShow->width() + 10, textShow->height());
         textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                     textWidget->height() + funWidget->height());
     } else {
-        qDebug() << "MessageWidget setSize ing1";
+        qDebug() << "MessageWidget setSize ing1" << this;
         adjustAiTextWidgetSize();
         if (loadingWidgetIsRemove)
             textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
@@ -268,10 +270,10 @@ void MessageWidget::setSize()
             textBoxWidget->setFixedSize(qMax(textWidget->width(), loadingWidget->width()),
                                         textWidget->height() + loadingWidget->height());
     }
-    qDebug() << "MessageWidget setSize ing2";
+    qDebug() << "MessageWidget setSize ing2" << this;
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
                  qMax(imageLabel->height(), textBoxWidget->height()));
-    qDebug() << "MessageWidget setSize end";
+    qDebug() << "MessageWidget setSize end" << this;
 }
 
 void MessageWidget::adjustAiTextWidgetSize()
@@ -459,7 +461,7 @@ void MessageWidget::removeRenewResponseButton()
 
 void MessageWidget::setText(const QString &text)
 {
-    qDebug() << "MessageWidget setText start";
+    qDebug() << "MessageWidget setText start" << this;
     this->text = text;
     if (isUser) {
         if (textShow)
@@ -471,12 +473,13 @@ void MessageWidget::setText(const QString &text)
     emit setTexting(true);
 
     parseThinkAndResult(this->text, thinkText, resultText, thinkTextIsRecvEnd);
-    qDebug() << "MessageWidget setText ing0";
+    qDebug() << "MessageWidget setText ing0" << this;
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
-        qDebug() << "MessageWidget setText ing1";
+        qDebug() << "MessageWidget setText ing1" << this;
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
         QString thinkTempText = thinkText;
+        qDebug() << "setText thinkText:" << thinkText << this;
         int thinkCodeShowListLastLen = thinkCodeShowList.size() - 1;
         for (int i = 0; i < thinkCodeBlocks.size(); i++) {
             int idx = thinkTempText.indexOf(QString("```%1\n").arg(thinkCodeBlocks[i].language));
@@ -546,10 +549,11 @@ void MessageWidget::setText(const QString &text)
     }
 
     if (!resultText.isEmpty()) {
-        qDebug() << "MessageWidget setText ing2";
+        qDebug() << "MessageWidget setText ing2" << this;
         auto resultCodeBlocks = extractCodeBlocks(resultText);
         QStringList resultSplitTextList;
         QString resultTempText = resultText;
+        qDebug() << "setText resultText:" << resultText << this;
         int resultCodeShowListLastLen = resultCodeShowList.size() - 1;
         for (int i = 0; i < resultCodeBlocks.size(); i++) {
             int idx = resultTempText.indexOf(QString("```%1\n").arg(resultCodeBlocks[i].language));
@@ -558,14 +562,14 @@ void MessageWidget::setText(const QString &text)
                     idx + QString("```%1\n").arg(resultCodeBlocks[i].language).size()
                     + resultCodeBlocks[i].code.size() + 3);
             if (resultCodeShowListLastLen < i) {
-                qDebug() << "MessageWidget setText ing3";
+                qDebug() << "MessageWidget setText ing3" << this;
                 auto *codeShow =
                         new CodeShow(resultCodeBlocks[i].code, resultCodeBlocks[i].language,
                                      textMaxWidth - imageLabel->width() - 35, this);
-                qDebug() << "MessageWidget setText ing4";
+                qDebug() << "MessageWidget setText ing4" << this;
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 resultCodeShowList.append(codeShow);
-                qDebug() << "MessageWidget setText ing5";
+                qDebug() << "MessageWidget setText ing5" << this;
             } else {
                 resultCodeShowList[i]->setText(resultCodeBlocks[i].code,
                                                resultCodeBlocks[i].language);
