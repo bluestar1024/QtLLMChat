@@ -30,12 +30,17 @@ public:
     ~ThinkWidget();
 
     void setText(const QString &text);
+    QString getText();
     void toggleWidget();
     bool hasSelectedText() const;
     QString getSelectedText() const;
+    void setIsEmitSizeFinish(bool flag);
+    bool getIsEmitSizeFinish();
 
+protected:
     WebEngineView *webEngineView;
     QTimer *updateSizeTimer;
+    bool isEmitSizeFinish;
 
 signals:
     void setSizeFinished();

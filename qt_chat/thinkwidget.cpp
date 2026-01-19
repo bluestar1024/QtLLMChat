@@ -6,7 +6,11 @@
 #include <cmath>
 
 ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
-    : QWidget(parent), text(text.trimmed()), maxWidth(maxWidth - 10), isLabel(true)
+    : QWidget(parent),
+      text(text.trimmed()),
+      maxWidth(maxWidth - 10),
+      isLabel(true),
+      isEmitSizeFinish(false)
 {
     bool fontLoaded = false;
     int fontId = QFontDatabase::addApplicationFont(fontFilePath);
@@ -199,6 +203,7 @@ void ThinkWidget::setText(const QString &text)
     //     setFixedSize(label->size() + QSize(10, 0));
     // }
 
+    this->text = text.trimmed();
     htmlText.clear();
     fullHtmlText.clear();
 
@@ -347,6 +352,11 @@ void ThinkWidget::measureText(const QString &text, int &labelWidth, int &labelHe
         labelWidth = maxWidth;
         labelHeight = std::ceil(totalWidth / qreal(maxWidth - 24)) * (textHeight + 3) - 3;
     }
+}
+
+QString ThinkWidget::getText()
+{
+    return text;
 }
 
 void ThinkWidget::toggleWidget()
@@ -525,6 +535,7 @@ getPageSize();
         webEngineView->setFixedSize(w, h);
         setFixedSize(w + 10, h);
         emit setSizeFinished();
+        isEmitSizeFinish = true;
         qDebug() << "ThinkWidget onUpdateSize end" << this;
     });
 }
@@ -607,4 +618,13 @@ bool ThinkWidget::hasSelectedText() const
 QString ThinkWidget::getSelectedText() const
 {
     return isLabel ? label->selectedText() : webEngineView->selectedText();
+}
+
+void ThinkWidget::setIsEmitSizeFinish(bool flag)
+{
+    isEmitSizeFinish = flag;
+}
+bool ThinkWidget::getIsEmitSizeFinish()
+{
+    return isEmitSizeFinish;
 }

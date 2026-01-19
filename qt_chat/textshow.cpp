@@ -20,6 +20,7 @@ function getPageSize(){
 }
 getPageSize();
 )";
+    static int textShowFuni = 0;
     webEngineView->page()->runJavaScript(js, [this](const QVariant &res) {
         if (res.isNull()) {
             updateSizeTimer->start(10);
@@ -33,9 +34,12 @@ getPageSize();
         qDebug() << "WebEngineView get size:" << w << h << this;
         if (w <= 0 || h <= 0)
             return;
+        textShowFuni += 1;
+        qDebug() << "textShowFuni:" << textShowFuni << this;
         webEngineView->setFixedSize(w, h);
         setFixedSize(w + 10, h);
         emit setSizeFinished();
+        isEmitSizeFinish = true;
         if (firstExecuteNextEmit) {
             firstExecuteNextEmit = false;
             emit executeNext();
