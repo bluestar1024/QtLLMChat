@@ -39,6 +39,7 @@ public:
 
 protected:
     WebEngineView *webEngineView;
+    QSize webEngineSize;
     QTimer *updateSizeTimer;
     bool isEmitSizeFinish;
 

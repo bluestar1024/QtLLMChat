@@ -34,6 +34,9 @@ getPageSize();
         qDebug() << "WebEngineView get size:" << w << h << this;
         if (w <= 0 || h <= 0)
             return;
+        if (webEngineSize == QSize(w, h))
+            return;
+        webEngineSize = QSize(w, h);
         textShowFuni += 1;
         qDebug() << "textShowFuni:" << textShowFuni << this;
         webEngineView->setFixedSize(w, h);
