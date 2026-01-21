@@ -392,7 +392,7 @@ void MarkdownParser::blockParse(const std::string &rawText,
                     inlineParse(rawBlock[i][0].substr(3), pureText);
             lines.push_back(LineElement(pureText, inlineElem));
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token.size() >= 1 && token[0] == '#') {
+        } else if (token.size() > 2 && token[0] == '#' && token[1] == ' ') {
             type = BlockType::Headinglevel1;
             std::vector<LineElement> lines;
             std::string pureText;

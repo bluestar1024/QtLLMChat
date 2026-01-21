@@ -608,6 +608,7 @@ void MessageWidget::setText(const QString &text)
         for (const auto &splitText : resultSplitTextList) {
             if (!splitText.isEmpty()) {
                 if (resultTextShowListLastLen < i) {
+                    qDebug() << "messageWidget splitText:" << splitText;
                     resultTextShowList.append(
                             new TextShow(splitText, textMaxWidth - imageLabel->width() - 35, this));
                     connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
@@ -617,8 +618,10 @@ void MessageWidget::setText(const QString &text)
                         emit resultTextShowList.last()->setSizeFinished();
                     }
                 } else {
-                    if (splitText.trimmed() != resultTextShowList[i]->getText())
+                    if (splitText.trimmed() != resultTextShowList[i]->getText()) {
+                        qDebug() << "messageWidget splitText setText:" << splitText;
                         resultTextShowList[i]->setText(splitText);
+                    }
                 }
                 i += 1;
             }

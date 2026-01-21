@@ -221,6 +221,26 @@ print(total)
 ```
 
 这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+### Python
+```python
+n = 100
+tota = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+###Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
 )";
 
 const QString testText2 = R"(<think>
