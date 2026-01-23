@@ -18,5 +18,6 @@ extern const QColor textEditFullBGTColor;
 extern const QColor textEditFullBTColor;
 extern const QColor textEditFullBColor;
 extern const QString testText;
+extern const QString testText_1;
 
 #endif // GLOBALVARIABLES_H

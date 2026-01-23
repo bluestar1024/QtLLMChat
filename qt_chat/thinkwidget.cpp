@@ -33,6 +33,10 @@ ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
     //     fontMetrics = new QFontMetricsF(label->font());
     // }
 
+    updateSizeTimer = new QTimer(this);
+    updateSizeTimer->setSingleShot(true);
+    connect(updateSizeTimer, &QTimer::timeout, this, &ThinkWidget::onUpdateSize);
+
     webEngineView = new WebEngineView();
     webEngineView->setMaximumWidth(this->maxWidth);
     connect(webEngineView->page(), &QWebEnginePage::loadFinished, this,
@@ -180,9 +184,6 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         isLabel = false;
     }
 
-    updateSizeTimer = new QTimer(this);
-    updateSizeTimer->setSingleShot(true);
-    connect(updateSizeTimer, &QTimer::timeout, this, &ThinkWidget::onUpdateSize);
     qDebug() << "ThinkWidget init end" << this;
 }
 
@@ -494,7 +495,8 @@ void ThinkWidget::onPageLoadFinished(bool success)
 {
     if (success)
         webEngineView->page()->runJavaScript("document.body.style.overflowY='hidden';");
-    qDebug() << "onPageLoadFinished" << this;
+    qDebug() << "onPageLoadFinished" << success << webEngineView->page()->contentsSize() << this;
+    updateSizeTimer->start(20);
 }
 
 void ThinkWidget::onContentsSizeChanged(const QSizeF &)

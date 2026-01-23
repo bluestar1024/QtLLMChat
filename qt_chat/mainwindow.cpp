@@ -14,6 +14,149 @@ const QColor textEditFullBGColor = QColor(224, 224, 224);
 const QColor textEditFullBGTColor = QColor(224, 224, 224, 0);
 const QColor textEditFullBTColor = QColor(100, 100, 100);
 const QColor textEditFullBColor = QColor(100, 100, 100, 0);
+const QString testText_1 = R"(<think>
+让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
+
+那我先写出循环的方法。代码结构大概是：
+
+```lua
+-- Two dashes start a one-line comment.
+--[[
+   Adding two ['s and ]'s makes it a
+   multi-line comment.
+http://learnxinyminutes.com/
+Have fun with Lua!
+--]]
+```
+
+这两种方法都可行，我觉得第二种更好，因为效率更高而且代码更简洁。
+
+现在整理一下：
+
+C++：
+同样，两种方法都可以。
+
+Python：
+可以用循环、公式，或者生成一个range然后求和。
+
+那现在我来写出这三种语言的代码：
+
+C++：
+```cpp
+#include <iostream>
+
+using namespace std;
+
+int main() {
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    int n = 100;
+    int sum = n * (n + 1) / 2;
+    cout << sum << endl;
+    return 0;
+}
+```
+
+或者循环：
+
+```python
+sum = 0
+for i in range(1, 101):
+    sum += i
+```
+
+或者使用range和sum函数：
+
+print(sum(range(1, 101)))
+
+嗯，我觉得这三种方法都是可行的。现在，我需要把它们分别用C++和Python写出来。
+
+总结一下，每个语言可以有两种实现方式，但问题可能只需要一种，所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
+</think>
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+qweertyuiopasdfghj
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
+那我先写出循环的方法。代码结构大概是：
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
+
+### C++
+```cpp
+#include <iostream>
+
+using namespace std;
+
+int main() {
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    int n = 100;
+    int sum = n * (n + 1) / 2;
+    cout << sum << endl;
+    return 0;
+}
+```
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
+那我先写出循环的方法。代码结构大概是：
+### Python
+```python
+n = 100
+tota = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
+那我先写出循环的方法。代码结构大概是：
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
+让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
+那我先写出循环的方法。代码结构大概是：
+### C++
+)";
+
 const QString testText = R"(<think>
 让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
 
@@ -195,6 +338,36 @@ print(sum(range(1, 101)))
 总结一下，每个语言可以有两种实现方式，但问题可能只需要一种，所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
 </think>
 
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
 以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
 
 ### C++
@@ -240,7 +413,9 @@ total = n * (n + 1) // 2
 print(total)
 ```
 
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
+
+### C++
 )";
 
 const QString testText2 = R"(<think>

@@ -330,6 +330,9 @@ void MarkdownParser::blockParse(const std::string &rawText,
     for (size_t i = 0; i < rawBlock.size(); i++) {
         BlockType type;
         std::string token = rawBlock[i][0].substr(0, 3);
+        std::string token1 = "";
+        if (rawBlock[i][0].size() > 3)
+            token1 = rawBlock[i][0].substr(3, 2);
         if (token == "```") {
             type = BlockType::CodeBlocks;
             std::vector<LineElement> lines;
@@ -376,7 +379,7 @@ void MarkdownParser::blockParse(const std::string &rawText,
                 }
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token == "###") {
+        } else if (token == "###" && token1.size() > 1 && token1[0] == ' ') {
             type = BlockType::Headinglevel3;
             std::vector<LineElement> lines;
             std::string pureText;
@@ -384,7 +387,7 @@ void MarkdownParser::blockParse(const std::string &rawText,
                     inlineParse(rawBlock[i][0].substr(4), pureText);
             lines.push_back(LineElement(pureText, inlineElem));
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token == "## ") {
+        } else if (token == "## " && token1.size() > 0) {
             type = BlockType::Headinglevel2;
             std::vector<LineElement> lines;
             std::string pureText;
