@@ -59,6 +59,7 @@ ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
         fontMetrics = new QFontMetricsF(webEngineView->font());
     }
 
+    // webEngineView->hide();
     int initWidth = int(fontMetrics->horizontalAdvance(text));
     if (initWidth > maxWidth)
         webEngineView->setFixedWidth(maxWidth);
@@ -168,6 +169,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         // mainHLayout->removeWidget(label);
         // label->deleteLater();
         mainHLayout->addWidget(webEngineView);
+        webEngineView->hide();
         webEngineView->setHtml(fullHtmlText, base);
         isLabel = false;
 
@@ -530,14 +532,20 @@ getPageSize();
         int w = list[0].toInt();
         int h = list[1].toInt();
         qDebug() << "WebEngineView get size:" << w << h << this;
-        if (w <= 0 || h <= 0)
+        if (w <= 0 || h <= 0) {
+            updateSizeTimer->start(20);
             return;
+        }
         if (webEngineSize == QSize(w, h))
             return;
         webEngineSize = QSize(w, h);
         funi += 1;
         qDebug() << "funi:" << funi << this;
         webEngineView->setFixedSize(w, h);
+        if (webEngineView->isHidden()) {
+            qDebug() << "isHidden:" << webEngineView->isHidden();
+            webEngineView->show();
+        }
         setFixedSize(w + 10, h);
         emit setSizeFinished();
         isEmitSizeFinish = true;

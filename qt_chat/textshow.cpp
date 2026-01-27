@@ -32,8 +32,10 @@ getPageSize();
         int w = list[0].toInt();
         int h = list[1].toInt();
         qDebug() << "WebEngineView get size:" << w << h << this;
-        if (w <= 0 || h <= 0)
+        if (w <= 0 || h <= 0) {
+            updateSizeTimer->start(20);
             return;
+        }
         if (webEngineSize == QSize(w, h))
             return;
         webEngineSize = QSize(w, h);
