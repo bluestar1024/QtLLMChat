@@ -39,6 +39,7 @@ public:
 
 protected:
     WebEngineView *webEngineView;
+    QHBoxLayout *mainHLayout;
     QSize webEngineSize;
     QTimer *updateSizeTimer;
     bool isEmitSizeFinish;
@@ -71,7 +72,6 @@ private:
     bool isLabel;
 
     CustomLabel *label;
-    QHBoxLayout *mainHLayout;
     QFont font;
     QFontMetricsF *fontMetrics;
 

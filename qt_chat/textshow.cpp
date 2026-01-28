@@ -42,6 +42,11 @@ getPageSize();
         textShowFuni += 1;
         qDebug() << "textShowFuni:" << textShowFuni << this;
         webEngineView->setFixedSize(w, h);
+        // mainHLayout->addWidget(webEngineView);
+        // if (webEngineView->isHidden()) {
+        //     qDebug() << "isHidden:" << webEngineView->isHidden();
+        //     webEngineView->show();
+        // }
         setFixedSize(w + 10, h);
         emit setSizeFinished();
         isEmitSizeFinish = true;

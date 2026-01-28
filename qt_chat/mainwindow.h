@@ -98,6 +98,7 @@ private:
     QMap<QString, QVariant> widgetSizeDict;
     bool avoidRepeatSelfFun;
     bool first;
+    bool messageSendWidgetIsFinished;
 
     MessageWidget *messageSendWidget;
     MessageWidget *messageRecvWidget;

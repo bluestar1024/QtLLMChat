@@ -829,6 +829,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message("")
     widgetSizeDict["mainWidget x"] = mainWidget->x();
     widgetSizeDict["mainWidget y"] = mainWidget->y();
     avoidRepeatSelfFun = false;
+    // messageSendWidgetIsFinished = false;
 }
 
 MainWindow::~MainWindow() { }
@@ -878,6 +879,7 @@ void MainWindow::sendMessage()
                     text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); }, chatShow,
                     thinkTimeLengthList, messageWidgetList.size(), true, true,
                     chatShow->width() * 3 / 4);
+            messageSendWidget->hide();
             messageSendWidget->updateFunWidgetSize(curDpi, initDpi);
             messageSendWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
             messageSendWidget->connectSetTexting(this, &MainWindow::getSetTexting);
@@ -916,11 +918,16 @@ void MainWindow::sendMessage()
 void MainWindow::onExecuteNext()
 {
     qDebug() << "onExecuteNext";
+    messageSendWidget->show();
     QTimer::singleShot(50, this, &MainWindow::startThread);
 }
 
 void MainWindow::startThread()
 {
+    // if (!messageSendWidgetIsFinished) {
+    //     QTimer::singleShot(50, this, &MainWindow::startThread);
+    //     return;
+    // }
     connect(thread, &QThread::started, this, &MainWindow::messageStart);
     connect(thread, &MessageThread::newMessage, this, &MainWindow::recvMessage);
     connect(thread, &QThread::finished, this, &MainWindow::messageFinish);
