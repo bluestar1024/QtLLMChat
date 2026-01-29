@@ -522,8 +522,12 @@ void MessageWidget::setText(const QString &text)
             } else {
                 thinkCodeShowList[i]->setText(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language);
             }
+            qDebug() << "thinkCodeBlocks[" << i << "]:" << thinkCodeBlocks[i].language
+                     << thinkCodeBlocks[i].code.left(5) << "and"
+                     << thinkCodeBlocks[i].code.right(5);
         }
         thinkSplitTextList.append(thinkTempText);
+        qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
         if (!thinkButtonHaveCreated) {
             thinkButton = new ThinkingButton();
             thinkButton->setIsShowThinkContent(thinkIsExpand);

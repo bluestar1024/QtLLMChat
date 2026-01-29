@@ -405,7 +405,7 @@ print(total)
 
 这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
 
-###Python
+### Python
 ```python
 n = 100
 total = n * (n + 1) // 2

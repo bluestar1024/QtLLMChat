@@ -15,7 +15,7 @@ void MessageThread::stop()
 
 void MessageThread::run()
 {
-    contentOutput = testText_1;
+    contentOutput = testText;
     if (useStream) {
         for (int i = 0; i < contentOutput.size(); i += 30) {
             emit newMessage(contentOutput.mid(i, 30));
