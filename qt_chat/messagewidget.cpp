@@ -143,7 +143,7 @@ void MessageWidget::buildAiUi()
         }
         thinkSplitTextList.append(thinkTempText);
         for (const auto &splitText : thinkSplitTextList) {
-            if (!splitText.isEmpty()) {
+            if (!splitText.trimmed().isEmpty()) {
                 thinkTextShowList.append(
                         new ThinkWidget(splitText, textMaxWidth - imageLabel->width() - 80, this));
                 connect(thinkTextShowList.last(), &ThinkWidget::setSizeFinished, this,
@@ -200,7 +200,7 @@ void MessageWidget::buildAiUi()
         }
         resultSplitTextList.append(resultTempText);
         for (const auto &splitText : resultSplitTextList) {
-            if (!splitText.isEmpty()) {
+            if (!splitText.trimmed().isEmpty()) {
                 resultTextShowList.append(
                         new TextShow(splitText, textMaxWidth - imageLabel->width() - 35, this));
                 connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
@@ -235,8 +235,13 @@ void MessageWidget::buildAiUi()
 QList<MessageWidget::CodeBlock> MessageWidget::extractCodeBlocks(const QString &text)
 {
     QList<CodeBlock> list;
-    QRegularExpression re("```(\\w+)\\n(.*?)(```|$)",
-                          QRegularExpression::DotMatchesEverythingOption);
+    // QRegularExpression re("```(\\w+)\\n(.*?)(```|$)",
+    //                       QRegularExpression::DotMatchesEverythingOption);
+    // QRegularExpression re("```(\\w+)\\n(.*)(?=(```|$))(\\3)?",
+    //                       QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpression re("```(\\w+)\\n([\\s\\S]*?)(?=```|$)(\\3)?");
+    // QRegularExpression re("```(\\w+)\\n(.*?)(```)?",
+    //                       QRegularExpression::DotMatchesEverythingOption);
     auto matchIterator = re.globalMatch(text);
     while (matchIterator.hasNext()) {
         auto match = matchIterator.next();
@@ -523,8 +528,8 @@ void MessageWidget::setText(const QString &text)
                 thinkCodeShowList[i]->setText(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language);
             }
             qDebug() << "thinkCodeBlocks[" << i << "]:" << thinkCodeBlocks[i].language
-                     << thinkCodeBlocks[i].code.left(5) << "and"
-                     << thinkCodeBlocks[i].code.right(5);
+                     << thinkCodeBlocks[i].code.left(5) << "and" << thinkCodeBlocks[i].code.right(5)
+                     << "and" << thinkCodeBlocks[i].endMarker << "end";
         }
         thinkSplitTextList.append(thinkTempText);
         qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
@@ -540,7 +545,7 @@ void MessageWidget::setText(const QString &text)
         int i = 0;
         int thinkTextShowListLastLen = thinkTextShowList.size() - 1;
         for (const auto &splitText : thinkSplitTextList) {
-            if (!splitText.isEmpty()) {
+            if (!splitText.trimmed().isEmpty()) {
                 if (thinkTextShowListLastLen < i) {
                     ThinkWidget *thinkWidget = new ThinkWidget(
                             splitText, textMaxWidth - imageLabel->width() - 80, this);
@@ -610,7 +615,7 @@ void MessageWidget::setText(const QString &text)
         int i = 0;
         int resultTextShowListLastLen = resultTextShowList.size() - 1;
         for (const auto &splitText : resultSplitTextList) {
-            if (!splitText.isEmpty()) {
+            if (!splitText.trimmed().isEmpty()) {
                 if (resultTextShowListLastLen < i) {
                     qDebug() << "messageWidget splitText:" << splitText;
                     resultTextShowList.append(
