@@ -22,6 +22,7 @@
 #include <QtWidgets/QLabel>
 #include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>
+#include <QtCore/QMetaObject>
 
 // extern const QString imagesDir;
 
@@ -123,6 +124,11 @@ private:
     bool funWidgetIsShow;
     bool loadingWidgetIsRemove;
     bool renewResponseButtonIsRemove;
+
+    QEventLoop loop;
+    QTimer checkTimer;
+    QList<QMetaObject::Connection *> thinkConnectionList;
+    QList<QMetaObject::Connection *> resultConnectionList;
 
     QList<ThinkWidget *> thinkTextShowList;
     QList<CodeShow *> thinkCodeShowList;
