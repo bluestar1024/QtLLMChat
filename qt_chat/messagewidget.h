@@ -127,8 +127,8 @@ private:
 
     QEventLoop loop;
     QTimer checkTimer;
-    QList<QMetaObject::Connection *> thinkConnectionList;
-    QList<QMetaObject::Connection *> resultConnectionList;
+    QList<QMetaObject::Connection> thinkConnectionList;
+    QList<QMetaObject::Connection> resultConnectionList;
 
     QList<ThinkWidget *> thinkTextShowList;
     QList<CodeShow *> thinkCodeShowList;

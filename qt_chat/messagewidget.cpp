@@ -164,18 +164,19 @@ void MessageWidget::buildAiUi()
         int j = 0;
         for (int i = 0; i < thinkCodeShowList.size(); ++i) {
             if (!thinkSplitTextList[i].trimmed().isEmpty()) {
-                thinkConnectionList[i - j] = new QMetaObject::Connection(
-                        QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                            if (thinkTextShowList[i - j]->getIsEmitSizeFinish()) {
-                                bool success = QObject::disconnect(*thinkConnectionList[i - j]);
-                                if (success) {
-                                    delete thinkConnectionList[i - j];
-                                    thinkConnectionList[i - j] = nullptr;
-                                }
-                                checkTimer.stop();
-                                loop.quit();
-                            }
-                        }));
+                // thinkConnectionList[i - j] = new QMetaObject::Connection(
+                thinkConnectionList.append(QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                    if (thinkTextShowList[i - j]->getIsEmitSizeFinish()) {
+                        // bool success = QObject::disconnect(thinkConnectionList[i - j]);
+                        // if (success) {
+                        //     delete thinkConnectionList[i - j];
+                        //     thinkConnectionList[i - j] = nullptr;
+                        // }
+                        QObject::disconnect(thinkConnectionList[i - j]);
+                        checkTimer.stop();
+                        loop.quit();
+                    }
+                }));
                 thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
                 checkTimer.start();
                 loop.exec();
@@ -230,18 +231,19 @@ void MessageWidget::buildAiUi()
         int j = 0;
         for (int i = 0; i < resultCodeShowList.size(); ++i) {
             if (!resultSplitTextList[i].trimmed().isEmpty()) {
-                resultConnectionList[i - j] = new QMetaObject::Connection(
-                        QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                            if (resultTextShowList[i - j]->getIsEmitSizeFinish()) {
-                                bool success = QObject::disconnect(*resultConnectionList[i - j]);
-                                if (success) {
-                                    delete resultConnectionList[i - j];
-                                    resultConnectionList[i - j] = nullptr;
-                                }
-                                checkTimer.stop();
-                                loop.quit();
-                            }
-                        }));
+                // resultConnectionList[i - j] = new QMetaObject::Connection(
+                resultConnectionList.append(QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                    if (resultTextShowList[i - j]->getIsEmitSizeFinish()) {
+                        // bool success = QObject::disconnect(resultConnectionList[i - j]);
+                        // if (success) {
+                        //     delete resultConnectionList[i - j];
+                        //     resultConnectionList[i - j] = nullptr;
+                        // }
+                        QObject::disconnect(resultConnectionList[i - j]);
+                        checkTimer.stop();
+                        loop.quit();
+                    }
+                }));
                 textLayout->addWidget(resultTextShowList[i - j]);
                 checkTimer.start();
                 loop.exec();
@@ -589,18 +591,20 @@ void MessageWidget::setText(const QString &text)
                     }
                 } else {
                     if (splitText.trimmed() != thinkTextShowList[i]->getText()) {
-                        thinkConnectionList[i] = new QMetaObject::Connection(
+                        qDebug() << "thinkConnectionList len:" << thinkConnectionList.size();
+                        thinkConnectionList[i] =
                                 QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
                                     if (thinkTextShowList[i]->getIsEmitSizeFinish()) {
-                                        bool success = QObject::disconnect(*thinkConnectionList[i]);
-                                        if (success) {
-                                            delete thinkConnectionList[i];
-                                            thinkConnectionList[i] = nullptr;
-                                        }
+                                        // bool success = QObject::disconnect(thinkConnectionList[i]);
+                                        // if (success) {
+                                        //     delete thinkConnectionList[i];
+                                        //     thinkConnectionList[i] = nullptr;
+                                        // }
+                                        QObject::disconnect(thinkConnectionList[i]);
                                         checkTimer.stop();
                                         loop.quit();
                                     }
-                                }));
+                                });
                         thinkTextShowList[i]->setText(splitText);
                         checkTimer.start();
                         loop.exec();
@@ -613,18 +617,23 @@ void MessageWidget::setText(const QString &text)
         for (int i = 0; i < thinkCodeShowList.size(); ++i) {
             if (!thinkSplitTextList[i].trimmed().isEmpty()) {
                 if (thinkTextShowListLastLen < i - j) {
-                    thinkConnectionList[i - j] = new QMetaObject::Connection(
+                    // thinkConnectionList[i - j] = new QMetaObject::Connection(
+                    thinkConnectionList.append(
                             QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
                                 if (thinkTextShowList[i - j]->getIsEmitSizeFinish()) {
-                                    bool success = QObject::disconnect(*thinkConnectionList[i - j]);
-                                    if (success) {
-                                        delete thinkConnectionList[i - j];
-                                        thinkConnectionList[i - j] = nullptr;
-                                    }
+                                    // bool success = QObject::disconnect(thinkConnectionList[i - j]);
+                                    // if (success) {
+                                    //     delete thinkConnectionList[i - j];
+                                    //     thinkConnectionList[i - j] = nullptr;
+                                    // }
+                                    QObject::disconnect(thinkConnectionList[i - j]);
+                                    qDebug() << "disconnect thinkConnectionList len:"
+                                             << thinkConnectionList.size();
                                     checkTimer.stop();
                                     loop.quit();
                                 }
                             }));
+                    qDebug() << "connect thinkConnectionList len:" << thinkConnectionList.size();
                     thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
                     checkTimer.start();
                     loop.exec();
@@ -636,8 +645,27 @@ void MessageWidget::setText(const QString &text)
                 thinkBackVLayout->addWidget(thinkCodeShowList[i]);
         }
         if (thinkTextShowListLastLen < thinkTextShowList.size() - 1 - j
-            && !thinkSplitTextList.last().isEmpty())
+            && !thinkSplitTextList.last().isEmpty()) {
+            thinkConnectionList.append(QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                if (thinkTextShowList.last()->getIsEmitSizeFinish()) {
+                    // bool success = QObject::disconnect(thinkConnectionList.last());
+                    // if (success) {
+                    //     delete thinkConnectionList.last();
+                    //     thinkConnectionList.last() = nullptr;
+                    // }
+                    QObject::disconnect(thinkConnectionList.last());
+                    qDebug() << "disconnect1 thinkConnectionList len:"
+                             << thinkConnectionList.size();
+                    checkTimer.stop();
+                    loop.quit();
+                }
+            }));
+            qDebug() << "connect1 thinkConnectionList len:" << thinkConnectionList.size();
             thinkBackVLayout->addWidget(thinkTextShowList.last());
+            checkTimer.start();
+            loop.exec();
+            qDebug() << "loop.exec";
+        }
         if (thinkTextIsRecvEnd && isRecvFirst) {
             thinkButton->setThinkEnd();
             isRecvFirst = false;
@@ -688,19 +716,20 @@ void MessageWidget::setText(const QString &text)
                     }
                 } else {
                     if (splitText.trimmed() != resultTextShowList[i]->getText()) {
-                        resultConnectionList[i] = new QMetaObject::Connection(
+                        resultConnectionList[i] =
                                 QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
                                     if (resultTextShowList[i]->getIsEmitSizeFinish()) {
-                                        bool success =
-                                                QObject::disconnect(*resultConnectionList[i]);
-                                        if (success) {
-                                            delete resultConnectionList[i];
-                                            resultConnectionList[i] = nullptr;
-                                        }
+                                        // bool success =
+                                        //         QObject::disconnect(resultConnectionList[i]);
+                                        // if (success) {
+                                        //     delete resultConnectionList[i];
+                                        //     resultConnectionList[i] = nullptr;
+                                        // }
+                                        QObject::disconnect(resultConnectionList[i]);
                                         checkTimer.stop();
                                         loop.quit();
                                     }
-                                }));
+                                });
                         resultTextShowList[i]->setText(splitText);
                         checkTimer.start();
                         loop.exec();
@@ -713,15 +742,17 @@ void MessageWidget::setText(const QString &text)
         for (int i = 0; i < resultCodeShowList.size(); ++i) {
             if (!resultSplitTextList[i].trimmed().isEmpty()) {
                 if (resultTextShowListLastLen < i - j) {
-                    resultConnectionList[i - j] = new QMetaObject::Connection(
+                    // resultConnectionList[i - j] = new QMetaObject::Connection(
+                    resultConnectionList.append(
                             QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
                                 if (resultTextShowList[i - j]->getIsEmitSizeFinish()) {
-                                    bool success =
-                                            QObject::disconnect(*resultConnectionList[i - j]);
-                                    if (success) {
-                                        delete resultConnectionList[i - j];
-                                        resultConnectionList[i - j] = nullptr;
-                                    }
+                                    // bool success =
+                                    //         QObject::disconnect(resultConnectionList[i - j]);
+                                    // if (success) {
+                                    //     delete resultConnectionList[i - j];
+                                    //     resultConnectionList[i - j] = nullptr;
+                                    // }
+                                    QObject::disconnect(resultConnectionList[i - j]);
                                     checkTimer.stop();
                                     loop.quit();
                                 }
