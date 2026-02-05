@@ -36,6 +36,8 @@ public:
     QString getSelectedText() const;
     void setIsEmitSizeFinish(bool flag);
     bool getIsEmitSizeFinish();
+    void setIsSizeFinish(bool flag);
+    bool getIsSizeFinish();
 
 protected:
     WebEngineView *webEngineView;
@@ -43,6 +45,7 @@ protected:
     QSize webEngineSize;
     QTimer *updateSizeTimer;
     bool isEmitSizeFinish;
+    bool isSizeFinish;
 
 signals:
     void setSizeFinished();

@@ -10,7 +10,8 @@ ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
       text(text.trimmed()),
       maxWidth(maxWidth - 10),
       isLabel(true),
-      isEmitSizeFinish(false)
+      isEmitSizeFinish(false),
+      isSizeFinish(false)
 {
     bool fontLoaded = false;
     int fontId = QFontDatabase::addApplicationFont(fontFilePath);
@@ -550,6 +551,7 @@ getPageSize();
         setFixedSize(w + 10, h);
         emit setSizeFinished();
         isEmitSizeFinish = true;
+        isSizeFinish = true;
         qDebug() << "ThinkWidget onUpdateSize end" << this;
     });
 }
@@ -638,7 +640,18 @@ void ThinkWidget::setIsEmitSizeFinish(bool flag)
 {
     isEmitSizeFinish = flag;
 }
+
 bool ThinkWidget::getIsEmitSizeFinish()
 {
     return isEmitSizeFinish;
+}
+
+void ThinkWidget::setIsSizeFinish(bool flag)
+{
+    isSizeFinish = flag;
+}
+
+bool ThinkWidget::getIsSizeFinish()
+{
+    return isSizeFinish;
 }

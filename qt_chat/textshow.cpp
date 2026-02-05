@@ -50,6 +50,7 @@ getPageSize();
         setFixedSize(w + 10, h);
         emit setSizeFinished();
         isEmitSizeFinish = true;
+        isSizeFinish = true;
         if (firstExecuteNextEmit) {
             firstExecuteNextEmit = false;
             emit executeNext();
