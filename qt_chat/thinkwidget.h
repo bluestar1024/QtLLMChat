@@ -44,6 +44,7 @@ protected:
     QHBoxLayout *mainHLayout;
     QSize webEngineSize;
     QTimer *updateSizeTimer;
+    bool isSetTextEnd;
     bool isEmitSizeFinish;
     bool isSizeFinish;
 

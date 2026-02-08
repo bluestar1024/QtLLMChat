@@ -646,10 +646,16 @@ void MessageWidget::setText(const QString &text)
                                         //     delete thinkConnectionList[i];
                                         //     thinkConnectionList[i] = nullptr;
                                         // }
+                                        qDebug() << "getIsSizeFinish before:"
+                                                 << thinkTextShowList[i]->getIsSizeFinish()
+                                                 << thinkTextShowList[i];
                                         thinkTextShowList[i]->setIsSizeFinish(false);
-                                        QObject::disconnect(thinkConnectionList[i]);
+                                        qDebug() << "getIsSizeFinish after:"
+                                                 << thinkTextShowList[i]->getIsSizeFinish()
+                                                 << thinkTextShowList[i];
+                                        bool ok = QObject::disconnect(thinkConnectionList[i]);
                                         qDebug() << "disconnect2 thinkConnectionList len:"
-                                                 << thinkConnectionList.size();
+                                                 << thinkConnectionList.size() << ok;
                                         checkTimer.stop();
                                         loop.quit();
                                     }
@@ -659,7 +665,9 @@ void MessageWidget::setText(const QString &text)
                         thinkTextShowList[i]->setText(splitText);
                         // QMutexLocker locker(&mutex);
                         checkTimer.start();
+                        qDebug() << "checkTimer start2";
                         loop.exec();
+                        qDebug() << "loop exec2";
                     }
                 }
                 i += 1;
@@ -679,10 +687,16 @@ void MessageWidget::setText(const QString &text)
                                     //     delete thinkConnectionList[i - j];
                                     //     thinkConnectionList[i - j] = nullptr;
                                     // }
+                                    qDebug() << "getIsSizeFinish before:"
+                                             << thinkTextShowList[i - j]->getIsSizeFinish()
+                                             << thinkTextShowList[i - j];
                                     thinkTextShowList[i - j]->setIsSizeFinish(false);
-                                    QObject::disconnect(thinkConnectionList[i - j]);
+                                    qDebug() << "getIsSizeFinish after:"
+                                             << thinkTextShowList[i - j]->getIsSizeFinish()
+                                             << thinkTextShowList[i - j];
+                                    bool ok = QObject::disconnect(thinkConnectionList[i - j]);
                                     qDebug() << "disconnect thinkConnectionList len:"
-                                             << thinkConnectionList.size();
+                                             << thinkConnectionList.size() << ok;
                                     checkTimer.stop();
                                     loop.quit();
                                 }
@@ -691,7 +705,9 @@ void MessageWidget::setText(const QString &text)
                     thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
                     // QMutexLocker locker(&mutex);
                     checkTimer.start();
+                    qDebug() << "checkTimer start";
                     loop.exec();
+                    qDebug() << "loop exec";
                 }
             } else {
                 j += 1;
@@ -699,15 +715,22 @@ void MessageWidget::setText(const QString &text)
             if (thinkCodeShowListLastLen < i)
                 thinkBackVLayout->addWidget(thinkCodeShowList[i]);
         }
+        qDebug() << "准备添加最后ThinkWidget";
         if (thinkTextShowListLastLen < thinkTextShowList.size() - 1 - j
             && !thinkSplitTextList.last().isEmpty()) {
             QMutexLocker locker(&mutex);
             thinkConnectionList.append(QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
                 if (thinkTextShowList.last()->getIsSizeFinish()) {
+                    qDebug() << "getIsSizeFinish before:"
+                             << thinkTextShowList.last()->getIsSizeFinish()
+                             << thinkTextShowList.last();
                     thinkTextShowList.last()->setIsSizeFinish(false);
-                    QObject::disconnect(thinkConnectionList.last());
-                    qDebug() << "disconnect1 thinkConnectionList len:"
-                             << thinkConnectionList.size();
+                    qDebug() << "getIsSizeFinish after:"
+                             << thinkTextShowList.last()->getIsSizeFinish()
+                             << thinkTextShowList.last();
+                    bool ok = QObject::disconnect(thinkConnectionList.last());
+                    qDebug() << "disconnect1 thinkConnectionList len:" << thinkConnectionList.size()
+                             << ok;
                     checkTimer.stop();
                     loop.quit();
                 }
@@ -716,9 +739,11 @@ void MessageWidget::setText(const QString &text)
             thinkBackVLayout->addWidget(thinkTextShowList.last());
             // QMutexLocker locker(&mutex);
             checkTimer.start();
+            qDebug() << "checkTimer start1";
             loop.exec();
-            qDebug() << "loop.exec";
+            qDebug() << "loop exec1";
         }
+        qDebug() << "添加完最后ThinkWidget";
         if (thinkTextIsRecvEnd && isRecvFirst) {
             thinkButton->setThinkEnd();
             isRecvFirst = false;

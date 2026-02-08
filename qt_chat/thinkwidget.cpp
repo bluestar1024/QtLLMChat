@@ -10,6 +10,7 @@ ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
       text(text.trimmed()),
       maxWidth(maxWidth - 10),
       isLabel(true),
+      isSetTextEnd(false),
       isEmitSizeFinish(false),
       isSizeFinish(false)
 {
@@ -186,7 +187,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         emit setSizeFinished();
         isLabel = false;
     }
-
+    isSetTextEnd = true;
     qDebug() << "ThinkWidget init end" << this;
 }
 
@@ -334,6 +335,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         emit setSizeFinished();
         isLabel = false;
     }
+    isSetTextEnd = true;
 }
 
 void ThinkWidget::measureText(const QString &text, int &labelWidth, int &labelHeight) const
@@ -537,8 +539,13 @@ getPageSize();
             updateSizeTimer->start(20);
             return;
         }
-        if (webEngineSize == QSize(w, h))
+        if (webEngineSize == QSize(w, h)) {
+            if (isSetTextEnd) {
+                isSetTextEnd = false;
+                isSizeFinish = true;
+            }
             return;
+        }
         webEngineSize = QSize(w, h);
         funi += 1;
         qDebug() << "funi:" << funi << this;
@@ -551,7 +558,10 @@ getPageSize();
         setFixedSize(w + 10, h);
         emit setSizeFinished();
         isEmitSizeFinish = true;
-        isSizeFinish = true;
+        if (isSetTextEnd) {
+            isSetTextEnd = false;
+            isSizeFinish = true;
+        }
         qDebug() << "ThinkWidget onUpdateSize end" << this;
     });
 }
