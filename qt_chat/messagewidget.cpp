@@ -142,6 +142,7 @@ void MessageWidget::buildAiUi()
                                           + codeBlock.code.size());
             auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language,
                                           textMaxWidth - imageLabel->width() - 80, this);
+            codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
             thinkCodeShowList.append(codeShow);
         }
@@ -191,6 +192,7 @@ void MessageWidget::buildAiUi()
             } else
                 j += 1;
             thinkBackVLayout->addWidget(thinkCodeShowList[i]);
+            thinkCodeShowList[i]->show();
         }
         if (!thinkSplitTextList.last().isEmpty()) {
             QMutexLocker locker(&mutex);
@@ -235,6 +237,7 @@ void MessageWidget::buildAiUi()
                                            + codeBlock.code.size());
             auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language,
                                           textMaxWidth - imageLabel->width() - 35, this);
+            codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
             resultCodeShowList.append(codeShow);
         }
@@ -279,6 +282,7 @@ void MessageWidget::buildAiUi()
             } else
                 j += 1;
             textLayout->addWidget(resultCodeShowList[i]);
+            resultCodeShowList[i]->show();
         }
         if (!resultSplitTextList.last().isEmpty()) {
             QMutexLocker locker(&mutex);
@@ -598,11 +602,13 @@ void MessageWidget::setText(const QString &text)
             if (thinkCodeShowListLastLen < i) {
                 auto *codeShow = new CodeShow(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language,
                                               textMaxWidth - imageLabel->width() - 80, this);
+                codeShow->hide();
                 codeShow->connectCodeCopyButtonClick(copyFun);
-                codeShow->setVisible(thinkIsExpand);
+                // codeShow->setVisible(thinkIsExpand);
                 thinkCodeShowList.append(codeShow);
             } else {
                 thinkCodeShowList[i]->setText(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language);
+                qDebug() << "thinkCodeShowList setText end";
             }
             qDebug() << "thinkCodeBlocks[" << i << "]:" << thinkCodeBlocks[i].language
                      << thinkCodeBlocks[i].code.left(5) << "and" << thinkCodeBlocks[i].code.right(5)
@@ -626,7 +632,7 @@ void MessageWidget::setText(const QString &text)
                 if (thinkTextShowListLastLen < i) {
                     ThinkWidget *thinkWidget = new ThinkWidget(
                             splitText, textMaxWidth - imageLabel->width() - 80, this);
-                    thinkWidget->setVisible(thinkIsExpand);
+                    // thinkWidget->setVisible(thinkIsExpand);
                     thinkTextShowList.append(thinkWidget);
                     connect(thinkWidget, &ThinkWidget::setSizeFinished, this,
                             &MessageWidget::onSizeFinished);
@@ -712,8 +718,11 @@ void MessageWidget::setText(const QString &text)
             } else {
                 j += 1;
             }
-            if (thinkCodeShowListLastLen < i)
+            if (thinkCodeShowListLastLen < i) {
                 thinkBackVLayout->addWidget(thinkCodeShowList[i]);
+                thinkCodeShowList[i]->show();
+                qDebug() << "thinkCodeShowList addWidget end";
+            }
         }
         qDebug() << "准备添加最后ThinkWidget";
         if (thinkTextShowListLastLen < thinkTextShowList.size() - 1 - j
@@ -768,6 +777,7 @@ void MessageWidget::setText(const QString &text)
                 auto *codeShow =
                         new CodeShow(resultCodeBlocks[i].code, resultCodeBlocks[i].language,
                                      textMaxWidth - imageLabel->width() - 35, this);
+                codeShow->hide();
                 qDebug() << "MessageWidget setText ing4" << this;
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 resultCodeShowList.append(codeShow);
@@ -855,8 +865,10 @@ void MessageWidget::setText(const QString &text)
             } else {
                 j += 1;
             }
-            if (resultCodeShowListLastLen < i)
+            if (resultCodeShowListLastLen < i) {
                 textLayout->addWidget(resultCodeShowList[i]);
+                resultCodeShowList[i]->show();
+            }
         }
         if (resultTextShowListLastLen < resultTextShowList.size() - 1 - j
             && !resultSplitTextList.last().isEmpty()) {
