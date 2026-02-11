@@ -181,14 +181,14 @@ void MessageWidget::buildAiUi()
                         qDebug() << "connect-1 thinkConnectionList len:"
                                  << thinkTextShowList.size();
                         checkTimer.stop();
-                        loop.quit();
+                        // loop.quit();
                     }
                 }));
                 qDebug() << "connect-1 thinkConnectionList len:" << thinkTextShowList.size();
                 thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
                 // QMutexLocker locker(&mutex);
-                checkTimer.start();
-                loop.exec();
+                // checkTimer.start();
+                // loop.exec();
             } else
                 j += 1;
             thinkBackVLayout->addWidget(thinkCodeShowList[i]);
@@ -202,14 +202,14 @@ void MessageWidget::buildAiUi()
                     QObject::disconnect(thinkConnectionList.last());
                     qDebug() << "disconnect0 thinkConnectionList len:" << thinkTextShowList.size();
                     checkTimer.stop();
-                    loop.quit();
+                    // loop.quit();
                 }
             }));
             qDebug() << "connect0 thinkConnectionList len:" << thinkTextShowList.size();
             thinkBackVLayout->addWidget(thinkTextShowList.last());
             // QMutexLocker locker(&mutex);
-            checkTimer.start();
-            loop.exec();
+            // checkTimer.start();
+            // loop.exec();
         }
         textLayout->addWidget(thinkBackWidget);
         thinkBackWidget->setVisible(thinkIsExpand);
@@ -271,14 +271,14 @@ void MessageWidget::buildAiUi()
                         qDebug() << "disconnect-1 thinkConnectionList len:"
                                  << resultConnectionList.size();
                         checkTimer.stop();
-                        loop.quit();
+                        // loop.quit();
                     }
                 }));
                 qDebug() << "connect-1 thinkConnectionList len:" << resultConnectionList.size();
                 textLayout->addWidget(resultTextShowList[i - j]);
                 // QMutexLocker locker(&mutex);
-                checkTimer.start();
-                loop.exec();
+                // checkTimer.start();
+                // loop.exec();
             } else
                 j += 1;
             textLayout->addWidget(resultCodeShowList[i]);
@@ -293,14 +293,14 @@ void MessageWidget::buildAiUi()
                     qDebug() << "disconnect0 thinkConnectionList len:"
                              << resultConnectionList.size();
                     checkTimer.stop();
-                    loop.quit();
+                    // loop.quit();
                 }
             }));
             qDebug() << "connect0 thinkConnectionList len:" << resultConnectionList.size();
             textLayout->addWidget(resultTextShowList.last());
             // QMutexLocker locker(&mutex);
-            checkTimer.start();
-            loop.exec();
+            // checkTimer.start();
+            // loop.exec();
         }
     }
 
@@ -644,13 +644,16 @@ void MessageWidget::setText(const QString &text)
                     if (splitText.trimmed() != thinkTextShowList[i]->getText()) {
                         qDebug() << "thinkConnectionList len:" << thinkConnectionList.size();
                         // QMutexLocker locker(&mutex);
+                        QEventLoop externalLoop, internalLoop;
                         QTimer processTimer;
                         processTimer.setInterval(2);
+                        processQueue.enqueue(&processTimer);
                         QMetaObject::Connection processConnection =
                                 QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                                    if (!loop.isRunning()) {
+                                    if (!processQueue.isEmpty()
+                                        && processQueue.head() == &processTimer) {
                                         bool ok = QObject::disconnect(processConnection);
-                                        qDebug() << "disconnect2 processConnection" << ok;
+                                        qDebug() << "disconnect processConnection" << ok;
                                         processTimer.stop();
                                         thinkConnectionList[i] = QObject::connect(
                                                 &checkTimer, &QTimer::timeout, [&]() {
@@ -677,7 +680,7 @@ void MessageWidget::setText(const QString &text)
                                                                    "thinkConnectionList len:"
                                                                 << thinkConnectionList.size() << ok;
                                                         checkTimer.stop();
-                                                        loop.quit();
+                                                        internalLoop.quit();
                                                     }
                                                 });
                                         qDebug() << "connect2 thinkConnectionList len:"
@@ -686,10 +689,16 @@ void MessageWidget::setText(const QString &text)
                                         // QMutexLocker locker(&mutex);
                                         checkTimer.start();
                                         qDebug() << "checkTimer start2";
-                                        loop.exec();
-                                        qDebug() << "loop exec2";
+                                        internalLoop.exec();
+                                        qDebug() << "internalLoop exec2";
+                                        externalLoop.quit();
                                     }
                                 });
+                        processTimer.start();
+                        qDebug() << "processTimer start2";
+                        externalLoop.exec();
+                        qDebug() << "externalLoop exec2";
+                        processQueue.dequeue();
                     }
                 }
                 i += 1;
@@ -701,11 +710,14 @@ void MessageWidget::setText(const QString &text)
                 if (thinkTextShowListLastLen < i - j) {
                     // QMutexLocker locker(&mutex);
                     // thinkConnectionList[i - j] = new QMetaObject::Connection(
+                    QEventLoop externalLoop, internalLoop;
                     QTimer processTimer;
                     processTimer.setInterval(2);
+                    processQueue.enqueue(&processTimer);
                     QMetaObject::Connection processConnection =
                             QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                                if (!loop.isRunning()) {
+                                if (!processQueue.isEmpty()
+                                    && processQueue.head() == &processTimer) {
                                     bool ok = QObject::disconnect(processConnection);
                                     qDebug() << "disconnect processConnection" << ok;
                                     processTimer.stop();
@@ -733,7 +745,7 @@ void MessageWidget::setText(const QString &text)
                                                             << "disconnect thinkConnectionList len:"
                                                             << thinkConnectionList.size() << ok;
                                                     checkTimer.stop();
-                                                    loop.quit();
+                                                    internalLoop.quit();
                                                 }
                                             }));
                                     qDebug() << "connect thinkConnectionList len:"
@@ -742,10 +754,16 @@ void MessageWidget::setText(const QString &text)
                                     // QMutexLocker locker(&mutex);
                                     checkTimer.start();
                                     qDebug() << "checkTimer start";
-                                    loop.exec();
-                                    qDebug() << "loop exec";
+                                    internalLoop.exec();
+                                    qDebug() << "internalLoop exec";
+                                    externalLoop.quit();
                                 }
                             });
+                    processTimer.start();
+                    qDebug() << "processTimer start";
+                    externalLoop.exec();
+                    qDebug() << "externalLoop exec";
+                    processQueue.dequeue();
                 }
             } else {
                 j += 1;
@@ -760,11 +778,13 @@ void MessageWidget::setText(const QString &text)
         if (thinkTextShowListLastLen < thinkTextShowList.size() - 1 - j
             && !thinkSplitTextList.last().isEmpty()) {
             // QMutexLocker locker(&mutex);
+            QEventLoop externalLoop, internalLoop;
             QTimer processTimer;
             processTimer.setInterval(2);
+            processQueue.enqueue(&processTimer);
             QMetaObject::Connection processConnection =
                     QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                        if (!loop.isRunning()) {
+                        if (!processQueue.isEmpty() && processQueue.head() == &processTimer) {
                             bool ok = QObject::disconnect(processConnection);
                             qDebug() << "disconnect1 processConnection" << ok;
                             processTimer.stop();
@@ -783,7 +803,7 @@ void MessageWidget::setText(const QString &text)
                                             qDebug() << "disconnect1 thinkConnectionList len:"
                                                      << thinkConnectionList.size() << ok;
                                             checkTimer.stop();
-                                            loop.quit();
+                                            internalLoop.quit();
                                         }
                                     }));
                             qDebug() << "connect1 thinkConnectionList len:"
@@ -792,10 +812,16 @@ void MessageWidget::setText(const QString &text)
                             // QMutexLocker locker(&mutex);
                             checkTimer.start();
                             qDebug() << "checkTimer start1";
-                            loop.exec();
-                            qDebug() << "loop exec1";
+                            internalLoop.exec();
+                            qDebug() << "internalLoop exec1";
+                            externalLoop.quit();
                         }
                     });
+            processTimer.start();
+            qDebug() << "processTimer start1";
+            externalLoop.exec();
+            qDebug() << "externalLoop exec1";
+            processQueue.dequeue();
         }
         qDebug() << "添加完最后ThinkWidget";
         if (thinkTextIsRecvEnd && isRecvFirst) {
@@ -850,11 +876,14 @@ void MessageWidget::setText(const QString &text)
                 } else {
                     if (splitText.trimmed() != resultTextShowList[i]->getText()) {
                         // QMutexLocker locker(&mutex);
+                        QEventLoop externalLoop, internalLoop;
                         QTimer processTimer;
                         processTimer.setInterval(2);
+                        processQueue.enqueue(&processTimer);
                         QMetaObject::Connection processConnection =
                                 QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                                    if (!loop.isRunning()) {
+                                    if (!processQueue.isEmpty()
+                                        && processQueue.head() == &processTimer) {
                                         bool ok = QObject::disconnect(processConnection);
                                         qDebug() << "disconnect2 processConnection" << ok;
                                         processTimer.stop();
@@ -875,7 +904,7 @@ void MessageWidget::setText(const QString &text)
                                                                     "thinkConnectionList len:"
                                                                  << resultConnectionList.size();
                                                         checkTimer.stop();
-                                                        loop.quit();
+                                                        internalLoop.quit();
                                                     }
                                                 });
                                         qDebug() << "connect2 thinkConnectionList len:"
@@ -884,10 +913,16 @@ void MessageWidget::setText(const QString &text)
                                         // QMutexLocker locker(&mutex);
                                         checkTimer.start();
                                         qDebug() << "checkTimer start2";
-                                        loop.exec();
-                                        qDebug() << "loop exec2";
+                                        internalLoop.exec();
+                                        qDebug() << "internalLoop exec2";
+                                        externalLoop.quit();
                                     }
                                 });
+                        processTimer.start();
+                        qDebug() << "processTimer start2";
+                        externalLoop.exec();
+                        qDebug() << "externalLoop exec2";
+                        processQueue.dequeue();
                     }
                 }
                 i += 1;
@@ -899,11 +934,14 @@ void MessageWidget::setText(const QString &text)
                 if (resultTextShowListLastLen < i - j) {
                     // QMutexLocker locker(&mutex);
                     // resultConnectionList[i - j] = new QMetaObject::Connection(
+                    QEventLoop externalLoop, internalLoop;
                     QTimer processTimer;
                     processTimer.setInterval(2);
+                    processQueue.enqueue(&processTimer);
                     QMetaObject::Connection processConnection =
                             QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                                if (!loop.isRunning()) {
+                                if (!processQueue.isEmpty()
+                                    && processQueue.head() == &processTimer) {
                                     bool ok = QObject::disconnect(processConnection);
                                     qDebug() << "disconnect processConnection" << ok;
                                     processTimer.stop();
@@ -924,7 +962,7 @@ void MessageWidget::setText(const QString &text)
                                                             << "disconnect thinkConnectionList len:"
                                                             << resultConnectionList.size();
                                                     checkTimer.stop();
-                                                    loop.quit();
+                                                    internalLoop.quit();
                                                 }
                                             }));
                                     qDebug() << "connect thinkConnectionList len:"
@@ -933,10 +971,16 @@ void MessageWidget::setText(const QString &text)
                                     // QMutexLocker locker(&mutex);
                                     checkTimer.start();
                                     qDebug() << "checkTimer start";
-                                    loop.exec();
-                                    qDebug() << "loop exec";
+                                    internalLoop.exec();
+                                    qDebug() << "internalLoop exec";
+                                    externalLoop.quit();
                                 }
                             });
+                    processTimer.start();
+                    qDebug() << "processTimer start";
+                    externalLoop.exec();
+                    qDebug() << "externalLoop exec";
+                    processQueue.dequeue();
                 }
             } else {
                 j += 1;
@@ -949,11 +993,13 @@ void MessageWidget::setText(const QString &text)
         if (resultTextShowListLastLen < resultTextShowList.size() - 1 - j
             && !resultSplitTextList.last().isEmpty()) {
             // QMutexLocker locker(&mutex);
+            QEventLoop externalLoop, internalLoop;
             QTimer processTimer;
             processTimer.setInterval(2);
+            processQueue.enqueue(&processTimer);
             QMetaObject::Connection processConnection =
                     QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                        if (!loop.isRunning()) {
+                        if (!processQueue.isEmpty() && processQueue.head() == &processTimer) {
                             bool ok = QObject::disconnect(processConnection);
                             qDebug() << "disconnect processConnection" << ok;
                             processTimer.stop();
@@ -965,7 +1011,7 @@ void MessageWidget::setText(const QString &text)
                                             qDebug() << "disconnect1 thinkConnectionList len:"
                                                      << resultConnectionList.size();
                                             checkTimer.stop();
-                                            loop.quit();
+                                            internalLoop.quit();
                                         }
                                     }));
                             qDebug() << "connect1 thinkConnectionList len:"
@@ -974,10 +1020,16 @@ void MessageWidget::setText(const QString &text)
                             // QMutexLocker locker(&mutex);
                             checkTimer.start();
                             qDebug() << "checkTimer start1";
-                            loop.exec();
-                            qDebug() << "loop exec1";
+                            internalLoop.exec();
+                            qDebug() << "internalLoop exec1";
+                            externalLoop.quit();
                         }
                     });
+            processTimer.start();
+            qDebug() << "processTimer start";
+            externalLoop.exec();
+            qDebug() << "externalLoop exec";
+            processQueue.dequeue();
         }
     }
 

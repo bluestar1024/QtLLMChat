@@ -24,6 +24,7 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QMetaObject>
 #include <QtCore/QMutex>
+#include <QtCore/QQueue>
 
 // extern const QString imagesDir;
 
@@ -127,7 +128,8 @@ private:
     bool renewResponseButtonIsRemove;
 
     QMutex mutex;
-    QEventLoop loop;
+    // QEventLoop loop;
+    QQueue<QTimer *> processQueue;
     QTimer checkTimer;
     QList<QMetaObject::Connection> thinkConnectionList;
     QList<QMetaObject::Connection> resultConnectionList;
