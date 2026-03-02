@@ -24,7 +24,8 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
       isRecvFirst(true),
       funWidgetIsShow(false),
       loadingWidgetIsRemove(true),
-      renewResponseButtonIsRemove(true)
+      renewResponseButtonIsRemove(true),
+      semaphore(0)
 {
     setMouseTracking(true);
     aiUpdateSizeTimer.setSingleShot(true);
@@ -644,77 +645,73 @@ void MessageWidget::setText(const QString &text)
                     if (splitText.trimmed() != thinkTextShowList[i]->getText()) {
                         qDebug() << "thinkConnectionList len:" << thinkConnectionList.size();
                         // QMutexLocker locker(&mutex);
-                        QEventLoop externalLoop, internalLoop;
-                        QTimer processTimer;
-                        processTimer.setInterval(2);
-                        processQueue.enqueue(&processTimer);
-                        QMetaObject::Connection processConnection =
-                                QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                                    if (!processQueue.isEmpty()
-                                        && processQueue.head() == &processTimer) {
-                                        bool ok = QObject::disconnect(processConnection);
-                                        qDebug() << "disconnect2 processConnection" << ok;
-                                        processTimer.stop();
-                                        thinkConnectionList[i] = QObject::connect(
-                                                &checkTimer, &QTimer::timeout, [&]() {
-                                                    if (thinkTextShowList[i]->getIsSizeFinish()) {
-                                                        // bool success = QObject::disconnect(thinkConnectionList[i]);
-                                                        // if (success) {
-                                                        //     delete thinkConnectionList[i];
-                                                        //     thinkConnectionList[i] = nullptr;
-                                                        // }
-                                                        qDebug() << "getIsSizeFinish before:"
-                                                                 << thinkTextShowList[i]
-                                                                            ->getIsSizeFinish()
-                                                                 << thinkTextShowList[i];
-                                                        thinkTextShowList[i]->setIsSizeFinish(
-                                                                false);
-                                                        qDebug() << "getIsSizeFinish after:"
-                                                                 << thinkTextShowList[i]
-                                                                            ->getIsSizeFinish()
-                                                                 << thinkTextShowList[i];
-                                                        bool ok = QObject::disconnect(
-                                                                thinkConnectionList[i]);
-                                                        qDebug()
-                                                                << "disconnect2 "
-                                                                   "thinkConnectionList len:"
-                                                                << thinkConnectionList.size() << ok;
-                                                        checkTimer.stop();
-                                                        qDebug()
-                                                                << "internalLoop:" << &internalLoop
-                                                                << "externalLoop:" << &externalLoop
-                                                                << "checkTimer:" << &checkTimer
-                                                                << "processTimer:" << &processTimer;
-                                                        internalLoop.quit();
-                                                        qDebug() << "internalLoop quit";
-                                                    }
-                                                });
-                                        // bool ok = QObject::disconnect(processConnection);
-                                        // qDebug() << "disconnect2 processConnection" << ok;
-                                        qDebug() << "connect2 thinkConnectionList len:"
-                                                 << thinkConnectionList.size();
-                                        thinkTextShowList[i]->setText(splitText);
-                                        qDebug() << "internalLoop:" << &internalLoop
-                                                 << "externalLoop:" << &externalLoop
-                                                 << "checkTimer:" << &checkTimer
-                                                 << "processTimer:" << &processTimer;
-                                        // QMutexLocker locker(&mutex);
-                                        checkTimer.start();
-                                        qDebug() << "checkTimer start2";
-                                        internalLoop.exec();
-                                        qDebug() << "internalLoop exec2";
-                                        externalLoop.quit();
-                                        qDebug() << "externalLoop quit";
+                        // QEventLoop externalLoop, internalLoop;
+                        // QTimer processTimer;
+                        // processTimer.setInterval(2);
+                        // processQueue.enqueue(&processTimer);
+                        // QMetaObject::Connection processConnection =
+                        //         QObject::connect(&processTimer, &QTimer::timeout, [&]() {
+                        //             if (!processQueue.isEmpty()
+                        //                 && processQueue.head() == &processTimer) {
+                        //                 bool ok = QObject::disconnect(processConnection);
+                        //                 qDebug() << "disconnect2 processConnection" << ok;
+                        //                 processTimer.stop();
+                        thinkConnectionList[i] =
+                                QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                                    if (thinkTextShowList[i]->getIsSizeFinish()) {
+                                        // bool success = QObject::disconnect(thinkConnectionList[i]);
+                                        // if (success) {
+                                        //     delete thinkConnectionList[i];
+                                        //     thinkConnectionList[i] = nullptr;
+                                        // }
+                                        qDebug() << "getIsSizeFinish before:"
+                                                 << thinkTextShowList[i]->getIsSizeFinish()
+                                                 << thinkTextShowList[i];
+                                        thinkTextShowList[i]->setIsSizeFinish(false);
+                                        qDebug() << "getIsSizeFinish after:"
+                                                 << thinkTextShowList[i]->getIsSizeFinish()
+                                                 << thinkTextShowList[i];
+                                        bool ok = QObject::disconnect(thinkConnectionList[i]);
+                                        qDebug() << "disconnect2 "
+                                                    "thinkConnectionList len:"
+                                                 << thinkConnectionList.size() << ok;
+                                        checkTimer.stop();
+                                        // qDebug() << "internalLoop:" << &internalLoop
+                                        //          << "externalLoop:" << &externalLoop
+                                        //          << "checkTimer:" << &checkTimer
+                                        //          << "processTimer:" << &processTimer;
+                                        // internalLoop.quit();
+                                        // qDebug() << "internalLoop quit";
+                                        semaphore.release();
                                     }
                                 });
-                        qDebug() << "internalLoop:" << &internalLoop
-                                 << "externalLoop:" << &externalLoop << "checkTimer:" << &checkTimer
-                                 << "processTimer:" << &processTimer;
-                        processTimer.start();
-                        qDebug() << "processTimer start2";
-                        externalLoop.exec();
-                        qDebug() << "externalLoop exec2";
-                        processQueue.dequeue();
+                        // bool ok = QObject::disconnect(processConnection);
+                        // qDebug() << "disconnect2 processConnection" << ok;
+                        qDebug() << "connect2 thinkConnectionList len:"
+                                 << thinkConnectionList.size();
+                        thinkTextShowList[i]->setText(splitText);
+                        // qDebug() << "internalLoop:" << &internalLoop
+                        //          << "externalLoop:" << &externalLoop
+                        //          << "checkTimer:" << &checkTimer
+                        //          << "processTimer:" << &processTimer;
+                        // QMutexLocker locker(&mutex);
+                        checkTimer.start();
+                        qDebug() << "checkTimer start2";
+                        // internalLoop.exec();
+                        // qDebug() << "internalLoop exec2";
+                        // externalLoop.quit();
+                        // qDebug() << "externalLoop quit";
+                        semaphore.acquire();
+                        //     }
+                        // });
+                        // qDebug() << "internalLoop:" << &internalLoop
+                        //          << "externalLoop:" << &externalLoop << "checkTimer:" << &checkTimer
+                        //          << "processTimer:" << &processTimer;
+                        // processTimer.start();
+                        // qDebug() << "processTimer start2";
+                        // externalLoop.exec();
+                        // qDebug() << "externalLoop exec2";
+                        // processQueue.dequeue();
                     }
                 }
                 i += 1;
@@ -726,74 +723,70 @@ void MessageWidget::setText(const QString &text)
                 if (thinkTextShowListLastLen < i - j) {
                     // QMutexLocker locker(&mutex);
                     // thinkConnectionList[i - j] = new QMetaObject::Connection(
-                    QEventLoop externalLoop, internalLoop;
-                    QTimer processTimer;
-                    processTimer.setInterval(2);
-                    processQueue.enqueue(&processTimer);
-                    QMetaObject::Connection processConnection =
-                            QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                                if (!processQueue.isEmpty()
-                                    && processQueue.head() == &processTimer) {
-                                    bool ok = QObject::disconnect(processConnection);
-                                    qDebug() << "disconnect processConnection" << ok;
-                                    processTimer.stop();
-                                    thinkConnectionList.append(
-                                            QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                                                if (thinkTextShowList[i - j]->getIsSizeFinish()) {
-                                                    // bool success = QObject::disconnect(thinkConnectionList[i - j]);
-                                                    // if (success) {
-                                                    //     delete thinkConnectionList[i - j];
-                                                    //     thinkConnectionList[i - j] = nullptr;
-                                                    // }
-                                                    qDebug() << "getIsSizeFinish before:"
-                                                             << thinkTextShowList[i - j]
-                                                                        ->getIsSizeFinish()
-                                                             << thinkTextShowList[i - j];
-                                                    thinkTextShowList[i - j]->setIsSizeFinish(
-                                                            false);
-                                                    qDebug() << "getIsSizeFinish after:"
-                                                             << thinkTextShowList[i - j]
-                                                                        ->getIsSizeFinish()
-                                                             << thinkTextShowList[i - j];
-                                                    bool ok = QObject::disconnect(
-                                                            thinkConnectionList[i - j]);
-                                                    qDebug()
-                                                            << "disconnect thinkConnectionList len:"
-                                                            << thinkConnectionList.size() << ok;
-                                                    checkTimer.stop();
-                                                    qDebug() << "internalLoop:" << &internalLoop
-                                                             << "externalLoop:" << &externalLoop
-                                                             << "checkTimer:" << &checkTimer
-                                                             << "processTimer:" << &processTimer;
-                                                    internalLoop.quit();
-                                                    qDebug() << "internalLoop quit";
-                                                }
-                                            }));
-                                    // bool ok = QObject::disconnect(processConnection);
-                                    // qDebug() << "disconnect processConnection" << ok;
-                                    qDebug() << "connect thinkConnectionList len:"
-                                             << thinkConnectionList.size();
-                                    thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
-                                    qDebug() << "internalLoop:" << &internalLoop
-                                             << "externalLoop:" << &externalLoop
-                                             << "checkTimer:" << &checkTimer
-                                             << "processTimer:" << &processTimer;
-                                    // QMutexLocker locker(&mutex);
-                                    checkTimer.start();
-                                    qDebug() << "checkTimer start";
-                                    internalLoop.exec();
-                                    qDebug() << "internalLoop exec";
-                                    externalLoop.quit();
-                                    qDebug() << "externalLoop quit";
+                    // QEventLoop externalLoop, internalLoop;
+                    // QTimer processTimer;
+                    // processTimer.setInterval(2);
+                    // processQueue.enqueue(&processTimer);
+                    // QMetaObject::Connection processConnection =
+                    //         QObject::connect(&processTimer, &QTimer::timeout, [&]() {
+                    //             if (!processQueue.isEmpty()
+                    //                 && processQueue.head() == &processTimer) {
+                    //                 bool ok = QObject::disconnect(processConnection);
+                    //                 qDebug() << "disconnect processConnection" << ok;
+                    //                 processTimer.stop();
+                    thinkConnectionList.append(
+                            QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                                if (thinkTextShowList[i - j]->getIsSizeFinish()) {
+                                    // bool success = QObject::disconnect(thinkConnectionList[i - j]);
+                                    // if (success) {
+                                    //     delete thinkConnectionList[i - j];
+                                    //     thinkConnectionList[i - j] = nullptr;
+                                    // }
+                                    qDebug() << "getIsSizeFinish before:"
+                                             << thinkTextShowList[i - j]->getIsSizeFinish()
+                                             << thinkTextShowList[i - j];
+                                    thinkTextShowList[i - j]->setIsSizeFinish(false);
+                                    qDebug() << "getIsSizeFinish after:"
+                                             << thinkTextShowList[i - j]->getIsSizeFinish()
+                                             << thinkTextShowList[i - j];
+                                    bool ok = QObject::disconnect(thinkConnectionList[i - j]);
+                                    qDebug() << "disconnect thinkConnectionList len:"
+                                             << thinkConnectionList.size() << ok;
+                                    checkTimer.stop();
+                                    // qDebug() << "internalLoop:" << &internalLoop
+                                    //          << "externalLoop:" << &externalLoop
+                                    //          << "checkTimer:" << &checkTimer
+                                    //          << "processTimer:" << &processTimer;
+                                    // internalLoop.quit();
+                                    // qDebug() << "internalLoop quit";
+                                    semaphore.release();
                                 }
-                            });
-                    qDebug() << "internalLoop:" << &internalLoop << "externalLoop:" << &externalLoop
-                             << "checkTimer:" << &checkTimer << "processTimer:" << &processTimer;
-                    processTimer.start();
-                    qDebug() << "processTimer start";
-                    externalLoop.exec();
-                    qDebug() << "externalLoop exec";
-                    processQueue.dequeue();
+                            }));
+                    // bool ok = QObject::disconnect(processConnection);
+                    // qDebug() << "disconnect processConnection" << ok;
+                    qDebug() << "connect thinkConnectionList len:" << thinkConnectionList.size();
+                    thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
+                    // qDebug() << "internalLoop:" << &internalLoop
+                    //          << "externalLoop:" << &externalLoop
+                    //          << "checkTimer:" << &checkTimer
+                    //          << "processTimer:" << &processTimer;
+                    // QMutexLocker locker(&mutex);
+                    checkTimer.start();
+                    qDebug() << "checkTimer start";
+                    // internalLoop.exec();
+                    // qDebug() << "internalLoop exec";
+                    // externalLoop.quit();
+                    // qDebug() << "externalLoop quit";
+                    semaphore.acquire();
+                    //             }
+                    //         });
+                    // qDebug() << "internalLoop:" << &internalLoop << "externalLoop:" << &externalLoop
+                    //          << "checkTimer:" << &checkTimer << "processTimer:" << &processTimer;
+                    // processTimer.start();
+                    // qDebug() << "processTimer start";
+                    // externalLoop.exec();
+                    // qDebug() << "externalLoop exec";
+                    // processQueue.dequeue();
                 }
             } else {
                 j += 1;
@@ -808,64 +801,63 @@ void MessageWidget::setText(const QString &text)
         if (thinkTextShowListLastLen < thinkTextShowList.size() - 1 - j
             && !thinkSplitTextList.last().isEmpty()) {
             // QMutexLocker locker(&mutex);
-            QEventLoop externalLoop, internalLoop;
-            QTimer processTimer;
-            processTimer.setInterval(2);
-            processQueue.enqueue(&processTimer);
-            QMetaObject::Connection processConnection =
-                    QObject::connect(&processTimer, &QTimer::timeout, [&]() {
-                        if (!processQueue.isEmpty() && processQueue.head() == &processTimer) {
-                            bool ok = QObject::disconnect(processConnection);
-                            qDebug() << "disconnect1 processConnection" << ok;
-                            processTimer.stop();
-                            thinkConnectionList.append(
-                                    QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                                        if (thinkTextShowList.last()->getIsSizeFinish()) {
-                                            qDebug() << "getIsSizeFinish before:"
-                                                     << thinkTextShowList.last()->getIsSizeFinish()
-                                                     << thinkTextShowList.last();
-                                            thinkTextShowList.last()->setIsSizeFinish(false);
-                                            qDebug() << "getIsSizeFinish after:"
-                                                     << thinkTextShowList.last()->getIsSizeFinish()
-                                                     << thinkTextShowList.last();
-                                            bool ok =
-                                                    QObject::disconnect(thinkConnectionList.last());
-                                            qDebug() << "disconnect1 thinkConnectionList len:"
-                                                     << thinkConnectionList.size() << ok;
-                                            checkTimer.stop();
-                                            qDebug() << "internalLoop:" << &internalLoop
-                                                     << "externalLoop:" << &externalLoop
-                                                     << "checkTimer:" << &checkTimer
-                                                     << "processTimer:" << &processTimer;
-                                            internalLoop.quit();
-                                            qDebug() << "internalLoop quit";
-                                        }
-                                    }));
-                            // bool ok = QObject::disconnect(processConnection);
-                            // qDebug() << "disconnect1 processConnection" << ok;
-                            qDebug() << "connect1 thinkConnectionList len:"
-                                     << thinkConnectionList.size();
-                            thinkBackVLayout->addWidget(thinkTextShowList.last());
-                            qDebug() << "internalLoop:" << &internalLoop
-                                     << "externalLoop:" << &externalLoop
-                                     << "checkTimer:" << &checkTimer
-                                     << "processTimer:" << &processTimer;
-                            // QMutexLocker locker(&mutex);
-                            checkTimer.start();
-                            qDebug() << "checkTimer start1";
-                            internalLoop.exec();
-                            qDebug() << "internalLoop exec1";
-                            externalLoop.quit();
-                            qDebug() << "externalLoop quit";
-                        }
-                    });
-            qDebug() << "internalLoop:" << &internalLoop << "externalLoop:" << &externalLoop
-                     << "checkTimer:" << &checkTimer << "processTimer:" << &processTimer;
-            processTimer.start();
-            qDebug() << "processTimer start1";
-            externalLoop.exec();
-            qDebug() << "externalLoop exec1";
-            processQueue.dequeue();
+            // QEventLoop externalLoop, internalLoop;
+            // QTimer processTimer;
+            // processTimer.setInterval(2);
+            // processQueue.enqueue(&processTimer);
+            // QMetaObject::Connection processConnection =
+            //         QObject::connect(&processTimer, &QTimer::timeout, [&]() {
+            //             if (!processQueue.isEmpty() && processQueue.head() == &processTimer) {
+            //                 bool ok = QObject::disconnect(processConnection);
+            //                 qDebug() << "disconnect1 processConnection" << ok;
+            //                 processTimer.stop();
+            thinkConnectionList.append(QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                if (thinkTextShowList.last()->getIsSizeFinish()) {
+                    qDebug() << "getIsSizeFinish before:"
+                             << thinkTextShowList.last()->getIsSizeFinish()
+                             << thinkTextShowList.last();
+                    thinkTextShowList.last()->setIsSizeFinish(false);
+                    qDebug() << "getIsSizeFinish after:"
+                             << thinkTextShowList.last()->getIsSizeFinish()
+                             << thinkTextShowList.last();
+                    bool ok = QObject::disconnect(thinkConnectionList.last());
+                    qDebug() << "disconnect1 thinkConnectionList len:" << thinkConnectionList.size()
+                             << ok;
+                    checkTimer.stop();
+                    // qDebug() << "internalLoop:" << &internalLoop
+                    //          << "externalLoop:" << &externalLoop
+                    //          << "checkTimer:" << &checkTimer
+                    //          << "processTimer:" << &processTimer;
+                    // internalLoop.quit();
+                    // qDebug() << "internalLoop quit";
+                    semaphore.release();
+                }
+            }));
+            // bool ok = QObject::disconnect(processConnection);
+            // qDebug() << "disconnect1 processConnection" << ok;
+            qDebug() << "connect1 thinkConnectionList len:" << thinkConnectionList.size();
+            thinkBackVLayout->addWidget(thinkTextShowList.last());
+            // qDebug() << "internalLoop:" << &internalLoop
+            //          << "externalLoop:" << &externalLoop
+            //          << "checkTimer:" << &checkTimer
+            //          << "processTimer:" << &processTimer;
+            // QMutexLocker locker(&mutex);
+            checkTimer.start();
+            qDebug() << "checkTimer start1";
+            // internalLoop.exec();
+            // qDebug() << "internalLoop exec1";
+            // externalLoop.quit();
+            // qDebug() << "externalLoop quit";
+            semaphore.acquire();
+            //             }
+            //         });
+            // qDebug() << "internalLoop:" << &internalLoop << "externalLoop:" << &externalLoop
+            //          << "checkTimer:" << &checkTimer << "processTimer:" << &processTimer;
+            // processTimer.start();
+            // qDebug() << "processTimer start1";
+            // externalLoop.exec();
+            // qDebug() << "externalLoop exec1";
+            // processQueue.dequeue();
         }
         qDebug() << "添加完最后ThinkWidget";
         if (thinkTextIsRecvEnd && isRecvFirst) {
