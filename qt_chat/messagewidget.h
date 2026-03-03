@@ -24,7 +24,6 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QMetaObject>
 #include <QtCore/QMutex>
-#include <QtCore/QSemaphore>
 #include <QtCore/QQueue>
 
 // extern const QString imagesDir;
@@ -129,7 +128,6 @@ private:
     bool renewResponseButtonIsRemove;
 
     QMutex mutex;
-    QSemaphore semaphore;
     // QEventLoop loop;
     QQueue<QTimer *> processQueue;
     QTimer checkTimer;

@@ -23,6 +23,8 @@
 #include <QtGui/QScreen>
 #include <QtWidgets/QApplication>
 #include <QtCore/QVariant>
+// #include <QtCore/QSignalBlocker>
+#include <QtCore/QQueue>
 
 enum class RegionEnum : int {
     Left = 0,
@@ -68,6 +70,7 @@ private:
     QVBoxLayout *mainVLayout;
     // TitleWidget     *titleWidget;
     QList<MessageWidget *> messageWidgetList;
+    QQueue<QString> messageQueue;
     QList<int> thinkTimeLengthList;
     // ChatRecordsWidget *chatRecordsWidget;
     QString curChatFile;
@@ -76,6 +79,7 @@ private:
     // PrintLabel *emptyTextLabel;
     // PrintLabel *textCopyLabel;
 
+    bool isProcessing;
     bool isRegenerate;
     bool isRegenerateFirst;
     bool isSetTexting;
@@ -118,6 +122,7 @@ private slots:
     void onExecuteNext();
     void startThread();
     void messageStart();
+    void queueMessage(const QString &text);
     void recvMessage(const QString &text);
     void messageFinish();
     void getSetTexting(bool);

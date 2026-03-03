@@ -700,7 +700,7 @@ $$\int_{a}^{b} {f(x)} \, \mathrm{d}x = F(b) - F(a)$$
 $$\frac{d}{dx} e^x = e^x$$
 )";
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message("")
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isProcessing(false)
 {
     setMinimumSize(1110, 795);
     resize(1220, 820);
@@ -929,7 +929,7 @@ void MainWindow::startThread()
     //     return;
     // }
     connect(thread, &QThread::started, this, &MainWindow::messageStart);
-    connect(thread, &MessageThread::newMessage, this, &MainWindow::recvMessage);
+    connect(thread, &MessageThread::newMessage, this, &MainWindow::queueMessage);
     connect(thread, &QThread::finished, this, &MainWindow::messageFinish);
     thread->start();
     qDebug() << "startThread";
@@ -969,9 +969,20 @@ void MainWindow::messageStart()
     qDebug() << "messageStart";
 }
 
+void MainWindow::queueMessage(const QString &text)
+{
+    if (isProcessing) {
+        messageQueue.enqueue(text);
+        return;
+    }
+    recvMessage(text);
+}
+
 void MainWindow::recvMessage(const QString &text)
 {
     qDebug() << "recvMessage:" << text;
+    // QSignalBlocker blocker(thread);
+    isProcessing = true;
     if (first) {
         first = false;
         if (text.startsWith("\n "))
@@ -989,6 +1000,14 @@ void MainWindow::recvMessage(const QString &text)
                 0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
         recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
     }
+    qDebug() << "recvMessage: 11";
+    isProcessing = false;
+    qDebug() << "recvMessage: isProcessing false";
+    while (!messageQueue.isEmpty()) {
+        QString next = messageQueue.dequeue();
+        QTimer::singleShot(0, this, [this, next]() { recvMessage(next); });
+    }
+    qDebug() << "recvMessage: 22";
 }
 
 void MainWindow::messageFinish()
