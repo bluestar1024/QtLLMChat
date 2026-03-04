@@ -971,18 +971,18 @@ void MainWindow::messageStart()
 
 void MainWindow::queueMessage(const QString &text)
 {
-    if (isProcessing) {
-        messageQueue.enqueue(text);
-        return;
+    messageQueue.enqueue(text);
+    if (!isProcessing) {
+        isProcessing = true;
+        recvMessage(text);
     }
-    recvMessage(text);
 }
 
 void MainWindow::recvMessage(const QString &text)
 {
     qDebug() << "recvMessage:" << text;
     // QSignalBlocker blocker(thread);
-    isProcessing = true;
+    // isProcessing = true;
     if (first) {
         first = false;
         if (text.startsWith("\n "))
@@ -1000,14 +1000,16 @@ void MainWindow::recvMessage(const QString &text)
                 0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
         recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
     }
-    qDebug() << "recvMessage: 11";
-    isProcessing = false;
-    qDebug() << "recvMessage: isProcessing false";
-    while (!messageQueue.isEmpty()) {
-        QString next = messageQueue.dequeue();
+    qDebug() << "recvMessage: setText finish";
+    messageQueue.dequeue();
+    qDebug() << "recvMessage: messageQueue dequeue";
+    if (!messageQueue.isEmpty()) {
+        QString next = messageQueue.head();
         QTimer::singleShot(0, this, [this, next]() { recvMessage(next); });
+    } else {
+        isProcessing = false;
+        qDebug() << "recvMessage: isProcessing false";
     }
-    qDebug() << "recvMessage: 22";
 }
 
 void MainWindow::messageFinish()
