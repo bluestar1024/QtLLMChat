@@ -23,8 +23,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QMetaObject>
-#include <QtCore/QMutex>
-#include <QtCore/QQueue>
+// #include <QtCore/QQueue>
 
 // extern const QString imagesDir;
 
@@ -127,12 +126,9 @@ private:
     bool loadingWidgetIsRemove;
     bool renewResponseButtonIsRemove;
 
-    QMutex mutex;
-    // QEventLoop loop;
-    QQueue<QTimer *> processQueue;
+    QEventLoop loop;
     QTimer checkTimer;
-    QList<QMetaObject::Connection> thinkConnectionList;
-    QList<QMetaObject::Connection> resultConnectionList;
+    // QQueue<QTimer *> processQueue;
 
     QList<ThinkWidget *> thinkTextShowList;
     QList<CodeShow *> thinkCodeShowList;
