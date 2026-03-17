@@ -4,8 +4,9 @@
 #pragma once
 #include "markdown_inline_element.h"
 
-#include <string>
 #include <vector>
+
+#include <QtCore/QString>
 
 enum class BlockType {
     Paragraph,
@@ -21,10 +22,10 @@ enum class BlockType {
 
 struct LineElement
 {
-    std::string text;
+    QString text;
     std::vector<MarkdownInlineElement> inlineElement;
-    LineElement(std::string t) : text(t) { }
-    LineElement(std::string t, std::vector<MarkdownInlineElement> i) : text(t), inlineElement(i) { }
+    LineElement(QString t) : text(t) { }
+    LineElement(QString t, std::vector<MarkdownInlineElement> i) : text(t), inlineElement(i) { }
 };
 
 class MarkdownBlockElement

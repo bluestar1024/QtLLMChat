@@ -110,17 +110,17 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             QString before = htmlReplaceText(parts.value(0));
             QString after = htmlReplaceText(parts.value(1));
 
-            //            m_htmlText = mistune::markdown(before.toStdString()).c_str();
+            //            m_htmlText = mistune::markdown(before).toUtf8().constData();
             MarkdownParser beforeParser;
             std::vector<MarkdownBlockElement> beforeBlocks;
             HtmlRenderer beforeHtml;
-            beforeParser.blockParse(before.toStdString(), beforeBlocks);
+            beforeParser.blockParse(before, beforeBlocks);
             //            beforeHtml.Init();
             for (size_t i = 0; i < beforeBlocks.size(); i++) {
                 beforeHtml.blockHtml(beforeBlocks[i]);
             }
             //            beforeHtml.Tail();
-            htmlText = beforeHtml.getHtml().c_str();
+            htmlText = beforeHtml.getHtml().toUtf8().constData();
 
             htmlText += "<table><thead><tr>";
             for (int i = 0; i < tbl.col; ++i)
@@ -137,30 +137,30 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
                 htmlText += "</tr>";
             }
             htmlText += "</tbody></table>";
-            //            htmlText += mistune::markdown(after.toStdString()).c_str();
+            //            htmlText += mistune::markdown(after).toUtf8().constData();
             MarkdownParser afterParser;
             std::vector<MarkdownBlockElement> afterBlocks;
             HtmlRenderer afterHtml;
-            afterParser.blockParse(after.toStdString(), afterBlocks);
+            afterParser.blockParse(after, afterBlocks);
             //            afterHtml.Init();
             for (size_t i = 0; i < afterBlocks.size(); i++) {
                 afterHtml.blockHtml(afterBlocks[i]);
             }
             //            afterHtml.Tail();
-            htmlText += afterHtml.getHtml().c_str();
+            htmlText += afterHtml.getHtml().toUtf8().constData();
         } else {
             QString md = htmlReplaceText(text);
-            //            m_htmlText = mistune::markdown(md.toStdString()).c_str();
+            //            m_htmlText = mistune::markdown(md).toUtf8().constData();
             MarkdownParser parser;
             std::vector<MarkdownBlockElement> blocks;
             HtmlRenderer html;
-            parser.blockParse(md.toStdString(), blocks);
+            parser.blockParse(md, blocks);
             //            html.Init();
             for (size_t i = 0; i < blocks.size(); i++) {
                 html.blockHtml(blocks[i]);
             }
             //            html.Tail();
-            htmlText += html.getHtml().c_str();
+            htmlText += html.getHtml().toUtf8().constData();
         }
         fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
@@ -260,17 +260,17 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             QString before = htmlReplaceText(parts.value(0));
             QString after = htmlReplaceText(parts.value(1));
 
-            //            m_htmlText = mistune::markdown(before.toStdString()).c_str();
+            //            m_htmlText = mistune::markdown(before).toUtf8().constData();
             MarkdownParser beforeParser;
             std::vector<MarkdownBlockElement> beforeBlocks;
             HtmlRenderer beforeHtml;
-            beforeParser.blockParse(before.toStdString(), beforeBlocks);
+            beforeParser.blockParse(before, beforeBlocks);
             //            beforeHtml.Init();
             for (size_t i = 0; i < beforeBlocks.size(); i++) {
                 beforeHtml.blockHtml(beforeBlocks[i]);
             }
             //            beforeHtml.Tail();
-            htmlText = beforeHtml.getHtml().c_str();
+            htmlText = beforeHtml.getHtml().toUtf8().constData();
 
             htmlText += "<table><thead><tr>";
             for (int i = 0; i < tbl.col; ++i)
@@ -287,30 +287,30 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
                 htmlText += "</tr>";
             }
             htmlText += "</tbody></table>";
-            //            htmlText += mistune::markdown(after.toStdString()).c_str();
+            //            htmlText += mistune::markdown(after).toUtf8().constData();
             MarkdownParser afterParser;
             std::vector<MarkdownBlockElement> afterBlocks;
             HtmlRenderer afterHtml;
-            afterParser.blockParse(after.toStdString(), afterBlocks);
+            afterParser.blockParse(after, afterBlocks);
             //            afterHtml.Init();
             for (size_t i = 0; i < afterBlocks.size(); i++) {
                 afterHtml.blockHtml(afterBlocks[i]);
             }
             //            afterHtml.Tail();
-            htmlText += afterHtml.getHtml().c_str();
+            htmlText += afterHtml.getHtml().toUtf8().constData();
         } else {
             QString md = htmlReplaceText(text);
-            //            m_htmlText = mistune::markdown(md.toStdString()).c_str();
+            //            m_htmlText = mistune::markdown(md).toUtf8().constData();
             MarkdownParser parser;
             std::vector<MarkdownBlockElement> blocks;
             HtmlRenderer html;
-            parser.blockParse(md.toStdString(), blocks);
+            parser.blockParse(md, blocks);
             //            html.Init();
             for (size_t i = 0; i < blocks.size(); i++) {
                 html.blockHtml(blocks[i]);
             }
             //            html.Tail();
-            htmlText += html.getHtml().c_str();
+            htmlText += html.getHtml().toUtf8().constData();
         }
         fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
@@ -421,17 +421,17 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
             QString before = htmlReplaceText(parts.value(0));
             QString after = htmlReplaceText(parts.value(1));
 
-            //            m_htmlText = mistune::markdown(before.toStdString()).c_str();
+            //            m_htmlText = mistune::markdown(before).toUtf8().constData();
             MarkdownParser beforeParser;
             std::vector<MarkdownBlockElement> beforeBlocks;
             HtmlRenderer beforeHtml;
-            beforeParser.blockParse(before.toStdString(), beforeBlocks);
+            beforeParser.blockParse(before, beforeBlocks);
             //            beforeHtml.Init();
             for (size_t i = 0; i < beforeBlocks.size(); i++) {
                 beforeHtml.blockHtml(beforeBlocks[i]);
             }
             //            beforeHtml.Tail();
-            htmlText = beforeHtml.getHtml().c_str();
+            htmlText = beforeHtml.getHtml().toUtf8().constData();
 
             htmlText += "<table><thead><tr>";
             for (int i = 0; i < tbl.col; ++i)
@@ -448,30 +448,30 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
                 htmlText += "</tr>";
             }
             htmlText += "</tbody></table>";
-            //            htmlText += mistune::markdown(after.toStdString()).c_str();
+            //            htmlText += mistune::markdown(after).toUtf8().constData();
             MarkdownParser afterParser;
             std::vector<MarkdownBlockElement> afterBlocks;
             HtmlRenderer afterHtml;
-            afterParser.blockParse(after.toStdString(), afterBlocks);
+            afterParser.blockParse(after, afterBlocks);
             //            afterHtml.Init();
             for (size_t i = 0; i < afterBlocks.size(); i++) {
                 afterHtml.blockHtml(afterBlocks[i]);
             }
             //            afterHtml.Tail();
-            htmlText += afterHtml.getHtml().c_str();
+            htmlText += afterHtml.getHtml().toUtf8().constData();
         } else {
             QString md = htmlReplaceText(text);
-            //            m_htmlText = mistune::markdown(md.toStdString()).c_str();
+            //            m_htmlText = mistune::markdown(md).toUtf8().constData();
             MarkdownParser parser;
             std::vector<MarkdownBlockElement> blocks;
             HtmlRenderer html;
-            parser.blockParse(md.toStdString(), blocks);
+            parser.blockParse(md, blocks);
             //            html.Init();
             for (size_t i = 0; i < blocks.size(); i++) {
                 html.blockHtml(blocks[i]);
             }
             //            html.Tail();
-            htmlText += html.getHtml().c_str();
+            htmlText += html.getHtml().toUtf8().constData();
         }
         fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");

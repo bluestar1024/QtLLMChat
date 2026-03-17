@@ -3,18 +3,22 @@
 #include <sstream>
 #include <regex>
 #include <iostream>
+#include <QDebug>
 
-void MarkdownParser::split(const std::string &rawText)
+#include <QtCore/QRegularExpression>
+#include <QtCore/QRegularExpressionMatch>
+
+void MarkdownParser::split(const QString &rawText)
 {
     rawBlock.clear();
-    std::istringstream iss(rawText);
-    std::vector<std::string> rawLine;
+    std::istringstream iss(rawText.toStdString());
+    std::vector<QString> rawLine;
     std::string lineText;
     while (std::getline(iss, lineText)) {
-        rawLine.push_back(lineText);
+        rawLine.push_back(QString::fromStdString(lineText));
     }
 
-    std::vector<std::string> blockText;
+    std::vector<QString> blockText;
     size_t ins = 0;
     bool codeFlag = false;
     bool orderedListsFlag = false;
@@ -22,23 +26,23 @@ void MarkdownParser::split(const std::string &rawText)
     bool blockQuoteFlag = false;
 
     while (ins < rawLine.size()) {
-        const std::string *prev = (ins > 0) ? &rawLine[ins - 1] : nullptr;
-        const std::string &curr = rawLine[ins];
-        const std::string *next = (ins + 1 < rawLine.size()) ? &rawLine[ins + 1] : nullptr;
-        if (curr.empty()) {
+        const QString *prev = (ins > 0) ? &rawLine[ins - 1] : nullptr;
+        const QString &curr = rawLine[ins];
+        const QString *next = (ins + 1 < rawLine.size()) ? &rawLine[ins + 1] : nullptr;
+        if (curr.isEmpty()) {
             blockText.push_back(curr);
             ins++;
             continue;
         }
-        if (curr.rfind("```", 0) == 0 || codeFlag) {
-            if (curr.rfind("```", 0) == 0 && !codeFlag) {
+        if (curr.indexOf("```", 0) == 0 || codeFlag) {
+            if (curr.indexOf("```", 0) == 0 && !codeFlag) {
                 if (!blockText.empty()) {
                     rawBlock.push_back(blockText);
                     blockText.clear();
                 }
             }
             blockText.push_back(curr);
-            if (curr.rfind("```", 0) == 0) {
+            if (curr.indexOf("```", 0) == 0) {
                 if (codeFlag) {
                     rawBlock.push_back(blockText);
                     blockText.clear();
@@ -48,7 +52,8 @@ void MarkdownParser::split(const std::string &rawText)
             ins++;
             continue;
         }
-        if (curr.size() >= 3 && std::isdigit(curr[0]) && curr[1] == '.' && curr[2] == ' ') {
+        qDebug() << "markdown split curr:" << curr << curr.size();
+        if (curr.size() >= 3 && curr[0].isDigit() && curr[1] == '.' && curr[2] == ' ') {
             if (!orderedListsFlag) {
                 if (!blockText.empty()) {
                     rawBlock.push_back(blockText);
@@ -57,7 +62,7 @@ void MarkdownParser::split(const std::string &rawText)
                 orderedListsFlag = true;
             }
             blockText.push_back(curr);
-            if (!next || *next == "\r" || *next == "\n" || next->empty())
+            if (!next || *next == "\r" || *next == "\n" || next->isEmpty())
                 orderedListsFlag = false;
             ins++;
             continue;
@@ -73,7 +78,7 @@ void MarkdownParser::split(const std::string &rawText)
                 unorderedListFlag = true;
             }
             blockText.push_back(curr);
-            if (!next || *next == "\r" || *next == "\n" || next->empty())
+            if (!next || *next == "\r" || *next == "\n" || next->isEmpty())
                 unorderedListFlag = false;
             ins++;
             continue;
@@ -87,22 +92,26 @@ void MarkdownParser::split(const std::string &rawText)
                 blockQuoteFlag = true;
             }
             blockText.push_back(curr);
-            if (!next || *next == "\r" || *next == "\n" || next->empty())
+            if (!next || *next == "\r" || *next == "\n" || next->isEmpty())
                 blockQuoteFlag = false;
             ins++;
             continue;
         }
-        std::regex refRegex(R"(^\[([^\]]+)\]:\s*(.+)$)");
-        std::smatch match;
-        if (std::regex_match(curr, match, refRegex)) {
-            std::string id = match[1].str();
-            std::string url = match[2].str();
+        // std::regex refRegex(R"(^\[([^\]]+)\]:\s*(.+)$)");
+        // std::smatch match;
+        QRegularExpression refRegex(R"(^\[([^\]]+)\]:\s*(.+)$)");
+        QRegularExpressionMatch match = refRegex.match(curr);
+        if (match.hasMatch()) {
+            // QString id = match[1].str();
+            // QString url = match[2].str();
+            QString id = match.captured(1);
+            QString url = match.captured(2);
             refLinks[id] = url;
             ins++;
             continue;
         }
-        if (next && !(*next == "\r" || *next == "\n" || next->empty())) {
-            if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '='; })
+        if (next && !(*next == "\r" || *next == "\n" || next->isEmpty())) {
+            if (std::all_of(next->begin(), next->end() - 1, [](QChar c) { return c == '='; })
                 && (next->back() == '\r' || next->back() == '\n' || next->back() == '=')) {
                 if (!blockText.empty()) {
                     rawBlock.push_back(blockText);
@@ -114,7 +123,7 @@ void MarkdownParser::split(const std::string &rawText)
                 ins += 2;
                 continue;
             }
-            if (std::all_of(next->begin(), next->end() - 1, [](char c) { return c == '-'; })
+            if (std::all_of(next->begin(), next->end() - 1, [](QChar c) { return c == '-'; })
                 && (next->back() == '\r' || next->back() == '\n' || next->back() == '-')) {
                 if (!blockText.empty()) {
                     rawBlock.push_back(blockText);
@@ -152,8 +161,8 @@ void MarkdownParser::split(const std::string &rawText)
             ins++;
             continue;
         }
-        if (!curr.empty()) {
-            if (prev && (*prev == "\r" || *prev == "\n" || prev->empty())) {
+        if (!curr.isEmpty()) {
+            if (prev && (*prev == "\r" || *prev == "\n" || prev->isEmpty())) {
                 if (!blockText.empty()) {
                     rawBlock.push_back(blockText);
                     blockText.clear();
@@ -171,17 +180,17 @@ void MarkdownParser::split(const std::string &rawText)
     }
 }
 
-std::vector<MarkdownInlineElement> MarkdownParser::inlineParse(const std::string &rawText,
-                                                               std::string &resText)
+std::vector<MarkdownInlineElement> MarkdownParser::inlineParse(const QString &rawText,
+                                                               QString &resText)
 {
-    std::string bufText = "";
+    QString bufText = "";
     resText = "";
     std::vector<MarkdownInlineElement> resElem;
 
     bool space = false;
-    for (size_t i = 0; i < rawText.size(); i++) {
-        std::string token(1, rawText[i]);
-        if (bufText.empty() && token == " ") {
+    for (int i = 0; i < rawText.size(); i++) {
+        QString token(1, rawText[i]);
+        if (bufText.isEmpty() && token == " ") {
             continue;
         }
         if (token == " ") {
@@ -203,21 +212,21 @@ std::vector<MarkdownInlineElement> MarkdownParser::inlineParse(const std::string
     bool italicFlag = false;
     bool codeFlag = false;
     size_t begin = 0;
-    size_t i = 0;
+    int i = 0;
     size_t ins = 0;
 
     while (i < bufText.size()) {
-        std::string token(1, bufText[i]);
+        QString token(1, bufText[i]);
         if (token == "!" && i + 1 < bufText.size() && bufText[i + 1] == '[') {
             size_t altStart = i + 2;
-            size_t altEnd = bufText.find("]", altStart);
-            if (altEnd != std::string::npos && altEnd + 1 < bufText.size()
+            int altEnd = bufText.indexOf("]", altStart);
+            if (altEnd != -1 && altEnd + 1 < bufText.size()
                 && bufText[altEnd + 1] == '(') {
                 size_t urlStart = altEnd + 2;
-                size_t urlEnd = bufText.find(")", urlStart);
-                if (urlEnd != std::string::npos) {
-                    std::string altText = bufText.substr(altStart, altEnd - altStart);
-                    std::string url = bufText.substr(urlStart, urlEnd - urlStart);
+                int urlEnd = bufText.indexOf(")", urlStart);
+                if (urlEnd != -1) {
+                    QString altText = bufText.mid(altStart, altEnd - altStart);
+                    QString url = bufText.mid(urlStart, urlEnd - urlStart);
                     resElem.push_back(MarkdownInlineElement(InlineType::Image, ins,
                                                             ins + altText.size(), url));
                     resText += altText;
@@ -229,16 +238,16 @@ std::vector<MarkdownInlineElement> MarkdownParser::inlineParse(const std::string
         }
         if (token == "[" && !italicFlag && !boldFlag && !codeFlag) {
             size_t textStart = i + 1;
-            size_t textEnd = bufText.find("]", textStart);
-            if (textEnd != std::string::npos && textEnd + 1 < bufText.size()
+            int textEnd = bufText.indexOf("]", textStart);
+            if (textEnd != -1 && textEnd + 1 < bufText.size()
                 && bufText[textEnd + 1] == '[') {
                 size_t idStart = textEnd + 2;
-                size_t idEnd = bufText.find("]", idStart);
-                if (idEnd != std::string::npos) {
-                    std::string linkText = bufText.substr(textStart, textEnd - textStart);
-                    std::string id = bufText.substr(idStart, idEnd - idStart);
+                int idEnd = bufText.indexOf("]", idStart);
+                if (idEnd != -1) {
+                    QString linkText = bufText.mid(textStart, textEnd - textStart);
+                    QString id = bufText.mid(idStart, idEnd - idStart);
                     if (refLinks.count(id)) {
-                        std::string url = refLinks[id];
+                        QString url = refLinks[id];
                         resElem.push_back(MarkdownInlineElement(InlineType::Link, ins,
                                                                 ins + linkText.size(), url));
                         resText += linkText;
@@ -251,18 +260,21 @@ std::vector<MarkdownInlineElement> MarkdownParser::inlineParse(const std::string
         }
         if (token == "[" && !italicFlag && !boldFlag && !codeFlag) {
             size_t textStart = i + 1;
-            size_t textEnd = bufText.find("]", textStart);
-            if (textEnd != std::string::npos && textEnd + 1 < bufText.size()
+            int textEnd = bufText.indexOf("]", textStart);
+            if (textEnd != -1 && textEnd + 1 < bufText.size()
                 && bufText[textEnd + 1] == '(') {
                 size_t urlStart = textEnd + 2;
-                size_t urlEnd = bufText.find(")", urlStart);
-                if (urlEnd != std::string::npos) {
-                    std::string linkText = bufText.substr(textStart, textEnd - textStart);
-                    std::string urlFull = bufText.substr(urlStart, urlEnd - urlStart);
-                    std::regex urlRegex(R"(https?://[^\s<]+)");
-                    std::smatch urlMatch;
-                    if (std::regex_search(urlFull, urlMatch, urlRegex)) {
-                        std::string url = urlMatch.str();
+                int urlEnd = bufText.indexOf(")", urlStart);
+                if (urlEnd != -1) {
+                    QString linkText = bufText.mid(textStart, textEnd - textStart);
+                    QString urlFull = bufText.mid(urlStart, urlEnd - urlStart);
+                    // std::regex urlRegex(R"(https?://[^\s<]+)");
+                    // std::smatch urlMatch;
+                    QRegularExpression urlRegex(R"(https?://[^\s<]+)");
+                    QRegularExpressionMatch urlMatch = urlRegex.match(urlFull);
+                    if (urlMatch.hasMatch()) {
+                        // QString url = urlMatch.str();
+                        QString url = urlMatch.captured(0);
                         resElem.push_back(MarkdownInlineElement(InlineType::Link, ins,
                                                                 ins + linkText.size(), url));
                         resText += linkText;
@@ -290,7 +302,7 @@ std::vector<MarkdownInlineElement> MarkdownParser::inlineParse(const std::string
 
         if ((token == "*" || boldFlag || italicFlag) && !codeFlag) {
             if (token == "*" && (!boldFlag) && (!italicFlag)) {
-                std::string tokenNext(1, bufText[i + 1]);
+                QString tokenNext(1, bufText[i + 1]);
                 if (tokenNext != "*") {
                     italicFlag = true;
                     begin = ins;
@@ -323,20 +335,20 @@ std::vector<MarkdownInlineElement> MarkdownParser::inlineParse(const std::string
     return resElem;
 }
 
-void MarkdownParser::blockParse(const std::string &rawText,
+void MarkdownParser::blockParse(const QString &rawText,
                                 std::vector<MarkdownBlockElement> &blockElem)
 {
     split(rawText);
     for (size_t i = 0; i < rawBlock.size(); i++) {
         BlockType type;
-        std::string token = rawBlock[i][0].substr(0, 3);
-        std::string token1 = "";
+        QString token = rawBlock[i][0].mid(0, 3);
+        QString token1 = "";
         if (rawBlock[i][0].size() > 3)
-            token1 = rawBlock[i][0].substr(3, 2);
+            token1 = rawBlock[i][0].mid(3, 2);
         if (token == "```") {
             type = BlockType::CodeBlocks;
             std::vector<LineElement> lines;
-            lines.push_back(LineElement(rawBlock[i][0].substr(3)));
+            lines.push_back(LineElement(rawBlock[i][0].mid(3)));
             for (size_t j = 1; j < rawBlock[i].size() - 1; j++) {
                 lines.push_back(LineElement(rawBlock[i][j]));
             }
@@ -345,24 +357,24 @@ void MarkdownParser::blockParse(const std::string &rawText,
             type = BlockType::OrderedList;
             std::vector<LineElement> lines;
             for (const auto &line : rawBlock[i]) {
-                std::string pureText;
+                QString pureText;
                 if (line.size() >= 2) {
                     std::vector<MarkdownInlineElement> inlineElem =
-                            inlineParse(line.substr(2), pureText);
+                            inlineParse(line.mid(2), pureText);
                     lines.push_back(LineElement(pureText, inlineElem));
                 }
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if ((token.size() >= 2 && token.substr(0, 2) == "* ")
-                   || (token.size() >= 2 && token.substr(0, 2) == "+ ")
-                   || (token.size() >= 2 && token.substr(0, 2) == "- ")) {
+        } else if ((token.size() >= 2 && token.mid(0, 2) == "* ")
+                   || (token.size() >= 2 && token.mid(0, 2) == "+ ")
+                   || (token.size() >= 2 && token.mid(0, 2) == "- ")) {
             type = BlockType::UnorderedList;
             std::vector<LineElement> lines;
             for (const auto &line : rawBlock[i]) {
-                std::string pureText;
+                QString pureText;
                 if (line.size() >= 2) {
                     std::vector<MarkdownInlineElement> inlineElem =
-                            inlineParse(line.substr(2), pureText);
+                            inlineParse(line.mid(2), pureText);
                     lines.push_back(LineElement(pureText, inlineElem));
                 }
             }
@@ -371,10 +383,10 @@ void MarkdownParser::blockParse(const std::string &rawText,
             type = BlockType::BlockQuote;
             std::vector<LineElement> lines;
             for (const auto &line : rawBlock[i]) {
-                std::string pureText;
+                QString pureText;
                 if (line.size() >= 2) {
                     std::vector<MarkdownInlineElement> inlineElem =
-                            inlineParse(line.substr(2), pureText);
+                            inlineParse(line.mid(2), pureText);
                     lines.push_back(LineElement(pureText, inlineElem));
                 }
             }
@@ -382,25 +394,25 @@ void MarkdownParser::blockParse(const std::string &rawText,
         } else if (token == "###" && token1.size() > 1 && token1[0] == ' ') {
             type = BlockType::Headinglevel3;
             std::vector<LineElement> lines;
-            std::string pureText;
+            QString pureText;
             std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(rawBlock[i][0].substr(4), pureText);
+                    inlineParse(rawBlock[i][0].mid(4), pureText);
             lines.push_back(LineElement(pureText, inlineElem));
             blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token == "## " && token1.size() > 0) {
             type = BlockType::Headinglevel2;
             std::vector<LineElement> lines;
-            std::string pureText;
+            QString pureText;
             std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(rawBlock[i][0].substr(3), pureText);
+                    inlineParse(rawBlock[i][0].mid(3), pureText);
             lines.push_back(LineElement(pureText, inlineElem));
             blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token.size() > 2 && token[0] == '#' && token[1] == ' ') {
             type = BlockType::Headinglevel1;
             std::vector<LineElement> lines;
-            std::string pureText;
+            QString pureText;
             std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(rawBlock[i][0].substr(2), pureText);
+                    inlineParse(rawBlock[i][0].mid(2), pureText);
             lines.push_back(LineElement(pureText, inlineElem));
             blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (isHorizontalRules(rawBlock[i][0], i ? &rawBlock[i - 1].back() : nullptr)) {
@@ -408,10 +420,10 @@ void MarkdownParser::blockParse(const std::string &rawText,
             std::vector<LineElement> lines;
             lines.push_back(LineElement(""));
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (!token.empty()) {
+        } else if (!token.isEmpty()) {
             type = BlockType::Paragraph;
             std::vector<LineElement> lines;
-            std::string pureText;
+            QString pureText;
             for (size_t j = 0; j < rawBlock[i].size(); j++) {
                 std::vector<MarkdownInlineElement> inlineElem =
                         inlineParse(rawBlock[i][j], pureText);
@@ -422,24 +434,24 @@ void MarkdownParser::blockParse(const std::string &rawText,
     }
 }
 
-bool MarkdownParser::isHorizontalRules(const std::string &lineStr, const std::string *prevLine)
+bool MarkdownParser::isHorizontalRules(const QString &lineStr, const QString *prevLine)
 {
-    if (lineStr.substr(0, 3) == "***"
-        && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '*'; })
+    if (lineStr.mid(0, 3) == "***"
+        && std::all_of(lineStr.begin(), lineStr.end() - 1, [](QChar c) { return c == '*'; })
         && (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '*'))
         return true;
-    if (lineStr.substr(0, 3) == "___"
-        && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '_'; })
+    if (lineStr.mid(0, 3) == "___"
+        && std::all_of(lineStr.begin(), lineStr.end() - 1, [](QChar c) { return c == '_'; })
         && (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '_'))
         return true;
     if (!prevLine) {
-        if (lineStr.substr(0, 3) == "---"
-            && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; })
+        if (lineStr.mid(0, 3) == "---"
+            && std::all_of(lineStr.begin(), lineStr.end() - 1, [](QChar c) { return c == '-'; })
             && (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
             return true;
-    } else if (*prevLine == "\r" || *prevLine == "\n" || prevLine->empty()) {
-        if (lineStr.substr(0, 3) == "---"
-            && std::all_of(lineStr.begin(), lineStr.end() - 1, [](char c) { return c == '-'; })
+    } else if (*prevLine == "\r" || *prevLine == "\n" || prevLine->isEmpty()) {
+        if (lineStr.mid(0, 3) == "---"
+            && std::all_of(lineStr.begin(), lineStr.end() - 1, [](QChar c) { return c == '-'; })
             && (lineStr.back() == '\r' || lineStr.back() == '\n' || lineStr.back() == '-'))
             return true;
     }

@@ -2,7 +2,7 @@
 
 #include <math.h>
 
-void HtmlRenderer::setStyle(std::string filename)
+void HtmlRenderer::setStyle(QString filename)
 {
     styleCss = filename;
 }
@@ -24,7 +24,7 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
     }
     case BlockType::Paragraph: {
         for (size_t i = 0; i < blockElem.getText().size(); i++) {
-            if (!blockElem.getText()[i].text.empty()) {
+            if (!blockElem.getText()[i].text.isEmpty()) {
                 htmlText += "<p>" + inlineHtml(blockElem.getText()[i]) + "</p>\n";
             }
         }
@@ -45,7 +45,7 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
     case BlockType::BlockQuote: {
         htmlText += "<blockquote>\n";
         for (size_t i = 0; i < blockElem.getText().size(); i++) {
-            if (!blockElem.getText()[i].text.empty()) {
+            if (!blockElem.getText()[i].text.isEmpty()) {
                 htmlText += "\t<p>" + inlineHtml(blockElem.getText()[i]) + "</p>\n";
             }
         }
@@ -55,7 +55,7 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
     case BlockType::UnorderedList: {
         htmlText += "<ul>\n";
         for (size_t i = 0; i < blockElem.getText().size(); i++) {
-            if (!blockElem.getText()[i].text.empty()) {
+            if (!blockElem.getText()[i].text.isEmpty()) {
                 htmlText += "\t<li>" + inlineHtml(blockElem.getText()[i]) + "</li>\n";
             }
         }
@@ -65,7 +65,7 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
     case BlockType::OrderedList: {
         htmlText += "<ol>\n";
         for (size_t i = 0; i < blockElem.getText().size(); i++) {
-            if (!blockElem.getText()[i].text.empty()) {
+            if (!blockElem.getText()[i].text.isEmpty()) {
                 htmlText += "\t<li>" + inlineHtml(blockElem.getText()[i]) + "</li>\n";
             }
         }
@@ -75,10 +75,10 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
     }
 }
 
-std::string HtmlRenderer::inlineHtml(LineElement line)
+QString HtmlRenderer::inlineHtml(LineElement line)
 {
     std::vector<size_t> ins;
-    std::string res = "";
+    QString res = "";
     bool isContinue = false;
     size_t jBegin = 0;
     for (size_t i = 0; i < line.inlineElement.size(); i++) {
@@ -102,16 +102,16 @@ std::string HtmlRenderer::inlineHtml(LineElement line)
                     break;
                 }
                 case InlineType::Image: {
-                    std::string alt = line.text.substr(ins[j], ins[j + 1] - ins[j]);
-                    std::string url = line.inlineElement[j / 2].getUrl();
+                    QString alt = line.text.mid(ins[j], ins[j + 1] - ins[j]);
+                    QString url = line.inlineElement[j / 2].getUrl();
                     res += "<img src=\"" + url + "\" alt=\"" + alt + "\" />";
                     isContinue = true;
                     jBegin = j;
                     break;
                 }
                 case InlineType::Link: {
-                    std::string text = line.text.substr(ins[j], ins[j + 1] - ins[j]);
-                    std::string url = line.inlineElement[j / 2].getUrl();
+                    QString text = line.text.mid(ins[j], ins[j + 1] - ins[j]);
+                    QString url = line.inlineElement[j / 2].getUrl();
                     res += "<a href=\"" + url + "\">" + text + "</a>";
                     isContinue = true;
                     jBegin = j;
@@ -153,7 +153,7 @@ std::string HtmlRenderer::inlineHtml(LineElement line)
     return res;
 }
 
-std::string HtmlRenderer::getHtml() const
+QString HtmlRenderer::getHtml() const
 {
     return htmlText;
 }

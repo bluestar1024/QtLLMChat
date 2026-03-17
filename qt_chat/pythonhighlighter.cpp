@@ -153,7 +153,7 @@ void PythonHighlighter::singleLineStrHighlight(const QString &text, int start, i
     for (int i = 0; i < highlightStringRules.size(); ++i) {
         auto m = highlightStringRules[i].pattern.match(slice);
         if (m.hasMatch())
-            cands.append({ m.capturedStart(), i });
+            cands.append({ static_cast<int>(m.capturedStart()), i });
     }
     if (cands.isEmpty())
         return;
@@ -176,7 +176,7 @@ void PythonHighlighter::singleLineStrHighlight(const QString &text, int start, i
         for (int i = 0; i < highlightStringRules.size(); ++i) {
             auto mm = highlightStringRules[i].pattern.match(slice, offset);
             if (mm.hasMatch())
-                cands.append({ mm.capturedStart(), i });
+                cands.append({ static_cast<int>(mm.capturedStart()), i });
         }
         std::sort(cands.begin(), cands.end(),
                   [](const Cand &a, const Cand &b) { return a.pos < b.pos; });

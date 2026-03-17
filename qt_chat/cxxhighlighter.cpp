@@ -71,7 +71,7 @@ void CXXHighlighter::highlightBlock(const QString &text)
                   getSyntaxStyle()->getFormat("String"));
     }
 
-    for (const auto &rule : qAsConst(highlightRules)) {
+    for (const auto &rule : std::as_const(highlightRules)) {
         auto matchIterator = rule.pattern.globalMatch(text);
         while (matchIterator.hasNext()) {
             auto match = matchIterator.next();

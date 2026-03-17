@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui 3dcore
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets
 
@@ -20,6 +20,7 @@ SOURCES += \
     codeshow.cpp \
     copybutton.cpp \
     customlabel.cpp \
+    custommenu.cpp \
     customwebengineview.cpp \
     cxxhighlighter.cpp \
     frame.cpp \

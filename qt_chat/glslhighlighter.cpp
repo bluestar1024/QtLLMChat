@@ -64,7 +64,7 @@ void GLSLHighlighter::highlightBlock(const QString &text)
                   getSyntaxStyle()->getFormat("Function"));
     }
 
-    for (const HighlightRule &rule : qAsConst(highlightRules)) {
+    for (const HighlightRule &rule : std::as_const(highlightRules)) {
         matchIterator = rule.pattern.globalMatch(text);
         while (matchIterator.hasNext()) {
             auto match = matchIterator.next();

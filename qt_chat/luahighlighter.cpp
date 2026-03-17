@@ -94,11 +94,11 @@ void LuaHighlighter::highlightBlock(const QString &text)
     int startIndex = 0;
 
     if (state < 1 || state > highlightBlockRules.size()) {
-        for (std::size_t i = 0; i < highlightBlockRules.size(); ++i) {
+        for (qsizetype i = 0; i < highlightBlockRules.size(); ++i) {
             auto startMatch = highlightBlockRules[i].start.match(text);
             startIndex = startMatch.capturedStart();
             if (startIndex >= 0) {
-                state = i + 1;
+                state = static_cast<int>(i + 1);
                 break;
             }
         }

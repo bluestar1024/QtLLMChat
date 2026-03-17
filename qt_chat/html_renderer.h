@@ -5,23 +5,23 @@
 #include "markdown_block_element.h"
 #include "markdown_inline_element.h"
 
-#include <string>
+#include <QtCore/QString>
 
 class HtmlRenderer
 {
 private:
-    std::string htmlText = "";
-    std::string styleCss = "";
+    QString htmlText = "";
+    QString styleCss = "";
 
 public:
-    void setStyle(std::string filename);
+    void setStyle(QString filename);
     void init();
     void tail();
     // 为块元素语法部分渲染 html 标签
     void blockHtml(MarkdownBlockElement blockElem);
     // 为行内元素语法部分渲染 html 标签
-    std::string inlineHtml(LineElement line);
-    std::string getHtml() const;
+    QString inlineHtml(LineElement line);
+    QString getHtml() const;
 };
 
 #endif // HTML_RENDERER_H

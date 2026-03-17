@@ -5,7 +5,7 @@ MarkdownInlineElement::MarkdownInlineElement(InlineType t, size_t b, size_t e)
     : type(t), begin(b), end(e)
 {
 }
-MarkdownInlineElement::MarkdownInlineElement(InlineType t, size_t b, size_t e, std::string u)
+MarkdownInlineElement::MarkdownInlineElement(InlineType t, size_t b, size_t e, QString u)
     : type(t), begin(b), end(e), url(u)
 {
 }
@@ -21,7 +21,7 @@ size_t MarkdownInlineElement::getEnd() const
 {
     return end;
 }
-std::string MarkdownInlineElement::getUrl() const
+QString MarkdownInlineElement::getUrl() const
 {
     return url;
 }
