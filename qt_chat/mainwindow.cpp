@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 
+#include <QQuickWindow>
 #include <QDebug>
 
 const QString imagesDir = ":/images";
@@ -830,9 +831,26 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isPr
     widgetSizeDict["mainWidget y"] = mainWidget->y();
     avoidRepeatSelfFun = false;
     // messageSendWidgetIsFinished = false;
+
+    checkGraphicsBackend();
 }
 
 MainWindow::~MainWindow() { }
+
+void MainWindow::checkGraphicsBackend()
+{
+    // 创建一个成员变量或使用静态变量
+    window = new QQuickWindow();
+    window->show();
+    QTimer::singleShot(500, [&]() {
+        qDebug() << "===== 图形后端信息 =====";
+        qDebug() << "当前渲染器:" << window->rendererInterface()->graphicsApi();
+        qDebug() << "场景图后端:" << window->sceneGraphBackend();
+        qDebug() << "======================";
+        window->close();
+        window->deleteLater();
+    });
+}
 
 void MainWindow::onDpiChanged() { }
 

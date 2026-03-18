@@ -26,6 +26,8 @@
 // #include <QtCore/QSignalBlocker>
 #include <QtCore/QQueue>
 
+#include <QQuickWindow>
+
 enum class RegionEnum : int {
     Left = 0,
     Right,
@@ -51,6 +53,9 @@ public:
 private:
     void textCopy();
     void messageRenewResponse();
+    void checkGraphicsBackend();
+
+    QQuickWindow *window;
 
     bool mouseLeftButtonIsPress;
     RegionEnum regionDir;
