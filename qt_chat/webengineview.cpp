@@ -1,9 +1,10 @@
 #include "webengineview.h"
 #include "messagewidget.h"
+#include "globalvariables.h"
 
 WebEngineView::WebEngineView(QWidget *parent) : QWebEngineView(parent)
 {
-    setPage(new WebEnginePage(this));
+    setPage(new WebEnginePage(sharedProfile, this));
     page()->setBackgroundColor(Qt::transparent);
     load(QUrl());
     focusProxy()->installEventFilter(this);

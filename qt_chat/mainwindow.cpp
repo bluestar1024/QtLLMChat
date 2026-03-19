@@ -7,6 +7,8 @@ const QString imagesDir = ":/images";
 const QString fontFilePath = ":/font/msyhl.ttc";
 const QString mathjaxScriptPath = "mathjax/es5/tex-mml-chtml.js";
 QString codeThemeFilePath = ":/config/dark_theme.xml";
+const QString webEngineCacheDir = ":/webengine_cache";
+QWebEngineProfile* sharedProfile = nullptr;
 const int windowFontPointSize = 10;
 const int windowFontPixelSize = 20;
 const int titleFontPixelSize = 28;
@@ -703,6 +705,17 @@ $$\frac{d}{dx} e^x = e^x$$
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isProcessing(false)
 {
+    QWebEngineProfile* sharedProfile = new QWebEngineProfile("shared");
+    sharedProfile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
+    sharedProfile->setCachePath(webEngineCacheDir);
+    QWebEngineView *dummyView = new QWebEngineView(this);
+    dummyView->setPage(new WebEnginePage(sharedProfile, dummyView));
+    dummyView->load(QUrl("about:blank"));
+    connect(dummyView, &QWebEngineView::loadFinished, dummyView, &QObject::deleteLater);
+    connect(dummyView, &QWebEngineView::loadFinished, []() {
+        qDebug() << "dummyView delete";
+    });
+
     setMinimumSize(1110, 795);
     resize(1220, 820);
     setAttribute(Qt::WA_TranslucentBackground, true);
@@ -833,6 +846,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isPr
     // messageSendWidgetIsFinished = false;
 
     checkGraphicsBackend();
+
+    // dummyView->deleteLater();
 }
 
 MainWindow::~MainWindow() { }

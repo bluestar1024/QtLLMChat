@@ -4,11 +4,14 @@
 #pragma once
 #include <QtCore/QString>
 #include <QtGui/QColor>
+#include <QtWebEngineCore/QWebEngineProfile>
 
 extern const QString imagesDir;
 extern const QString fontFilePath;
 extern const QString mathjaxScriptPath;
 extern QString codeThemeFilePath;
+extern const QString webEngineCacheDir;
+extern QWebEngineProfile* sharedProfile;
 extern const int windowFontPointSize;
 extern const int windowFontPixelSize;
 extern const int titleFontPixelSize;

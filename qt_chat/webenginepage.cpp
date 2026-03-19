@@ -1,6 +1,6 @@
 #include "webenginepage.h"
 
-WebEnginePage::WebEnginePage(QObject *parent) : QWebEnginePage(parent) { }
+WebEnginePage::WebEnginePage(QWebEngineProfile *profile, QObject *parent) : QWebEnginePage(profile, parent) { }
 
 WebEnginePage::~WebEnginePage() { }
 
