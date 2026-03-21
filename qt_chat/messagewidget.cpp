@@ -63,8 +63,8 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
         renewResponseImagesPath = imagesDir + "/renewResponse.png";
         renewResponseHoverImagesPath = imagesDir + "/renewResponse_hover.png";
         renewResponseButton->setStyleSheet(
-                QString("QPushButton{ border-image:url(:/icons/renewResponse.png); }"
-                        "QPushButton:hover{ border-image:url(:/icons/renewResponse_hover.png); }")
+                QString("QPushButton{ border-image:url(%1); }"
+                        "QPushButton:hover{ border-image:url(%2); }")
                         .arg(renewResponseImagesPath, renewResponseHoverImagesPath));
         connect(renewResponseButton, &QPushButton::clicked, this->renewResponseFun);
         funHLayout->addWidget(renewResponseButton);
@@ -305,11 +305,11 @@ void MessageWidget::buildAiUi()
 QList<MessageWidget::CodeBlock> MessageWidget::extractCodeBlocks(const QString &text)
 {
     QList<CodeBlock> list;
-    // QRegularExpression re("```(\\w+)\\n(.*?)(```|$)",
-    //                       QRegularExpression::DotMatchesEverythingOption);
+    QRegularExpression re("```(\\w+)\\n(.*?)(```|$)",
+                          QRegularExpression::DotMatchesEverythingOption);
     // QRegularExpression re("```(\\w+)\\n(.*)(?=(```|$))(\\3)?",
     //                       QRegularExpression::DotMatchesEverythingOption);
-    QRegularExpression re("```(\\w+)\\n([\\s\\S]*?)(?=```|$)(\\3)?");
+    // QRegularExpression re("```(\\w+)\\n([\\s\\S]*?)(?=```|$)(\\3)?");
     // QRegularExpression re("```(\\w+)\\n(.*?)(```)?",
     //                       QRegularExpression::DotMatchesEverythingOption);
     auto matchIterator = re.globalMatch(text);

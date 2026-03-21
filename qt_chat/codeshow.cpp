@@ -70,8 +70,8 @@ void CodeShow::setupUI()
     // qDebug() << "CodeShow setupUI ing4" << this;
     codeCopyButton = new PushButton("复制代码", 15, 35);
     codeCopyButton->setFixedSize(topHeight - 10, topHeight - 10);
-    lightCodeCopyImagesPath = imagesDir + "light_code_copy.png";
-    darkCodeCopyImagesPath = imagesDir + "dark_code_copy.png";
+    lightCodeCopyImagesPath = imagesDir + "/light_code_copy.png";
+    darkCodeCopyImagesPath = imagesDir + "/dark_code_copy.png";
     codeCopyButton->setIcon(QIcon(lightCodeCopyImagesPath));
     codeCopyButton->setIconSize(QSize(topHeight - 10, topHeight - 10));
     codeCopyButton->setStyleSheet("border: none; background: transparent;");
