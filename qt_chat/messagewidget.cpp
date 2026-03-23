@@ -363,10 +363,12 @@ void MessageWidget::setSize()
         else
             textBoxWidget->setFixedSize(qMax(textWidget->width(), loadingWidget->width()),
                                         textWidget->height() + loadingWidget->height());
+        qDebug() << "textBoxWidget:" << textBoxWidget->width() << textBoxWidget->height();
     }
     qDebug() << "MessageWidget setSize ing2" << this;
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
                  qMax(imageLabel->height(), textBoxWidget->height()));
+    qDebug() << "this:" << this->width() << this->height();
     qDebug() << "MessageWidget setSize end" << this;
 }
 
@@ -376,14 +378,17 @@ void MessageWidget::adjustAiTextWidgetSize()
     for (auto *textShow : thinkTextShowList) {
         thinkBackWidth = qMax(thinkBackWidth, textShow->width());
         thinkBackHeight += textShow->height();
+        qDebug() << "thinkTextShowList:" << thinkBackWidth << thinkBackHeight;
     }
     for (auto *codeShow : thinkCodeShowList) {
         thinkBackWidth = qMax(thinkBackWidth, codeShow->width());
         thinkBackHeight += codeShow->height();
+        qDebug() << "thinkCodeShowList:" << thinkBackWidth << thinkBackHeight;
     }
     if (!thinkTextShowList.isEmpty() || !thinkCodeShowList.isEmpty()) {
         thinkBackWidth += 45;
         thinkBackWidget->setFixedSize(thinkBackWidth, thinkBackHeight);
+        qDebug() << "!List.isEmpty:" << thinkBackWidth << thinkBackHeight;
     }
 
     int thinkWidth = 0, thinkHeight = 0;
@@ -397,19 +402,23 @@ void MessageWidget::adjustAiTextWidgetSize()
             thinkWidth = thinkButton->width();
             thinkHeight = thinkButton->height();
         }
+        qDebug() << "hasThink:" << thinkWidth << thinkHeight;
     }
     if (!resultText.isEmpty()) {
         for (auto *textShow : resultTextShowList) {
             resultWidth = qMax(resultWidth, textShow->width());
             resultHeight += textShow->height();
+            qDebug() << "resultTextShowList:" << resultWidth << resultHeight;
         }
         for (auto *codeShow : resultCodeShowList) {
             resultWidth = qMax(resultWidth, codeShow->width());
             resultHeight += codeShow->height();
+            qDebug() << "resultCodeShowList:" << resultWidth << resultHeight;
         }
     }
 
     textWidget->setFixedSize(qMax(thinkWidth, resultWidth) + 30, thinkHeight + resultHeight + 10);
+    qDebug() << "textWidget:" << textWidget->width() << textWidget->height();
 }
 
 bool MessageWidget::getThinkIsExpanded()
@@ -616,6 +625,7 @@ void MessageWidget::setText(const QString &text)
         }
         int i = 0;
         int thinkTextShowListLastLen = thinkTextShowList.size() - 1;
+        qDebug() << "thinkTextShowListLastLen:" << thinkTextShowListLastLen;
         for (const auto &splitText : thinkSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
                 if (thinkTextShowListLastLen < i) {
@@ -756,8 +766,9 @@ void MessageWidget::setText(const QString &text)
                 qDebug() << "thinkCodeShowList addWidget end";
             }
         }
+        qDebug() << "thinkTextShowListLastLen thinkTextShowList.size j:" << thinkTextShowListLastLen << thinkTextShowList.size() << j;
         qDebug() << "准备添加最后ThinkWidget";
-        if (thinkTextShowListLastLen < thinkTextShowList.size() - 1 - j
+        if (thinkTextShowListLastLen < thinkTextShowList.size() - 1
             && !thinkSplitTextList.last().isEmpty()) {
             // QEventLoop externalLoop, internalLoop;
             // QTimer processTimer;
@@ -975,7 +986,7 @@ void MessageWidget::setText(const QString &text)
                 resultCodeShowList[i]->show();
             }
         }
-        if (resultTextShowListLastLen < resultTextShowList.size() - 1 - j
+        if (resultTextShowListLastLen < resultTextShowList.size() - 1
             && !resultSplitTextList.last().isEmpty()) {
             // QEventLoop externalLoop, internalLoop;
             // QTimer processTimer;

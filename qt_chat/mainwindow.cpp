@@ -869,6 +869,53 @@ void MainWindow::checkGraphicsBackend()
 
 void MainWindow::onDpiChanged() { }
 
+void MainWindow::mouseMoveEvent(QMouseEvent *event)
+{
+    isItemShowFull(childAt(event->pos()));
+    QMainWindow::mouseMoveEvent(event);
+}
+
+void MainWindow::isItemShowFull(QWidget *widget)
+{
+    for (int i = 0; i < messageWidgetList.size(); ++i) {
+        MessageWidget *messageWidget = messageWidgetList.at(i);
+        messageWidget->hideFunWidget();
+    }
+    if (TextWidget *textWidget = qobject_cast<TextWidget*>(widget)) {
+        for (int i = 0; i < messageWidgetList.size(); ++i) {
+            if (textWidget == messageWidgetList.at(i)->getTextWidget()) {
+                messageWidgetList.at(i)->showFunWidget();
+            }
+        }
+    }
+    else if (TextBoxWidget *textBoxWidget = qobject_cast<TextBoxWidget*>(widget)) {
+        for (int i = 0; i < messageWidgetList.size(); ++i) {
+            if (textBoxWidget == messageWidgetList.at(i)->getTextBoxWidget()) {
+                messageWidgetList.at(i)->showFunWidget();
+            }
+        }
+    }
+    else if (MessageWidget *messageWidget = qobject_cast<MessageWidget*>(widget)) {
+        for (int i = 0; i < messageWidgetList.size(); ++i) {
+            if (messageWidget == messageWidgetList.at(i)) {
+                messageWidgetList.at(i)->showFunWidget();
+            }
+        }
+    }
+    else if (ItemWidget *itemWidget = qobject_cast<ItemWidget*>(widget)) {
+        QLayoutItem *layoutItem = itemWidget->layout()->itemAt(0);
+        if (layoutItem) {
+            if (MessageWidget *childWidget = qobject_cast<MessageWidget*>(layoutItem->widget())) {
+                for (int i = 0; i < messageWidgetList.size(); ++i) {
+                    if (childWidget == messageWidgetList.at(i)) {
+                        messageWidgetList.at(i)->showFunWidget();
+                    }
+                }
+            }
+        }
+    }
+}
+
 void MainWindow::messageWidgetResize()
 {
     const int count = chatShow->count();
@@ -1070,6 +1117,11 @@ void MainWindow::messageFinish()
     isSending = false;
 
     qDebug() << "chatShow item count:" << chatShow->count();
+    const int count = chatShow->count();
+    for (int i = 0; i < count; ++i) {
+        MessageWidget *messageWidget = messageWidgetList.at(i);
+        qDebug() << i << "messageWidget size:" << messageWidget->size();
+    }
 }
 
 void MainWindow::textCopy() { }

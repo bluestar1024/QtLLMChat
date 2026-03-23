@@ -50,10 +50,14 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
+    void mouseMoveEvent(QMouseEvent *event) override;
+
 private:
     void textCopy();
     void messageRenewResponse();
     void checkGraphicsBackend();
+    void isItemShowFull(QWidget *widget);
 
     QQuickWindow *window;
 
