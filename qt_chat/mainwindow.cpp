@@ -956,14 +956,23 @@ void MainWindow::sendMessage()
             }
             thinkTimeLengthList.append(0);
             messageSendWidget = new MessageWidget(
-                    text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); }, chatShow,
-                    thinkTimeLengthList, messageWidgetList.size(), true, true,
+                    text,
+                    [this]() { textCopy(); },
+                    [this]() { messageRenewResponse(); },
+                    [this]() { messageWidgetResize(); },
+                    [this](bool state) { getSetTexting(state); },
+                    [this]() { onExecuteNext(); },
+                    chatShow,
+                    thinkTimeLengthList,
+                    messageWidgetList.size(),
+                    true,
+                    true,
                     chatShow->width() * 3 / 4);
             messageSendWidget->hide();
             messageSendWidget->updateFunWidgetSize(curDpi, initDpi);
-            messageSendWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
-            messageSendWidget->connectSetTexting(this, &MainWindow::getSetTexting);
-            messageSendWidget->connectExecuteNext(this, &MainWindow::onExecuteNext);
+            // messageSendWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
+            // messageSendWidget->connectSetTexting(this, &MainWindow::getSetTexting);
+            // messageSendWidget->connectExecuteNext(this, &MainWindow::onExecuteNext);
             // messageSendWidget->toggleWidget();
             messageWidgetList.append(messageSendWidget);
 
@@ -1028,10 +1037,20 @@ void MainWindow::messageStart()
 
     thinkTimeLengthList.append(0);
     messageRecvWidget = new MessageWidget(
-            message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); }, chatShow,
-            thinkTimeLengthList, messageWidgetList.size(), false, true, chatShow->width() * 3 / 4);
-    messageRecvWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
-    messageRecvWidget->connectSetTexting(this, &MainWindow::getSetTexting);
+            message,
+            [this]() { textCopy(); },
+            [this]() { messageRenewResponse(); },
+            [this]() { messageWidgetResize(); },
+            [this](bool state) { getSetTexting(state); },
+            nullptr,
+            chatShow,
+            thinkTimeLengthList,
+            messageWidgetList.size(),
+            false,
+            true,
+            chatShow->width() * 3 / 4);
+    // messageRecvWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
+    // messageRecvWidget->connectSetTexting(this, &MainWindow::getSetTexting);
     messageWidgetList.append(messageRecvWidget);
 
     itemRecvWidget = new ItemWidget(this);
@@ -1117,11 +1136,11 @@ void MainWindow::messageFinish()
     isSending = false;
 
     qDebug() << "chatShow item count:" << chatShow->count();
-    const int count = chatShow->count();
-    for (int i = 0; i < count; ++i) {
-        MessageWidget *messageWidget = messageWidgetList.at(i);
-        qDebug() << i << "messageWidget size:" << messageWidget->size();
-    }
+    // const int count = chatShow->count();
+    // for (int i = 0; i < count; ++i) {
+    //     MessageWidget *messageWidget = messageWidgetList.at(i);
+    //     qDebug() << i << "messageWidget size:" << messageWidget->size();
+    // }
 }
 
 void MainWindow::textCopy() { }

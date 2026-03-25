@@ -3,14 +3,26 @@
 
 #include <QtCore/QMutexLocker>
 
-MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
-                             std::function<void()> renewResponseFun, ListWidget *listWidget,
-                             QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser,
-                             bool thinkIsExpand, int textMaxWidth, QWidget *parent)
+MessageWidget::MessageWidget(const QString &text,
+                             std::function<void()> copyFun,
+                             std::function<void()> renewResponseFun,
+                             std::function<void()> widgetResizeFun,
+                             std::function<void(bool)> getSetTextingFun,
+                             std::function<void()> executeNextFun,
+                             ListWidget *listWidget,
+                             QList<int> &thinkTimeLengthList,
+                             int thinkTimeIndex,
+                             bool isUser,
+                             bool thinkIsExpand,
+                             int textMaxWidth,
+                             QWidget *parent)
     : QWidget(parent),
       text(text),
       copyFun(copyFun),
       renewResponseFun(renewResponseFun),
+      widgetResizeFun(widgetResizeFun),
+      getSetTextingFun(getSetTextingFun),
+      executeNextFun(executeNextFun),
       listWidget(listWidget),
       thinkTimeLengthList(thinkTimeLengthList),
       thinkTimeIndex(thinkTimeIndex),
@@ -30,9 +42,13 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     aiUpdateSizeTimer.setSingleShot(true);
     connect(&aiUpdateSizeTimer, &QTimer::timeout, this, &MessageWidget::onAiUpdateSize);
 
+    connect(this, &MessageWidget::resizeFinished, this->widgetResizeFun);
+    connect(this, &MessageWidget::setTexting, this->getSetTextingFun);
+
     imageLabel = new ImageLabel(isUser);
     textWidget = new TextWidget(isUser);
     textLayout = new QVBoxLayout(textWidget);
+    textLayout->setSpacing(0);
     if (this->isUser)
         textLayout->setContentsMargins(5, 0, 5, 0);
     else
@@ -43,7 +59,7 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     textBoxLayout->setSpacing(0);
     textBoxLayout->setContentsMargins(0, 0, 0, 0);
 
-    funWidget = new FunWidget();
+    funWidget = new QWidget();
     funHLayout = new QHBoxLayout(funWidget);
     funHLayout->setContentsMargins(5, 5, 5, 5);
     copyButton = new CopyButton("复制", 15, 35, this);
@@ -83,16 +99,28 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     else
         buildAiUi();
 
-    auto *mainHLayout = new QHBoxLayout(this);
+    subVLayout1 = new QVBoxLayout();
+    subVLayout1->setAlignment(Qt::AlignTop);
+    subVLayout1->setContentsMargins(0, 0, 0, 0);
+    subVLayout2 = new QVBoxLayout();
+    subVLayout2->setAlignment(Qt::AlignTop);
+    subVLayout2->setContentsMargins(0, 0, 0, 0);
+    mainHLayout = new QHBoxLayout(this);
     mainHLayout->setContentsMargins(0, 0, 0, 0);
     mainHLayout->setSpacing(5);
     if (isUser) {
-        mainHLayout->addWidget(textBoxWidget);
-        mainHLayout->addWidget(imageLabel);
+        // mainHLayout->addWidget(textBoxWidget);
+        // mainHLayout->addWidget(imageLabel);
+        subVLayout1->addWidget(textBoxWidget);
+        subVLayout2->addWidget(imageLabel);
     } else {
-        mainHLayout->addWidget(imageLabel);
-        mainHLayout->addWidget(textBoxWidget);
+        // mainHLayout->addWidget(imageLabel);
+        // mainHLayout->addWidget(textBoxWidget);
+        subVLayout1->addWidget(imageLabel);
+        subVLayout2->addWidget(textBoxWidget);
     }
+    mainHLayout->addLayout(subVLayout1);
+    mainHLayout->addLayout(subVLayout2);
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
                  qMax(imageLabel->height(), textBoxWidget->height()));
 }
@@ -102,6 +130,7 @@ MessageWidget::~MessageWidget() { }
 void MessageWidget::buildUserUi()
 {
     textShow = new TextShow(text, textMaxWidth - imageLabel->width() - 15);
+    connect(textShow, &TextShow::executeNext, this->executeNextFun);
     connect(textShow, &ThinkWidget::setSizeFinished, this, &MessageWidget::onSizeFinished);
     if (textShow->getIsEmitSizeFinish()) {
         textShow->setIsEmitSizeFinish(false);
@@ -454,10 +483,21 @@ void MessageWidget::showFunWidget()
         return;
     if (!loadingWidgetIsRemove)
         return;
+    // qDebug() << "showFunWidget copyButton before:" << funHLayout->indexOf(copyButton);
+    // if (-1 == funHLayout->indexOf(copyButton))
+    //     funHLayout->insertWidget(0, copyButton);
     copyButton->show();
+    // qDebug() << "showFunWidget copyButton after:" << funHLayout->indexOf(copyButton);
     if (!renewResponseButtonIsRemove)
+    {
+        // qDebug() << "showFunWidget renewResponseButton before:" << funHLayout->indexOf(renewResponseButton);
+        // if (-1 == funHLayout->indexOf(renewResponseButton))
+        //     funHLayout->addWidget(renewResponseButton);
         renewResponseButton->show();
+        // qDebug() << "showFunWidget renewResponseButton after:" << funHLayout->indexOf(renewResponseButton);
+    }
     funWidgetIsShow = true;
+    // qDebug() << "showFunWidget funWidget:" << textBoxLayout->indexOf(funWidget);
 }
 
 void MessageWidget::hideFunWidget()

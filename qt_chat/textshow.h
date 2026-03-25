@@ -11,8 +11,8 @@ public:
     explicit TextShow(const QString &text = "", int maxWidth = 810, QWidget *parent = nullptr);
     ~TextShow();
 
-    template <typename T>
-    void connectExecuteNext(T *receiver, void (T::*slot)());
+    // template <typename T>
+    // void connectExecuteNext(T *receiver, void (T::*slot)());
 
 signals:
     void executeNext();
@@ -24,10 +24,10 @@ private:
     bool firstExecuteNextEmit;
 };
 
-template <typename T>
-void TextShow::connectExecuteNext(T *receiver, void (T::*slot)())
-{
-    connect(this, &TextShow::executeNext, receiver, slot);
-}
+// template <typename T>
+// void TextShow::connectExecuteNext(T *receiver, void (T::*slot)())
+// {
+//     connect(this, &TextShow::executeNext, receiver, slot);
+// }
 
 #endif // TEXTSHOW_H

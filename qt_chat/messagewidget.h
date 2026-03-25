@@ -10,7 +10,7 @@
 #include "codeshow.h"
 #include "textwidget.h"
 #include "loadingwidget.h"
-#include "funwidget.h"
+// #include "funwidget.h"
 #include "copybutton.h"
 #include "pushbutton.h"
 #include "textboxwidget.h"
@@ -31,19 +31,27 @@ class MessageWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit MessageWidget(const QString &text, std::function<void()> copyFun,
-                           std::function<void()> renewResponseFun, ListWidget *listWidget,
-                           QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser = true,
-                           bool thinkIsExpand = true, int textMaxWidth = 877,
+    explicit MessageWidget(const QString &text,
+                           std::function<void()> copyFun,
+                           std::function<void()> renewResponseFun,
+                           std::function<void()> widgetResizeFun,
+                           std::function<void(bool)> getSetTextingFun,
+                           std::function<void()> executeNextFun,
+                           ListWidget *listWidget,
+                           QList<int> &thinkTimeLengthList,
+                           int thinkTimeIndex,
+                           bool isUser = true,
+                           bool thinkIsExpand = true,
+                           int textMaxWidth = 877,
                            QWidget *parent = nullptr);
     ~MessageWidget();
 
-    template <typename T>
-    void connectResizeFinished(T *receiver, void (T::*slot)());
-    template <typename T>
-    void connectSetTexting(T *receiver, void (T::*slot)(bool));
-    template <typename T>
-    void connectExecuteNext(T *receiver, void (T::*slot)());
+    // template <typename T>
+    // void connectResizeFinished(T *receiver, void (T::*slot)());
+    // template <typename T>
+    // void connectSetTexting(T *receiver, void (T::*slot)(bool));
+    // template <typename T>
+    // void connectExecuteNext(T *receiver, void (T::*slot)());
     void toggleWidget();
     void breakHandle();
     void removeRenewResponseButton();
@@ -94,6 +102,9 @@ private:
     QString text;
     std::function<void()> copyFun;
     std::function<void()> renewResponseFun;
+    std::function<void()> widgetResizeFun;
+    std::function<void(bool)> getSetTextingFun;
+    std::function<void()> executeNextFun;
     ListWidget *listWidget;
     QList<int> &thinkTimeLengthList;
     int thinkTimeIndex;
@@ -110,8 +121,11 @@ private:
     ThinkingButton *thinkButton;
     ThinkBackWidget *thinkBackWidget;
     QVBoxLayout *thinkBackVLayout;
+    QVBoxLayout *subVLayout1;
+    QVBoxLayout *subVLayout2;
+    QHBoxLayout *mainHLayout;
     LoadingWidget *loadingWidget;
-    FunWidget *funWidget;
+    QWidget *funWidget;
     QHBoxLayout *funHLayout;
     CopyButton *copyButton;
     PushButton *renewResponseButton;
@@ -136,23 +150,23 @@ private:
     QList<CodeShow *> resultCodeShowList;
 };
 
-template <typename T>
-void MessageWidget::connectResizeFinished(T *receiver, void (T::*slot)())
-{
-    connect(this, &MessageWidget::resizeFinished, receiver, slot);
-}
+// template <typename T>
+// void MessageWidget::connectResizeFinished(T *receiver, void (T::*slot)())
+// {
+//     connect(this, &MessageWidget::resizeFinished, receiver, slot);
+// }
 
-template <typename T>
-void MessageWidget::connectSetTexting(T *receiver, void (T::*slot)(bool))
-{
-    connect(this, &MessageWidget::setTexting, receiver, slot);
-}
+// template <typename T>
+// void MessageWidget::connectSetTexting(T *receiver, void (T::*slot)(bool))
+// {
+//     connect(this, &MessageWidget::setTexting, receiver, slot);
+// }
 
-template <typename T>
-void MessageWidget::connectExecuteNext(T *receiver, void (T::*slot)())
-{
-    if (isUser)
-        textShow->connectExecuteNext(receiver, slot);
-}
+// template <typename T>
+// void MessageWidget::connectExecuteNext(T *receiver, void (T::*slot)())
+// {
+//     if (isUser)
+//         textShow->connectExecuteNext(receiver, slot);
+// }
 
 #endif // MESSAGEWIDGET_H
