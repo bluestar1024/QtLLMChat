@@ -129,13 +129,13 @@ MessageWidget::~MessageWidget() { }
 
 void MessageWidget::buildUserUi()
 {
-    textShow = new TextShow(text, textMaxWidth - imageLabel->width() - 15);
-    connect(textShow, &TextShow::executeNext, this->executeNextFun);
-    connect(textShow, &ThinkWidget::setSizeFinished, this, &MessageWidget::onSizeFinished);
-    if (textShow->getIsEmitSizeFinish()) {
-        textShow->setIsEmitSizeFinish(false);
-        emit textShow->setSizeFinished();
-    }
+    textShow = new TextShow(text, [this]() { onSizeFinished(); }, executeNextFun, textMaxWidth - imageLabel->width() - 15);
+    // connect(textShow, &TextShow::executeNext, this->executeNextFun);
+    // connect(textShow, &ThinkWidget::setSizeFinished, this, &MessageWidget::onSizeFinished);
+    // if (textShow->getIsEmitSizeFinish()) {
+    //     textShow->setIsEmitSizeFinish(false);
+    //     emit textShow->setSizeFinished();
+    // }
     textLayout->addWidget(textShow);
     textWidget->setFixedSize(textShow->width() + 10, textShow->height());
     textBoxLayout->addWidget(textWidget);
@@ -179,13 +179,13 @@ void MessageWidget::buildAiUi()
         for (const auto &splitText : thinkSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
                 thinkTextShowList.append(
-                        new ThinkWidget(splitText, textMaxWidth - imageLabel->width() - 80, this));
-                connect(thinkTextShowList.last(), &ThinkWidget::setSizeFinished, this,
-                        &MessageWidget::onSizeFinished);
-                if (thinkTextShowList.last()->getIsEmitSizeFinish()) {
-                    thinkTextShowList.last()->setIsEmitSizeFinish(false);
-                    emit thinkTextShowList.last()->setSizeFinished();
-                }
+                        new ThinkWidget(splitText, [this]() { onSizeFinished(); }, textMaxWidth - imageLabel->width() - 80, this));
+                // connect(thinkTextShowList.last(), &ThinkWidget::setSizeFinished, this,
+                //         &MessageWidget::onSizeFinished);
+                // if (thinkTextShowList.last()->getIsEmitSizeFinish()) {
+                //     thinkTextShowList.last()->setIsEmitSizeFinish(false);
+                //     emit thinkTextShowList.last()->setSizeFinished();
+                // }
             }
         }
         thinkButton = new ThinkingButton();
@@ -269,13 +269,13 @@ void MessageWidget::buildAiUi()
         for (const auto &splitText : resultSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
                 resultTextShowList.append(
-                        new TextShow(splitText, textMaxWidth - imageLabel->width() - 35, this));
-                connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
-                        &MessageWidget::onSizeFinished);
-                if (resultTextShowList.last()->getIsEmitSizeFinish()) {
-                    resultTextShowList.last()->setIsEmitSizeFinish(false);
-                    emit resultTextShowList.last()->setSizeFinished();
-                }
+                        new TextShow(splitText, [this]() { onSizeFinished(); }, nullptr, textMaxWidth - imageLabel->width() - 35, this));
+                // connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
+                //         &MessageWidget::onSizeFinished);
+                // if (resultTextShowList.last()->getIsEmitSizeFinish()) {
+                //     resultTextShowList.last()->setIsEmitSizeFinish(false);
+                //     emit resultTextShowList.last()->setSizeFinished();
+                // }
             }
         }
         int j = 0;
@@ -561,25 +561,25 @@ void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
                  qMax(imageLabel->height(), textBoxWidget->height()));
 }
 
-void MessageWidget::toggleWidget()
-{
-    if (isUser) {
-        if (textShow) {
-            connect(textShow, &TextShow::setSizeFinished, this, &MessageWidget::onSizeFinished);
-            textShow->toggleWidget();
-        }
-    } else {
-        for (auto *thinkWidget : thinkTextShowList) {
-            connect(thinkWidget, &ThinkWidget::setSizeFinished, this,
-                    &MessageWidget::onSizeFinished);
-            thinkWidget->toggleWidget();
-        }
-        for (auto *textShow : resultTextShowList) {
-            connect(textShow, &ThinkWidget::setSizeFinished, this, &MessageWidget::onSizeFinished);
-            textShow->toggleWidget();
-        }
-    }
-}
+// void MessageWidget::toggleWidget()
+// {
+//     if (isUser) {
+//         if (textShow) {
+//             connect(textShow, &TextShow::setSizeFinished, this, &MessageWidget::onSizeFinished);
+//             textShow->toggleWidget();
+//         }
+//     } else {
+//         for (auto *thinkWidget : thinkTextShowList) {
+//             connect(thinkWidget, &ThinkWidget::setSizeFinished, this,
+//                     &MessageWidget::onSizeFinished);
+//             thinkWidget->toggleWidget();
+//         }
+//         for (auto *textShow : resultTextShowList) {
+//             connect(textShow, &ThinkWidget::setSizeFinished, this, &MessageWidget::onSizeFinished);
+//             textShow->toggleWidget();
+//         }
+//     }
+// }
 
 void MessageWidget::breakHandle()
 {
@@ -670,15 +670,15 @@ void MessageWidget::setText(const QString &text)
             if (!splitText.trimmed().isEmpty()) {
                 if (thinkTextShowListLastLen < i) {
                     ThinkWidget *thinkWidget = new ThinkWidget(
-                            splitText, textMaxWidth - imageLabel->width() - 80, this);
+                            splitText, [this]() { onSizeFinished(); }, textMaxWidth - imageLabel->width() - 80, this);
                     // thinkWidget->setVisible(thinkIsExpand);
                     thinkTextShowList.append(thinkWidget);
-                    connect(thinkWidget, &ThinkWidget::setSizeFinished, this,
-                            &MessageWidget::onSizeFinished);
-                    if (thinkWidget->getIsEmitSizeFinish()) {
-                        thinkWidget->setIsEmitSizeFinish(false);
-                        emit thinkWidget->setSizeFinished();
-                    }
+                    // connect(thinkWidget, &ThinkWidget::setSizeFinished, this,
+                    //         &MessageWidget::onSizeFinished);
+                    // if (thinkWidget->getIsEmitSizeFinish()) {
+                    //     thinkWidget->setIsEmitSizeFinish(false);
+                    //     emit thinkWidget->setSizeFinished();
+                    // }
                 } else {
                     if (splitText.trimmed() != thinkTextShowList[i]->getText()) {
                         // QEventLoop externalLoop, internalLoop;
@@ -905,13 +905,13 @@ void MessageWidget::setText(const QString &text)
                 if (resultTextShowListLastLen < i) {
                     qDebug() << "messageWidget splitText:" << splitText;
                     resultTextShowList.append(
-                            new TextShow(splitText, textMaxWidth - imageLabel->width() - 35, this));
-                    connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
-                            &MessageWidget::onSizeFinished);
-                    if (resultTextShowList.last()->getIsEmitSizeFinish()) {
-                        resultTextShowList.last()->setIsEmitSizeFinish(false);
-                        emit resultTextShowList.last()->setSizeFinished();
-                    }
+                            new TextShow(splitText, [this]() { onSizeFinished(); }, nullptr, textMaxWidth - imageLabel->width() - 35, this));
+                    // connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
+                    //         &MessageWidget::onSizeFinished);
+                    // if (resultTextShowList.last()->getIsEmitSizeFinish()) {
+                    //     resultTextShowList.last()->setIsEmitSizeFinish(false);
+                    //     emit resultTextShowList.last()->setSizeFinished();
+                    // }
                 } else {
                     if (splitText.trimmed() != resultTextShowList[i]->getText()) {
                         // QEventLoop externalLoop, internalLoop;
@@ -1100,9 +1100,9 @@ void MessageWidget::onSizeFinished()
     static int i;
     i += 1;
     qDebug() << "onSizeFinished" << i << this;
-    ThinkWidget *thinkWidget = qobject_cast<ThinkWidget *>(sender());
-    if (thinkWidget->getIsEmitSizeFinish())
-        thinkWidget->setIsEmitSizeFinish(false);
+    // ThinkWidget *thinkWidget = qobject_cast<ThinkWidget *>(sender());
+    // if (thinkWidget->getIsEmitSizeFinish())
+    //     thinkWidget->setIsEmitSizeFinish(false);
     if (isUser)
         emit resizeFinished();
     else

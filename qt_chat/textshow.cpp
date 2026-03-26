@@ -1,7 +1,7 @@
 #include "textshow.h"
 
-TextShow::TextShow(const QString &text, int maxWidth, QWidget *parent)
-    : ThinkWidget(text, maxWidth, parent), firstExecuteNextEmit(true)
+TextShow::TextShow(const QString &text, std::function<void()> sizeFinishFun, std::function<void()> executeNextFun, int maxWidth, QWidget *parent)
+    : ThinkWidget(text, sizeFinishFun, maxWidth, parent), executeNextFun(executeNextFun), firstExecuteNextEmit(true)
 {
 }
 
@@ -54,15 +54,18 @@ getPageSize();
         // }
         setFixedSize(w + 10, h);
         emit setSizeFinished();
-        isEmitSizeFinish = true;
+        // isEmitSizeFinish = true;
         if (isSetTextEnd) {
             isSetTextEnd = false;
             isSizeFinish = true;
         }
         if (firstExecuteNextEmit) {
             firstExecuteNextEmit = false;
-            emit executeNext();
-            qDebug() << "textShow executeNext emit" << this;
+            if (this->executeNextFun) {
+                connect(this, &TextShow::executeNext, this->executeNextFun);
+                QTimer::singleShot(0, this, [this]() { emit executeNext(); });
+                qDebug() << "textShow executeNext emit" << this;
+            }
         }
         qDebug() << "textShow onUpdateSize end" << this;
     });

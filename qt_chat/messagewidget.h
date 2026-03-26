@@ -52,7 +52,7 @@ public:
     // void connectSetTexting(T *receiver, void (T::*slot)(bool));
     // template <typename T>
     // void connectExecuteNext(T *receiver, void (T::*slot)());
-    void toggleWidget();
+    // void toggleWidget();
     void breakHandle();
     void removeRenewResponseButton();
     void removeLoadingWidget();

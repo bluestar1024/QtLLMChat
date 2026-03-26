@@ -5,15 +5,18 @@
 
 #include <cmath>
 
-ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
+ThinkWidget::ThinkWidget(const QString &text, std::function<void()> sizeFinishFun, int maxWidth, QWidget *parent)
     : QWidget(parent),
       text(text.trimmed()),
+      sizeFinishFun(sizeFinishFun),
       maxWidth(maxWidth - 10),
-      isLabel(true),
+      // isLabel(true),
       isSetTextEnd(false),
-      isEmitSizeFinish(false),
+      // isEmitSizeFinish(false),
       isSizeFinish(false)
 {
+    connect(this, &ThinkWidget::setSizeFinished, this->sizeFinishFun);
+
     bool fontLoaded = false;
     int fontId = QFontDatabase::addApplicationFont(fontFilePath);
     if (fontId != -1) {
@@ -46,7 +49,7 @@ ThinkWidget::ThinkWidget(const QString &text, int maxWidth, QWidget *parent)
     connect(webEngineView->page(), &QWebEnginePage::contentsSizeChanged, this,
             &ThinkWidget::onContentsSizeChanged);
 
-    isLabel = true;
+    // isLabel = true;
     mainHLayout = new QHBoxLayout(this);
     // mainHLayout->addWidget(label);
     mainHLayout->setContentsMargins(5, 0, 5, 0);
@@ -173,7 +176,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         mainHLayout->addWidget(webEngineView);
         // webEngineView->hide();
         webEngineView->setHtml(fullHtmlText, base);
-        isLabel = false;
+        // isLabel = false;
 
         // QSize webEngineSize = webEngineView->page()->contentsSize().toSize();
         // webEngineView->setFixedSize(webEngineSize);
@@ -185,7 +188,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         mainHLayout->addWidget(webEngineView);
         setFixedSize(webEngineView->size() + QSize(10, 0));
         emit setSizeFinished();
-        isLabel = false;
+        // isLabel = false;
     }
     isSetTextEnd = true;
     qDebug() << "ThinkWidget init end" << this;
@@ -333,7 +336,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
         mainHLayout->addWidget(webEngineView);
         setFixedSize(webEngineView->size() + QSize(10, 0));
         emit setSizeFinished();
-        isLabel = false;
+        // isLabel = false;
     }
     isSetTextEnd = true;
 }
@@ -365,136 +368,136 @@ QString ThinkWidget::getText()
     return text;
 }
 
-void ThinkWidget::toggleWidget()
-{
-    if (!isLabel)
-        return;
-    htmlText.clear();
-    fullHtmlText.clear();
+// void ThinkWidget::toggleWidget()
+// {
+//     if (!isLabel)
+//         return;
+//     htmlText.clear();
+//     fullHtmlText.clear();
 
-    int initWidth = int(fontMetrics->horizontalAdvance(text));
-    if (initWidth > maxWidth)
-        webEngineView->setFixedWidth(maxWidth);
-    else {
-        if (text.isEmpty())
-            webEngineView->setFixedSize(20, 66);
-        else
-            webEngineView->setFixedWidth(initWidth);
-    }
-    qDebug() << "webEngineView:" << webEngineView->size();
-    // ---- MathJax 头 ----
-    mathJaxCdn = QString(R"(
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script>
-MathJax = {
-  options: { enableMenu: false },
-  tex: { inlineMath:[["$","$"],["\ $","\$"]], displayMath:[["$$","$$"],["\
- $$","\$$ "]] },
-  svg:  { fontCache: 'global' }
-};
-</script>
-<script src="%1"></script>
-<style>
-table{width:50%;border-collapse:collapse;margin:10px 0;}
-th,td{border:1px solid #000;padding:8px;}
-th{background-color:#b0b0b0;}
-.left-align{text-align:left;}
-.center-align{text-align:center;}
-.right-align{text-align:right;}
-body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-size:%2px;}
-.content{width:auto;height:auto;display:flex;flex-direction:column;justify-content:center;}
-</style>
-</head>
-<body>
-<div class="content">
-)")
-                         .arg(mathjaxScriptPath, windowFontPixelSize);
-    // ---- markdown → html ----
-    if (!text.isEmpty()) {
-        TableInfo tbl = getTable(text);
-        if (tbl.complete) {
-            QStringList parts = text.split(tbl.tableText);
-            QString before = htmlReplaceText(parts.value(0));
-            QString after = htmlReplaceText(parts.value(1));
+//     int initWidth = int(fontMetrics->horizontalAdvance(text));
+//     if (initWidth > maxWidth)
+//         webEngineView->setFixedWidth(maxWidth);
+//     else {
+//         if (text.isEmpty())
+//             webEngineView->setFixedSize(20, 66);
+//         else
+//             webEngineView->setFixedWidth(initWidth);
+//     }
+//     qDebug() << "webEngineView:" << webEngineView->size();
+//     // ---- MathJax 头 ----
+//     mathJaxCdn = QString(R"(
+// <!DOCTYPE html>
+// <html lang="en">
+// <head>
+// <meta charset="UTF-8">
+// <meta name="viewport" content="width=device-width, initial-scale=1.0">
+// <script>
+// MathJax = {
+//   options: { enableMenu: false },
+//   tex: { inlineMath:[["$","$"],["\ $","\$"]], displayMath:[["$$","$$"],["\
+//  $$","\$$ "]] },
+//   svg:  { fontCache: 'global' }
+// };
+// </script>
+// <script src="%1"></script>
+// <style>
+// table{width:50%;border-collapse:collapse;margin:10px 0;}
+// th,td{border:1px solid #000;padding:8px;}
+// th{background-color:#b0b0b0;}
+// .left-align{text-align:left;}
+// .center-align{text-align:center;}
+// .right-align{text-align:right;}
+// body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-size:%2px;}
+// .content{width:auto;height:auto;display:flex;flex-direction:column;justify-content:center;}
+// </style>
+// </head>
+// <body>
+// <div class="content">
+// )")
+//                          .arg(mathjaxScriptPath, windowFontPixelSize);
+//     // ---- markdown → html ----
+//     if (!text.isEmpty()) {
+//         TableInfo tbl = getTable(text);
+//         if (tbl.complete) {
+//             QStringList parts = text.split(tbl.tableText);
+//             QString before = htmlReplaceText(parts.value(0));
+//             QString after = htmlReplaceText(parts.value(1));
 
-            //            m_htmlText = mistune::markdown(before).toUtf8().constData();
-            MarkdownParser beforeParser;
-            std::vector<MarkdownBlockElement> beforeBlocks;
-            HtmlRenderer beforeHtml;
-            beforeParser.blockParse(before, beforeBlocks);
-            //            beforeHtml.Init();
-            for (size_t i = 0; i < beforeBlocks.size(); i++) {
-                beforeHtml.blockHtml(beforeBlocks[i]);
-            }
-            //            beforeHtml.Tail();
-            htmlText = beforeHtml.getHtml().toUtf8().constData();
+//             //            m_htmlText = mistune::markdown(before).toUtf8().constData();
+//             MarkdownParser beforeParser;
+//             std::vector<MarkdownBlockElement> beforeBlocks;
+//             HtmlRenderer beforeHtml;
+//             beforeParser.blockParse(before, beforeBlocks);
+//             //            beforeHtml.Init();
+//             for (size_t i = 0; i < beforeBlocks.size(); i++) {
+//                 beforeHtml.blockHtml(beforeBlocks[i]);
+//             }
+//             //            beforeHtml.Tail();
+//             htmlText = beforeHtml.getHtml().toUtf8().constData();
 
-            htmlText += "<table><thead><tr>";
-            for (int i = 0; i < tbl.col; ++i)
-                htmlText +=
-                        QString("<th class='%1'>%2</th>")
-                                .arg(getAlignmentClass(tbl.alignList.value(i)), tbl.items.value(i));
-            htmlText += "</tr></thead><tbody>";
-            for (int r = 1; r < tbl.row; ++r) {
-                htmlText += "<tr>";
-                for (int c = 0; c < tbl.col; ++c)
-                    htmlText += QString("<td class='%1'>%2</td>")
-                                        .arg(getAlignmentClass(tbl.alignList.value(c)),
-                                             tbl.items.value(r * tbl.col + c));
-                htmlText += "</tr>";
-            }
-            htmlText += "</tbody></table>";
-            //            htmlText += mistune::markdown(after).toUtf8().constData();
-            MarkdownParser afterParser;
-            std::vector<MarkdownBlockElement> afterBlocks;
-            HtmlRenderer afterHtml;
-            afterParser.blockParse(after, afterBlocks);
-            //            afterHtml.Init();
-            for (size_t i = 0; i < afterBlocks.size(); i++) {
-                afterHtml.blockHtml(afterBlocks[i]);
-            }
-            //            afterHtml.Tail();
-            htmlText += afterHtml.getHtml().toUtf8().constData();
-        } else {
-            QString md = htmlReplaceText(text);
-            //            m_htmlText = mistune::markdown(md).toUtf8().constData();
-            MarkdownParser parser;
-            std::vector<MarkdownBlockElement> blocks;
-            HtmlRenderer html;
-            parser.blockParse(md, blocks);
-            //            html.Init();
-            for (size_t i = 0; i < blocks.size(); i++) {
-                html.blockHtml(blocks[i]);
-            }
-            //            html.Tail();
-            htmlText += html.getHtml().toUtf8().constData();
-        }
-        fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
-        // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
-        QUrl base =
-                QUrl::fromLocalFile(QFileInfo(QFileInfo(".").absolutePath()).absolutePath() + "/");
-        qDebug() << "base:" << base;
+//             htmlText += "<table><thead><tr>";
+//             for (int i = 0; i < tbl.col; ++i)
+//                 htmlText +=
+//                         QString("<th class='%1'>%2</th>")
+//                                 .arg(getAlignmentClass(tbl.alignList.value(i)), tbl.items.value(i));
+//             htmlText += "</tr></thead><tbody>";
+//             for (int r = 1; r < tbl.row; ++r) {
+//                 htmlText += "<tr>";
+//                 for (int c = 0; c < tbl.col; ++c)
+//                     htmlText += QString("<td class='%1'>%2</td>")
+//                                         .arg(getAlignmentClass(tbl.alignList.value(c)),
+//                                              tbl.items.value(r * tbl.col + c));
+//                 htmlText += "</tr>";
+//             }
+//             htmlText += "</tbody></table>";
+//             //            htmlText += mistune::markdown(after).toUtf8().constData();
+//             MarkdownParser afterParser;
+//             std::vector<MarkdownBlockElement> afterBlocks;
+//             HtmlRenderer afterHtml;
+//             afterParser.blockParse(after, afterBlocks);
+//             //            afterHtml.Init();
+//             for (size_t i = 0; i < afterBlocks.size(); i++) {
+//                 afterHtml.blockHtml(afterBlocks[i]);
+//             }
+//             //            afterHtml.Tail();
+//             htmlText += afterHtml.getHtml().toUtf8().constData();
+//         } else {
+//             QString md = htmlReplaceText(text);
+//             //            m_htmlText = mistune::markdown(md).toUtf8().constData();
+//             MarkdownParser parser;
+//             std::vector<MarkdownBlockElement> blocks;
+//             HtmlRenderer html;
+//             parser.blockParse(md, blocks);
+//             //            html.Init();
+//             for (size_t i = 0; i < blocks.size(); i++) {
+//                 html.blockHtml(blocks[i]);
+//             }
+//             //            html.Tail();
+//             htmlText += html.getHtml().toUtf8().constData();
+//         }
+//         fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
+//         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
+//         QUrl base =
+//                 QUrl::fromLocalFile(QFileInfo(QFileInfo(".").absolutePath()).absolutePath() + "/");
+//         qDebug() << "base:" << base;
 
-        mainHLayout->removeWidget(label);
-        label->deleteLater();
-        mainHLayout->addWidget(webEngineView);
-        webEngineView->setHtml(fullHtmlText, base);
-        isLabel = false;
-    } else {
-        mainHLayout->removeWidget(label);
-        label->deleteLater();
-        mainHLayout->addWidget(webEngineView);
-        setFixedSize(webEngineView->size() + QSize(10, 0));
-        emit setSizeFinished();
-        isLabel = false;
-    }
-    qDebug() << "ThinkWidget toggleWidget end";
-    qDebug() << fullHtmlText;
-}
+//         mainHLayout->removeWidget(label);
+//         label->deleteLater();
+//         mainHLayout->addWidget(webEngineView);
+//         webEngineView->setHtml(fullHtmlText, base);
+//         isLabel = false;
+//     } else {
+//         mainHLayout->removeWidget(label);
+//         label->deleteLater();
+//         mainHLayout->addWidget(webEngineView);
+//         setFixedSize(webEngineView->size() + QSize(10, 0));
+//         emit setSizeFinished();
+//         isLabel = false;
+//     }
+//     qDebug() << "ThinkWidget toggleWidget end";
+//     qDebug() << fullHtmlText;
+// }
 
 void ThinkWidget::onPageLoadFinished(bool success)
 {
@@ -542,7 +545,8 @@ getPageSize();
         if (webEngineSize == QSize(w, h)) {
             if (isSetTextEnd) {
                 isSetTextEnd = false;
-                isSizeFinish = true;
+                // isSizeFinish = true;
+                emit updateSize(this);
             }
             return;
         }
@@ -557,10 +561,11 @@ getPageSize();
         // }
         setFixedSize(w + 10, h);
         emit setSizeFinished();
-        isEmitSizeFinish = true;
+        // isEmitSizeFinish = true;
         if (isSetTextEnd) {
             isSetTextEnd = false;
-            isSizeFinish = true;
+            // isSizeFinish = true;
+            emit updateSize(this);
         }
         qDebug() << "ThinkWidget onUpdateSize end" << this;
     });
@@ -638,23 +643,25 @@ QString ThinkWidget::htmlReplaceText(const QString &text) const
 
 bool ThinkWidget::hasSelectedText() const
 {
-    return isLabel ? label->hasSelectedText() : webEngineView->hasSelection();
+    // return isLabel ? label->hasSelectedText() : webEngineView->hasSelection();
+    return false;
 }
 
 QString ThinkWidget::getSelectedText() const
 {
-    return isLabel ? label->selectedText() : webEngineView->selectedText();
+    // return isLabel ? label->selectedText() : webEngineView->selectedText();
+    return "";
 }
 
-void ThinkWidget::setIsEmitSizeFinish(bool flag)
-{
-    isEmitSizeFinish = flag;
-}
+// void ThinkWidget::setIsEmitSizeFinish(bool flag)
+// {
+//     isEmitSizeFinish = flag;
+// }
 
-bool ThinkWidget::getIsEmitSizeFinish()
-{
-    return isEmitSizeFinish;
-}
+// bool ThinkWidget::getIsEmitSizeFinish()
+// {
+//     return isEmitSizeFinish;
+// }
 
 void ThinkWidget::setIsSizeFinish(bool flag)
 {

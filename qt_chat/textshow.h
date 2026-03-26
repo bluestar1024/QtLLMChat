@@ -8,7 +8,7 @@ class TextShow : public ThinkWidget
 {
     Q_OBJECT
 public:
-    explicit TextShow(const QString &text = "", int maxWidth = 810, QWidget *parent = nullptr);
+    explicit TextShow(const QString &text = "", std::function<void()> sizeFinishFun = nullptr, std::function<void()> executeNextFun = nullptr, int maxWidth = 810, QWidget *parent = nullptr);
     ~TextShow();
 
     // template <typename T>
@@ -21,6 +21,7 @@ private slots:
     void onUpdateSize() override;
 
 private:
+    std::function<void()> executeNextFun;
     bool firstExecuteNextEmit;
 };
 

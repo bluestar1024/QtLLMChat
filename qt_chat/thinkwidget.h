@@ -26,16 +26,16 @@ class ThinkWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ThinkWidget(const QString &text = "", int maxWidth = 810, QWidget *parent = nullptr);
+    explicit ThinkWidget(const QString &text = "", std::function<void()> sizeFinishFun = nullptr, int maxWidth = 810, QWidget *parent = nullptr);
     ~ThinkWidget();
 
     void setText(const QString &text);
     QString getText();
-    void toggleWidget();
+    // void toggleWidget();
     bool hasSelectedText() const;
     QString getSelectedText() const;
-    void setIsEmitSizeFinish(bool flag);
-    bool getIsEmitSizeFinish();
+    // void setIsEmitSizeFinish(bool flag);
+    // bool getIsEmitSizeFinish();
     void setIsSizeFinish(bool flag);
     bool getIsSizeFinish();
 
@@ -45,7 +45,7 @@ protected:
     QSize webEngineSize;
     QTimer *updateSizeTimer;
     bool isSetTextEnd;
-    bool isEmitSizeFinish;
+    // bool isEmitSizeFinish;
     bool isSizeFinish;
 
 signals:
@@ -72,8 +72,9 @@ private:
     QString getAlignmentClass(const QString &fmt) const;
 
     QString text;
+    std::function<void()> sizeFinishFun;
     int maxWidth;
-    bool isLabel;
+    // bool isLabel;
 
     CustomLabel *label;
     QFont font;
