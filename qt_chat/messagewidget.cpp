@@ -39,8 +39,6 @@ MessageWidget::MessageWidget(const QString &text,
       renewResponseButtonIsRemove(true)
 {
     setMouseTracking(true);
-    aiUpdateSizeTimer.setSingleShot(true);
-    connect(&aiUpdateSizeTimer, &QTimer::timeout, this, &MessageWidget::onAiUpdateSize);
 
     connect(this, &MessageWidget::resizeFinished, this->widgetResizeFun);
     connect(this, &MessageWidget::setTexting, this->getSetTextingFun);
@@ -169,7 +167,7 @@ void MessageWidget::buildAiUi()
                 thinkTempText =
                         thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                           + codeBlock.code.size());
-            auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language,
+            auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language, [this]() { onSizeFinished(); },
                                           textMaxWidth - imageLabel->width() - 80, this);
             codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
@@ -259,7 +257,7 @@ void MessageWidget::buildAiUi()
                 resultTempText =
                         resultTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                            + codeBlock.code.size());
-            auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language,
+            auto *codeShow = new CodeShow(codeBlock.code, codeBlock.language, [this]() { onSizeFinished(); },
                                           textMaxWidth - imageLabel->width() - 35, this);
             codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
@@ -397,7 +395,7 @@ void MessageWidget::setSize()
     qDebug() << "MessageWidget setSize ing2" << this;
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
                  qMax(imageLabel->height(), textBoxWidget->height()));
-    qDebug() << "this:" << this->width() << this->height();
+    // qDebug() << "this:" << this->width() << this->height();
     qDebug() << "MessageWidget setSize end" << this;
 }
 
@@ -465,10 +463,8 @@ void MessageWidget::thinkButtonClicked()
     emit resizeFinished();
 }
 
-void MessageWidget::onAiUpdateSize()
+void MessageWidget::syncThinkTimeLength()
 {
-    emit resizeFinished();
-    // emit setTexting(false);
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
         if (thinkButton->getThinkTimeLength() == 0)
             thinkButton->setThinkTimeLength(thinkTimeLengthList[thinkTimeIndex]);
@@ -638,7 +634,7 @@ void MessageWidget::setText(const QString &text)
                         + thinkCodeBlocks[i].code.size());
             }
             if (thinkCodeShowListLastLen < i) {
-                auto *codeShow = new CodeShow(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language,
+                auto *codeShow = new CodeShow(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language, [this]() { onSizeFinished(); },
                                               textMaxWidth - imageLabel->width() - 80, this);
                 codeShow->hide();
                 codeShow->connectCodeCopyButtonClick(copyFun);
@@ -885,7 +881,7 @@ void MessageWidget::setText(const QString &text)
             if (resultCodeShowListLastLen < i) {
                 qDebug() << "MessageWidget setText ing3" << this;
                 auto *codeShow =
-                        new CodeShow(resultCodeBlocks[i].code, resultCodeBlocks[i].language,
+                        new CodeShow(resultCodeBlocks[i].code, resultCodeBlocks[i].language, [this]() { onSizeFinished(); },
                                      textMaxWidth - imageLabel->width() - 35, this);
                 codeShow->hide();
                 qDebug() << "MessageWidget setText ing4" << this;
@@ -1076,7 +1072,9 @@ void MessageWidget::setText(const QString &text)
         }
     }
 
-    setSize();
+    // setSize();
+    // syncThinkTimeLength();
+    // emit resizeFinished();
     qDebug() << "MessageWidget setText end";
 }
 
@@ -1103,11 +1101,14 @@ void MessageWidget::onSizeFinished()
     // ThinkWidget *thinkWidget = qobject_cast<ThinkWidget *>(sender());
     // if (thinkWidget->getIsEmitSizeFinish())
     //     thinkWidget->setIsEmitSizeFinish(false);
-    if (isUser)
-        emit resizeFinished();
-    else
-        // aiUpdateSizeTimer.start(10);
-        onAiUpdateSize();
+    // if (isUser)
+    //     emit resizeFinished();
+
+    if (!isUser) {
+        // emit setTexting(false);
+        syncThinkTimeLength();
+    }
+    emit resizeFinished();
 }
 
 ListWidget *MessageWidget::getListWidget()

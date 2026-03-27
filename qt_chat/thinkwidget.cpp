@@ -545,8 +545,7 @@ getPageSize();
         if (webEngineSize == QSize(w, h)) {
             if (isSetTextEnd) {
                 isSetTextEnd = false;
-                // isSizeFinish = true;
-                emit updateSize(this);
+                isSizeFinish = true;
             }
             return;
         }
@@ -564,8 +563,7 @@ getPageSize();
         // isEmitSizeFinish = true;
         if (isSetTextEnd) {
             isSetTextEnd = false;
-            // isSizeFinish = true;
-            emit updateSize(this);
+            isSizeFinish = true;
         }
         qDebug() << "ThinkWidget onUpdateSize end" << this;
     });

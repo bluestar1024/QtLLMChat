@@ -24,7 +24,7 @@ class CodeShow : public QWidget
     Q_OBJECT
 
 public:
-    explicit CodeShow(const QString &codeText, const QString &lexerName = "cpp", int maxWidth = 810,
+    explicit CodeShow(const QString &codeText, const QString &lexerName = "cpp", std::function<void()> sizeFinishFun = nullptr, int maxWidth = 810,
                       QWidget *parent = nullptr);
     ~CodeShow();
 
@@ -44,6 +44,9 @@ public slots:
 protected:
     void paintEvent(QPaintEvent *event) override;
 
+signals:
+    void setSizeFinished();
+
 private:
     void setupUI();
     void applyDarkStyle();
@@ -51,6 +54,7 @@ private:
 
     QString codeText;
     QString lexerName;
+    std::function<void()> sizeFinishFun;
     int maxWidth;
 
     QWidget *topWidget;

@@ -67,6 +67,7 @@ public:
     bool getIsUser();
     TextWidget *getTextWidget();
     TextBoxWidget *getTextBoxWidget();
+    void syncThinkTimeLength();
     ListWidget *getListWidget();
     bool hasSelectedText();
     QString getSelectedText();
@@ -77,7 +78,6 @@ signals:
 
 private slots:
     void onSizeFinished();
-    void onAiUpdateSize();
     void thinkButtonClicked();
 
 private:
@@ -129,7 +129,6 @@ private:
     QHBoxLayout *funHLayout;
     CopyButton *copyButton;
     PushButton *renewResponseButton;
-    QTimer aiUpdateSizeTimer;
 
     bool thinkButtonHaveCreated;
     QString thinkText;

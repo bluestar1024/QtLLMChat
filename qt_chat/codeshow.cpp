@@ -5,15 +5,17 @@
 #include <QtGui/QPalette>
 #include <QtGui/QTextOption>
 
-CodeShow::CodeShow(const QString &codeText, const QString &lexerName, int maxWidth, QWidget *parent)
+CodeShow::CodeShow(const QString &codeText, const QString &lexerName, std::function<void()> sizeFinishFun, int maxWidth, QWidget *parent)
     : QWidget(parent),
       codeText(codeText),
       lexerName(lexerName),
+      sizeFinishFun(sizeFinishFun),
       maxWidth(maxWidth),
       isLightThemeStyle(false),
       isWordWrap(true)
 {
     resize(this->maxWidth + 2, 40);
+    connect(this, &CodeShow::setSizeFinished, this->sizeFinishFun);
     setupUI();
 }
 
@@ -100,9 +102,12 @@ void CodeShow::setupUI()
     // qDebug() << "CodeShow setupUI ing6" << this;
     codeEdit = new CodeEditor(maxWidth);
     // qDebug() << "CodeShow setupUI ing9" << this;
-    codeEdit->highlightCode(codeText, lexerName);
     connect(codeEdit, &CodeEditor::setSizeFinished,
-            [this]() { setFixedSize(maxWidth + 2, codeEdit->height() + topWidget->height() + 2); });
+            [this]() {
+                setFixedSize(maxWidth + 2, codeEdit->height() + topWidget->height() + 2);
+                emit setSizeFinished();
+            });
+    codeEdit->highlightCode(codeText, lexerName);
 
     // qDebug() << "CodeShow setupUI ing7" << this;
     QVBoxLayout *mainVLayout = new QVBoxLayout(this);
