@@ -34,7 +34,7 @@ public:
     explicit MessageWidget(const QString &text,
                            std::function<void()> copyFun,
                            std::function<void()> renewResponseFun,
-                           std::function<void()> widgetResizeFun,
+                           std::function<void(MessageWidget *)> widgetResizeFun,
                            std::function<void(bool)> getSetTextingFun,
                            std::function<void()> executeNextFun,
                            ListWidget *listWidget,
@@ -73,7 +73,7 @@ public:
     QString getSelectedText();
 
 signals:
-    void resizeFinished();
+    void resizeFinished(MessageWidget *);
     void setTexting(bool);
 
 private slots:
@@ -102,7 +102,7 @@ private:
     QString text;
     std::function<void()> copyFun;
     std::function<void()> renewResponseFun;
-    std::function<void()> widgetResizeFun;
+    std::function<void(MessageWidget *)> widgetResizeFun;
     std::function<void(bool)> getSetTextingFun;
     std::function<void()> executeNextFun;
     ListWidget *listWidget;

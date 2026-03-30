@@ -19,7 +19,7 @@ void MessageThread::run()
     if (useStream) {
         for (int i = 0; i < contentOutput.size(); i += 30) {
             emit newMessage(contentOutput.mid(i, 30));
-            msleep(500);
+            msleep(2500);
         }
     } else {
         emit newMessage(contentOutput);

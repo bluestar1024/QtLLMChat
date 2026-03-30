@@ -126,7 +126,7 @@ private:
 
 private slots:
     void onDpiChanged();
-    void messageWidgetResize();
+    void messageWidgetResize(MessageWidget *selfMessageWidget);
     void sendMessage();
     void onExecuteNext();
     void startThread();

@@ -6,7 +6,7 @@
 MessageWidget::MessageWidget(const QString &text,
                              std::function<void()> copyFun,
                              std::function<void()> renewResponseFun,
-                             std::function<void()> widgetResizeFun,
+                             std::function<void(MessageWidget *)> widgetResizeFun,
                              std::function<void(bool)> getSetTextingFun,
                              std::function<void()> executeNextFun,
                              ListWidget *listWidget,
@@ -395,7 +395,7 @@ void MessageWidget::setSize()
     qDebug() << "MessageWidget setSize ing2" << this;
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
                  qMax(imageLabel->height(), textBoxWidget->height()));
-    // qDebug() << "this:" << this->width() << this->height();
+    qDebug() << "MessageWidget size:" << this->width() << this->height();
     qDebug() << "MessageWidget setSize end" << this;
 }
 
@@ -460,7 +460,8 @@ void MessageWidget::thinkButtonClicked()
 {
     thinkIsExpand = !thinkIsExpand;
     thinkBackWidget->setVisible(thinkIsExpand);
-    emit resizeFinished();
+    setSize();
+    emit resizeFinished(this);
 }
 
 void MessageWidget::syncThinkTimeLength()
@@ -1108,7 +1109,8 @@ void MessageWidget::onSizeFinished()
         // emit setTexting(false);
         syncThinkTimeLength();
     }
-    emit resizeFinished();
+    setSize();
+    emit resizeFinished(this);
 }
 
 ListWidget *MessageWidget::getListWidget()
