@@ -29,6 +29,7 @@ SOURCES += \
     html_renderer.cpp \
     imagelabel.cpp \
     itemwidget.cpp \
+    label.cpp \
     language.cpp \
     linenumberarea.cpp \
     listwidget.cpp \
@@ -41,6 +42,7 @@ SOURCES += \
     markdown_parser.cpp \
     messagethread.cpp \
     messagewidget.cpp \
+    printlabel.cpp \
     pushbutton.cpp \
     pythonhighlighter.cpp \
     sendbutton.cpp \
@@ -74,6 +76,7 @@ HEADERS += \
     html_renderer.h \
     imagelabel.h \
     itemwidget.h \
+    label.h \
     language.h \
     linenumberarea.h \
     listwidget.h \
@@ -85,6 +88,7 @@ HEADERS += \
     markdown_parser.h \
     messagethread.h \
     messagewidget.h \
+    printlabel.h \
     pushbutton.h \
     pythonhighlighter.h \
     sendbutton.h \

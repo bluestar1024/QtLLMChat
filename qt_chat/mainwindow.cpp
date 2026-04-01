@@ -918,6 +918,7 @@ void MainWindow::isItemShowFull(QWidget *widget)
 
 void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
 {
+    qDebug() << "messageWidgetResize start";
     const int count = chatShow->count();
     int i = 0;
     for (; i < count; ++i) {
@@ -945,6 +946,7 @@ void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
         }
         item->setSizeHint(QSize(w, h));
     }
+    qDebug() << "messageWidgetResize end";
 }
 
 void MainWindow::sendMessage()

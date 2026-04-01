@@ -539,7 +539,7 @@ getPageSize();
         int h = list[1].toInt();
         qDebug() << "WebEngineView get size:" << w << h << this;
         if (w <= 0 || h <= 0) {
-            updateSizeTimer->start(20);
+            updateSizeTimer->start(10);
             return;
         }
         if (webEngineSize == QSize(w, h)) {

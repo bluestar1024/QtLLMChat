@@ -214,6 +214,7 @@ void MessageWidget::buildAiUi()
                 j += 1;
             thinkBackVLayout->addWidget(thinkCodeShowList[i]);
             thinkCodeShowList[i]->show();
+            onSizeFinished();
         }
         if (!thinkSplitTextList.last().isEmpty()) {
             QMetaObject::Connection eventLoopQuitConnect =
@@ -299,6 +300,7 @@ void MessageWidget::buildAiUi()
                 j += 1;
             textLayout->addWidget(resultCodeShowList[i]);
             resultCodeShowList[i]->show();
+            onSizeFinished();
         }
         if (!resultSplitTextList.last().isEmpty()) {
             QMetaObject::Connection eventLoopQuitConnect =
@@ -407,7 +409,8 @@ void MessageWidget::adjustAiTextWidgetSize()
         thinkBackHeight += textShow->height();
         qDebug() << "thinkTextShowList:" << thinkBackWidth << thinkBackHeight;
     }
-    for (auto *codeShow : thinkCodeShowList) {
+    // for (auto *codeShow : thinkCodeShowList) {
+    for (auto *codeShow : thinkBackWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
         thinkBackWidth = qMax(thinkBackWidth, codeShow->width());
         thinkBackHeight += codeShow->height();
         qDebug() << "thinkCodeShowList:" << thinkBackWidth << thinkBackHeight;
@@ -437,7 +440,8 @@ void MessageWidget::adjustAiTextWidgetSize()
             resultHeight += textShow->height();
             qDebug() << "resultTextShowList:" << resultWidth << resultHeight;
         }
-        for (auto *codeShow : resultCodeShowList) {
+        // for (auto *codeShow : resultCodeShowList) {
+        for (auto *codeShow : textWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
             resultWidth = qMax(resultWidth, codeShow->width());
             resultHeight += codeShow->height();
             qDebug() << "resultCodeShowList:" << resultWidth << resultHeight;
@@ -800,6 +804,7 @@ void MessageWidget::setText(const QString &text)
             if (thinkCodeShowListLastLen < i) {
                 thinkBackVLayout->addWidget(thinkCodeShowList[i]);
                 thinkCodeShowList[i]->show();
+                onSizeFinished();
                 qDebug() << "thinkCodeShowList addWidget end";
             }
         }
@@ -1021,6 +1026,7 @@ void MessageWidget::setText(const QString &text)
             if (resultCodeShowListLastLen < i) {
                 textLayout->addWidget(resultCodeShowList[i]);
                 resultCodeShowList[i]->show();
+                onSizeFinished();
             }
         }
         if (resultTextShowListLastLen < resultTextShowList.size() - 1
