@@ -7,7 +7,6 @@
 class ItemWidget : public QWidget
 {
     Q_OBJECT
-
 public:
     explicit ItemWidget(QWidget *parent = nullptr);
     ~ItemWidget();

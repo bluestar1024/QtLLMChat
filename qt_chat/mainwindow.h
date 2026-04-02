@@ -18,6 +18,7 @@
 #include <QtWidgets/QGraphicsDropShadowEffect>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QListWidgetItem>
+#include <QtCore/QUrl>
 #include <QtCore/QTimer>
 #include <QtCore/QString>
 #include <QtGui/QScreen>

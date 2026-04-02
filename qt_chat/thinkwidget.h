@@ -26,7 +26,8 @@ class ThinkWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ThinkWidget(const QString &text = "", std::function<void()> sizeFinishFun = nullptr, int maxWidth = 810, QWidget *parent = nullptr);
+    explicit ThinkWidget(const QString &text = "", std::function<void()> sizeFinishFun = nullptr,
+                         int maxWidth = 810, QWidget *parent = nullptr);
     ~ThinkWidget();
 
     void setText(const QString &text);

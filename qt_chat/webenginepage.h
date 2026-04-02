@@ -6,6 +6,7 @@
 
 #include <QtWebEngineCore/QWebEnginePage>
 #include <QtWidgets/QMainWindow>
+#include <QtCore/QUrl>
 #include <QtCore/QList>
 
 class WebEnginePage : public QWebEnginePage

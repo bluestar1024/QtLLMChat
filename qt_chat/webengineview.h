@@ -11,6 +11,7 @@
 #include <QtGui/QContextMenuEvent>
 #include <QtCore/QEvent>
 #include <QtCore/QCoreApplication>
+#include <QtCore/QUrl>
 #include <QtWidgets/QScrollBar>
 #include <QtGui/QPointingDevice>
 

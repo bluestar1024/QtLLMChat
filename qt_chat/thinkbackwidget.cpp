@@ -9,7 +9,6 @@ void ThinkBackWidget::paintEvent(QPaintEvent *)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // 背景圆角矩形
     QPainterPath backgroundPath;
     backgroundPath.addRoundedRect(rect(), 13, 13);
 

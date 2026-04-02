@@ -23,6 +23,7 @@ SOURCES += \
     custommenu.cpp \
     customwebengineview.cpp \
     cxxhighlighter.cpp \
+    doublespinbox.cpp \
     frame.cpp \
     funwidget.cpp \
     glslhighlighter.cpp \
@@ -31,6 +32,7 @@ SOURCES += \
     itemwidget.cpp \
     label.cpp \
     language.cpp \
+    lineedit.cpp \
     linenumberarea.cpp \
     listwidget.cpp \
     loadingwidget.cpp \
@@ -46,6 +48,9 @@ SOURCES += \
     pushbutton.cpp \
     pythonhighlighter.cpp \
     sendbutton.cpp \
+    settingedit.cpp \
+    slider.cpp \
+    spinbox.cpp \
     splitter.cpp \
     stylesyntaxhighlighter.cpp \
     syntaxstyle.cpp \
@@ -69,6 +74,7 @@ HEADERS += \
     custommenu.h \
     customwebengineview.h \
     cxxhighlighter.h \
+    doublespinbox.h \
     frame.h \
     funwidget.h \
     globalvariables.h \
@@ -78,6 +84,7 @@ HEADERS += \
     itemwidget.h \
     label.h \
     language.h \
+    lineedit.h \
     linenumberarea.h \
     listwidget.h \
     loadingwidget.h \
@@ -92,6 +99,9 @@ HEADERS += \
     pushbutton.h \
     pythonhighlighter.h \
     sendbutton.h \
+    settingedit.h \
+    slider.h \
+    spinbox.h \
     splitter.h \
     stylesyntaxhighlighter.h \
     syntaxstyle.h \
