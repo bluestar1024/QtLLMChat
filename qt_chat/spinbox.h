@@ -4,7 +4,6 @@
 #pragma once
 #include <QtWidgets/QSpinBox>
 #include <QtGui/QMouseEvent>
-#include <QtCore/QDir>
 
 class SpinBox : public QSpinBox
 {

@@ -7,8 +7,8 @@ DoubleSpinBox::DoubleSpinBox(QWidget *parent) : QDoubleSpinBox(parent)
     setCursor(Qt::PointingHandCursor);
     setAlignment(Qt::AlignHCenter);
 
-    upArrowImagePath = QDir(imagesDir).filePath("up_arrow.png");
-    downArrowImagePath = QDir(imagesDir).filePath("down_arrow.png");
+    upArrowImagePath = imagesDir + "/up_arrow.png";
+    downArrowImagePath = imagesDir + "/down_arrow.png";
 
     setStyleSheet(QString(R"(
         QDoubleSpinBox {

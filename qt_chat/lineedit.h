@@ -18,7 +18,11 @@ public:
     explicit LineEdit(QWidget *parent = nullptr);
     ~LineEdit();
 
-    void connectSearchButtonClick(QObject *receiver, const char *slot);
+    template <typename T>
+    void connectSearchButtonClick(T *receiver, void (T::*slot)());
+    template <typename T>
+    void connectSearchButtonClick(T *receiver, void (T::*slot)(bool));
+
     void resetWidgetSize();
     void updateSize(int curDpi, int lastDpi);
 
@@ -27,5 +31,17 @@ private:
     QFont font;
     QMap<QString, QSize> widgetSizeDict;
 };
+
+template <typename T>
+void LineEdit::connectSearchButtonClick(T *receiver, void (T::*slot)())
+{
+    connect(searchButton, &QPushButton::clicked, [=](bool) { (receiver->*slot)(); });
+}
+
+template <typename T>
+void LineEdit::connectSearchButtonClick(T *receiver, void (T::*slot)(bool))
+{
+    connect(searchButton, &QPushButton::clicked, receiver, slot);
+}
 
 #endif // LINEEDIT_H

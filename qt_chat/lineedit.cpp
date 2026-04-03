@@ -21,9 +21,9 @@ LineEdit::LineEdit(QWidget *parent) : QLineEdit(parent)
         }
     }
 
-    searchButton = new QPushButton(this);
+    searchButton = new PushButton("搜索", 5, 35, this);
     searchButton->setFixedSize(32, 32);
-    QString searchImagePath = QDir::toNativeSeparators(imagesDir + "/search.png");
+    QString searchImagePath = imagesDir + "/search.png";
     searchButton->setIcon(QIcon(searchImagePath));
     searchButton->setIconSize(QSize(30, 30));
     searchButton->move(0, 0);
@@ -47,11 +47,6 @@ LineEdit::LineEdit(QWidget *parent) : QLineEdit(parent)
 
 LineEdit::~LineEdit() { }
 
-void LineEdit::connectSearchButtonClick(QObject *receiver, const char *slot)
-{
-    connect(searchButton, SIGNAL(clicked()), receiver, slot);
-}
-
 void LineEdit::resetWidgetSize()
 {
     widgetSizeDict["self"] = size();
@@ -60,19 +55,19 @@ void LineEdit::resetWidgetSize()
 void LineEdit::updateSize(int curDpi, int lastDpi)
 {
     QSize selfSize = widgetSizeDict["self"];
-    int newWidth = qRound(selfSize.width() * curDpi / static_cast<double>(lastDpi));
-    int newHeight = qRound(selfSize.height() * curDpi / static_cast<double>(lastDpi));
+    int newWidth = qRound(selfSize.width() * curDpi / static_cast<qreal>(lastDpi));
+    int newHeight = qRound(selfSize.height() * curDpi / static_cast<qreal>(lastDpi));
     setFixedSize(newWidth, newHeight);
 
     QSize buttonSize = widgetSizeDict["searchButton"];
-    int btnNewWidth = qRound(buttonSize.width() * curDpi / static_cast<double>(lastDpi));
-    int btnNewHeight = qRound(buttonSize.height() * curDpi / static_cast<double>(lastDpi));
+    int btnNewWidth = qRound(buttonSize.width() * curDpi / static_cast<qreal>(lastDpi));
+    int btnNewHeight = qRound(buttonSize.height() * curDpi / static_cast<qreal>(lastDpi));
     searchButton->setFixedSize(btnNewWidth, btnNewHeight);
 
-    QSize iconSize = widgetSizeDict["searchButton iconSize"];
-    int iconNewWidth = qRound(iconSize.width() * curDpi / static_cast<double>(lastDpi));
-    int iconNewHeight = qRound(iconSize.height() * curDpi / static_cast<double>(lastDpi));
-    searchButton->setIconSize(QSize(iconNewWidth, iconNewHeight));
+    QSize buttonIconSize = widgetSizeDict["searchButton iconSize"];
+    int btnIconNewWidth = qRound(buttonIconSize.width() * curDpi / static_cast<qreal>(lastDpi));
+    int btnIconNewHeight = qRound(buttonIconSize.height() * curDpi / static_cast<qreal>(lastDpi));
+    searchButton->setIconSize(QSize(btnIconNewWidth, btnIconNewHeight));
 
     if (!font.family().isEmpty()) {
         font.setPixelSize(windowFontPixelSize);

@@ -16,6 +16,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    chatrecordswidget.cpp \
     codeeditor.cpp \
     codeshow.cpp \
     copybutton.cpp \
@@ -67,6 +68,7 @@ SOURCES += \
     widget.cpp
 
 HEADERS += \
+    chatrecordswidget.h \
     codeeditor.h \
     codeshow.h \
     copybutton.h \

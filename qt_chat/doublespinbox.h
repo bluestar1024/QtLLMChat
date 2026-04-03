@@ -4,7 +4,6 @@
 #pragma once
 #include <QtWidgets/QDoubleSpinBox>
 #include <QtGui/QMouseEvent>
-#include <QtCore/QDir>
 
 class DoubleSpinBox : public QDoubleSpinBox
 {
