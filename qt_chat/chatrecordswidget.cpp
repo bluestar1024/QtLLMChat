@@ -186,8 +186,6 @@ void ChatRecordsWidget::paintEvent(QPaintEvent *event)
     painter.setPen(Qt::NoPen);
     painter.setBrush(brush);
     painter.drawPath(path.simplified());
-
-    painter.end();
 }
 
 void ChatRecordsWidget::mouseMoveEvent(QMouseEvent *event)
@@ -274,12 +272,12 @@ void ChatRecordsWidget::updateSize(int curDpi, int lastDpi)
     clearAllButton->setIconSize(scale(widgetSizeDict["clearAllButton iconSize"].value<QSize>()));
     searchWidget->setFixedSize(scale(widgetSizeDict["searchWidget"].value<QSize>()));
     searchHLayout->setContentsMargins(0, 0, 0, 0);
-    searchHLayout->setSpacing(widgetSizeDict["searchHLayout spacing"].value<int>());
+    searchHLayout->setSpacing(qRound(widgetSizeDict["searchHLayout spacing"].value<int>() * ratio));
     listWidget->setFixedSize(scale(widgetSizeDict["listWidget"].value<QSize>()));
     mainWidget->resize(scale(widgetSizeDict["mainWidget"].value<QSize>()));
     mainVLayout->setContentsMargins(
             scaleMargins(widgetSizeDict["mainVLayout contentsMargins"].value<QMargins>()));
-    mainVLayout->setSpacing(widgetSizeDict["mainVLayout spacing"].value<int>());
+    mainVLayout->setSpacing(qRound(widgetSizeDict["mainVLayout spacing"].value<int>() * ratio));
 
     widgetSizeDict["chatRecordItem height"] =
             qRound(widgetSizeDict["chatRecordItem height"].value<int>() * ratio);

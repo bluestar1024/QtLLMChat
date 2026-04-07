@@ -50,6 +50,7 @@ SOURCES += \
     pythonhighlighter.cpp \
     sendbutton.cpp \
     settingedit.cpp \
+    settingwidget.cpp \
     slider.cpp \
     spinbox.cpp \
     splitter.cpp \
@@ -102,6 +103,7 @@ HEADERS += \
     pythonhighlighter.h \
     sendbutton.h \
     settingedit.h \
+    settingwidget.h \
     slider.h \
     spinbox.h \
     splitter.h \
