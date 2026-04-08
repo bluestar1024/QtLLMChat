@@ -2,8 +2,6 @@
 #define SETTINGWIDGET_H
 
 #pragma once
-#include "mainwindow.h"
-#include "globalvariables.h"
 #include "label.h"
 #include "settingedit.h"
 #include "spinbox.h"
@@ -22,18 +20,18 @@
 #include <QtCore/QFile>
 #include <QtCore/QTextStream>
 
+class MainWindow;
+
 class SettingWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SettingWidget(MainWindow *mainWindow, QWidget *parent = nullptr);
+    explicit SettingWidget(QWidget *titleWidget, QWidget *parent = nullptr);
     ~SettingWidget();
 
     void loadConfig();
     void setupUI();
     void setupConnections();
-
-    QWidget *mainWidget() const;
 
 private:
     void paintEvent(QPaintEvent *event) override;
@@ -44,8 +42,8 @@ private:
     void createTopPWidget();
     void createTemperatureWidget();
 
-    MainWindow *mainWindow;
-
+    QWidget *mainWindowTitleWidget;
+    QWidget *mainWindowMainWidget;
     QString baseUrl;
     QString apiKey;
     QString model;

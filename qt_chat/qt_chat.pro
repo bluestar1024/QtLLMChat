@@ -64,6 +64,7 @@ SOURCES += \
     thinkbackwidget.cpp \
     thinkingbutton.cpp \
     thinkwidget.cpp \
+    titlewidget.cpp \
     webenginepage.cpp \
     webengineview.cpp \
     widget.cpp
@@ -117,6 +118,7 @@ HEADERS += \
     thinkbackwidget.h \
     thinkingbutton.h \
     thinkwidget.h \
+    titlewidget.h \
     webenginepage.h \
     webengineview.h \
     widget.h

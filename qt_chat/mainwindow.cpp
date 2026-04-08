@@ -5,10 +5,11 @@
 
 const QString imagesDir = ":/images";
 const QString fontFilePath = ":/font/msyhl.ttc";
+const QString configFilePath = ":/config/config.txt";
 const QString mathjaxScriptPath = "mathjax/es5/tex-mml-chtml.js";
 QString codeThemeFilePath = ":/config/dark_theme.xml";
 const QString webEngineCacheDir = ":/webengine_cache";
-QWebEngineProfile* sharedProfile = nullptr;
+QWebEngineProfile *sharedProfile = nullptr;
 const int windowFontPointSize = 10;
 const int windowFontPixelSize = 20;
 const int titleFontPixelSize = 28;
@@ -17,6 +18,20 @@ const QColor textEditFullBGColor = QColor(224, 224, 224);
 const QColor textEditFullBGTColor = QColor(224, 224, 224, 0);
 const QColor textEditFullBTColor = QColor(100, 100, 100);
 const QColor textEditFullBColor = QColor(100, 100, 100, 0);
+const QString initBaseUrl = "http://127.0.0.1:11434/v1";
+const QString initApiKey = "EMPTY";
+const QString initModel = "deepseek-r1:1.5b";
+const int maxTokensMinimum = 0;
+const int maxTokensMaximum = 32768;
+const int initMaxTokensCurrentVal = 5000;
+const int topPMinimum = 0;
+const int topPMaximum = 1;
+const float initTopPCurrentVal = 0.8;
+const float topPSingleStep = 0.01;
+const float temperatureMinimum = 0.01;
+const int temperatureMaximum = 1;
+const float initTemperatureCurrentVal = 0.8;
+const float temperatureSingleStep = 0.01;
 const QString testText_1 = R"(<think>
 让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
 
@@ -705,16 +720,14 @@ $$\frac{d}{dx} e^x = e^x$$
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isProcessing(false)
 {
-    QWebEngineProfile* sharedProfile = new QWebEngineProfile("shared");
+    QWebEngineProfile *sharedProfile = new QWebEngineProfile("shared");
     sharedProfile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
     sharedProfile->setCachePath(webEngineCacheDir);
     QWebEngineView *dummyView = new QWebEngineView(this);
     dummyView->setPage(new WebEnginePage(sharedProfile, dummyView));
     dummyView->load(QUrl("about:blank"));
     connect(dummyView, &QWebEngineView::loadFinished, dummyView, &QObject::deleteLater);
-    connect(dummyView, &QWebEngineView::loadFinished, []() {
-        qDebug() << "dummyView delete";
-    });
+    connect(dummyView, &QWebEngineView::loadFinished, []() { qDebug() << "dummyView delete"; });
 
     setMinimumSize(1110, 795);
     resize(1220, 820);
@@ -881,31 +894,28 @@ void MainWindow::isItemShowFull(QWidget *widget)
         MessageWidget *messageWidget = messageWidgetList.at(i);
         messageWidget->hideFunWidget();
     }
-    if (TextWidget *textWidget = qobject_cast<TextWidget*>(widget)) {
+    if (TextWidget *textWidget = qobject_cast<TextWidget *>(widget)) {
         for (int i = 0; i < messageWidgetList.size(); ++i) {
             if (textWidget == messageWidgetList.at(i)->getTextWidget()) {
                 messageWidgetList.at(i)->showFunWidget();
             }
         }
-    }
-    else if (TextBoxWidget *textBoxWidget = qobject_cast<TextBoxWidget*>(widget)) {
+    } else if (TextBoxWidget *textBoxWidget = qobject_cast<TextBoxWidget *>(widget)) {
         for (int i = 0; i < messageWidgetList.size(); ++i) {
             if (textBoxWidget == messageWidgetList.at(i)->getTextBoxWidget()) {
                 messageWidgetList.at(i)->showFunWidget();
             }
         }
-    }
-    else if (MessageWidget *messageWidget = qobject_cast<MessageWidget*>(widget)) {
+    } else if (MessageWidget *messageWidget = qobject_cast<MessageWidget *>(widget)) {
         for (int i = 0; i < messageWidgetList.size(); ++i) {
             if (messageWidget == messageWidgetList.at(i)) {
                 messageWidgetList.at(i)->showFunWidget();
             }
         }
-    }
-    else if (ItemWidget *itemWidget = qobject_cast<ItemWidget*>(widget)) {
+    } else if (ItemWidget *itemWidget = qobject_cast<ItemWidget *>(widget)) {
         QLayoutItem *layoutItem = itemWidget->layout()->itemAt(0);
         if (layoutItem) {
-            if (MessageWidget *childWidget = qobject_cast<MessageWidget*>(layoutItem->widget())) {
+            if (MessageWidget *childWidget = qobject_cast<MessageWidget *>(layoutItem->widget())) {
                 for (int i = 0; i < messageWidgetList.size(); ++i) {
                     if (childWidget == messageWidgetList.at(i)) {
                         messageWidgetList.at(i)->showFunWidget();
@@ -963,17 +973,12 @@ void MainWindow::sendMessage()
             }
             thinkTimeLengthList.append(0);
             messageSendWidget = new MessageWidget(
-                    text,
-                    [this]() { textCopy(); },
-                    [this]() { messageRenewResponse(); },
-                    [this](MessageWidget *selfMessageWidget) { messageWidgetResize(selfMessageWidget); },
-                    [this](bool state) { getSetTexting(state); },
-                    [this]() { onExecuteNext(); },
-                    chatShow,
-                    thinkTimeLengthList,
-                    messageWidgetList.size(),
-                    true,
-                    true,
+                    text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                    [this](MessageWidget *selfMessageWidget) {
+                        messageWidgetResize(selfMessageWidget);
+                    },
+                    [this](bool state) { getSetTexting(state); }, [this]() { onExecuteNext(); },
+                    chatShow, thinkTimeLengthList, messageWidgetList.size(), true, true,
                     chatShow->width() * 3 / 4);
             messageSendWidget->hide();
             messageSendWidget->updateFunWidgetSize(curDpi, initDpi);
@@ -1044,18 +1049,10 @@ void MainWindow::messageStart()
 
     thinkTimeLengthList.append(0);
     messageRecvWidget = new MessageWidget(
-            message,
-            [this]() { textCopy(); },
-            [this]() { messageRenewResponse(); },
+            message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
             [this](MessageWidget *selfMessageWidget) { messageWidgetResize(selfMessageWidget); },
-            [this](bool state) { getSetTexting(state); },
-            nullptr,
-            chatShow,
-            thinkTimeLengthList,
-            messageWidgetList.size(),
-            false,
-            true,
-            chatShow->width() * 3 / 4);
+            [this](bool state) { getSetTexting(state); }, nullptr, chatShow, thinkTimeLengthList,
+            messageWidgetList.size(), false, true, chatShow->width() * 3 / 4);
     // messageRecvWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
     // messageRecvWidget->connectSetTexting(this, &MainWindow::getSetTexting);
     messageWidgetList.append(messageRecvWidget);

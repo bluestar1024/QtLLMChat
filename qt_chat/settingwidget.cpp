@@ -1,8 +1,10 @@
 #include "settingwidget.h"
+#include "globalvariables.h"
 
-SettingWidget::SettingWidget(MainWindow *mainWindow, QWidget *parent)
+SettingWidget::SettingWidget(QWidget *titleWidget, QWidget *parent)
     : QWidget(parent),
-      mainWindow(mainWindow),
+      mainWindowTitleWidget(titleWidget),
+      mainWindowMainWidget(parent),
       maxTokensCurrentVal(0),
       topPCurrentVal(0.0),
       temperatureCurrentVal(0.0),
@@ -64,18 +66,18 @@ void SettingWidget::mouseMoveEvent(QMouseEvent *event)
 
 void SettingWidget::loadConfig()
 {
-    QFile configFile(config_file_path);
+    QFile configFile(configFilePath);
 
-    if (!QFile::exists(config_file_path)) {
+    if (!QFile::exists(configFilePath)) {
         if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream out(&configFile);
             out.setEncoding(QStringConverter::Utf8);
-            out << init_base_url << '\n'
-                << init_api_key << '\n'
-                << init_model << '\n'
-                << init_maxTokens_currentVal << '\n'
-                << init_topP_currentVal << '\n'
-                << init_temperature_currentVal << '\n';
+            out << initBaseUrl << '\n'
+                << initApiKey << '\n'
+                << initModel << '\n'
+                << initMaxTokensCurrentVal << '\n'
+                << initTopPCurrentVal << '\n'
+                << initTemperatureCurrentVal << '\n';
             configFile.close();
         }
     }
@@ -98,11 +100,6 @@ void SettingWidget::loadConfig()
         topPCurrentVal = content[4].toDouble();
         temperatureCurrentVal = content[5].toDouble();
     }
-}
-
-QWidget *SettingWidget::mainWidget() const
-{
-    return mainWindow->mainWidget();
 }
 
 void SettingWidget::setupUI()
@@ -143,31 +140,31 @@ void SettingWidget::setupUI()
     topPBox = new DoubleSpinBox();
     temperatureBox = new DoubleSpinBox();
 
-    maxTokensBox->setRange(maxTokens_minimum, maxTokens_maximum);
+    maxTokensBox->setRange(maxTokensMinimum, maxTokensMaximum);
     maxTokensBox->setValue(maxTokensCurrentVal);
 
-    topPBox->setRange(topP_minimum, topP_maximum);
+    topPBox->setRange(topPMinimum, topPMaximum);
     topPBox->setValue(topPCurrentVal);
-    topPBox->setSingleStep(topP_singleStep);
+    topPBox->setSingleStep(topPSingleStep);
 
-    temperatureBox->setRange(temperature_minimum, temperature_maximum);
+    temperatureBox->setRange(temperatureMinimum, temperatureMaximum);
     temperatureBox->setValue(temperatureCurrentVal);
-    temperatureBox->setSingleStep(temperature_singleStep);
+    temperatureBox->setSingleStep(temperatureSingleStep);
 
     maxTokensSlider = new Slider();
     topPSlider = new Slider();
     temperatureSlider = new Slider();
 
-    maxTokensSlider->setMinimum(maxTokens_minimum);
-    maxTokensSlider->setMaximum(maxTokens_maximum);
+    maxTokensSlider->setMinimum(maxTokensMinimum);
+    maxTokensSlider->setMaximum(maxTokensMaximum);
     maxTokensSlider->setValue(maxTokensCurrentVal);
 
-    topPSlider->setMinimum(static_cast<int>(topP_minimum * 100));
-    topPSlider->setMaximum(static_cast<int>(topP_maximum * 100));
+    topPSlider->setMinimum(static_cast<int>(topPMinimum * 100));
+    topPSlider->setMaximum(static_cast<int>(topPMaximum * 100));
     topPSlider->setValue(static_cast<int>(topPCurrentVal * 100));
 
-    temperatureSlider->setMinimum(static_cast<int>((temperature_minimum - 0.01) * 100));
-    temperatureSlider->setMaximum(static_cast<int>((temperature_maximum - 0.01) * 100));
+    temperatureSlider->setMinimum(static_cast<int>((temperatureMinimum - 0.01) * 100));
+    temperatureSlider->setMaximum(static_cast<int>((temperatureMaximum - 0.01) * 100));
     temperatureSlider->setValue(static_cast<int>((temperatureCurrentVal - 0.01) * 100));
 
     createModelSelectWidget();
@@ -175,10 +172,9 @@ void SettingWidget::setupUI()
     createTopPWidget();
     createTemperatureWidget();
 
-    QWidget *mainWidget = mainWindow->mainWidget();
-    QWidget *titleWidget = mainWindow->titleWidget();
-    setGeometry(-mainWidget->width() / 3, titleWidget->height(), mainWidget->width() / 3,
-                mainWidget->height() - titleWidget->height());
+    setGeometry(-mainWindowMainWidget->width() / 3, mainWindowTitleWidget->height(),
+                mainWindowMainWidget->width() / 3,
+                mainWindowMainWidget->height() - mainWindowTitleWidget->height());
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     QVBoxLayout *settingVLayout = new QVBoxLayout(this);
@@ -192,21 +188,25 @@ void SettingWidget::setupUI()
 
 void SettingWidget::setupConnections()
 {
-    connect(baseUrlEdit, &QLineEdit::textChanged, mainWindow, &MainWindow::baseUrlTextChanged);
-    connect(apiKeyEdit, &QLineEdit::textChanged, mainWindow, &MainWindow::apiKeyTextChanged);
-    connect(modelNameEdit, &QLineEdit::textChanged, mainWindow, &MainWindow::modelNameTextChanged);
+    connect(baseUrlEdit, &QLineEdit::textChanged, mainWindowMainWidget->parent(),
+            &MainWindow::baseUrlTextChanged);
+    connect(apiKeyEdit, &QLineEdit::textChanged, mainWindowMainWidget->parent(),
+            &MainWindow::apiKeyTextChanged);
+    connect(modelNameEdit, &QLineEdit::textChanged, mainWindowMainWidget->parent(),
+            &MainWindow::modelNameTextChanged);
 
-    connect(maxTokensBox, QOverload<int>::of(&QSpinBox::valueChanged), mainWindow,
-            &MainWindow::maxTokensBoxValueChanged);
-    connect(topPBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), mainWindow,
-            &MainWindow::topPBoxValueChanged);
-    connect(temperatureBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), mainWindow,
-            &MainWindow::temperatureBoxValueChanged);
+    connect(maxTokensBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            mainWindowMainWidget->parent(), &MainWindow::maxTokensBoxValueChanged);
+    connect(topPBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            mainWindowMainWidget->parent(), &MainWindow::topPBoxValueChanged);
+    connect(temperatureBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
+            mainWindowMainWidget->parent(), &MainWindow::temperatureBoxValueChanged);
 
-    connect(maxTokensSlider, &QSlider::valueChanged, mainWindow,
+    connect(maxTokensSlider, &QSlider::valueChanged, mainWindowMainWidget->parent(),
             &MainWindow::maxTokensSliderValueChanged);
-    connect(topPSlider, &QSlider::valueChanged, mainWindow, &MainWindow::topPSliderValueChanged);
-    connect(temperatureSlider, &QSlider::valueChanged, mainWindow,
+    connect(topPSlider, &QSlider::valueChanged, mainWindowMainWidget->parent(),
+            &MainWindow::topPSliderValueChanged);
+    connect(temperatureSlider, &QSlider::valueChanged, mainWindowMainWidget->parent(),
             &MainWindow::temperatureSliderValueChanged);
 }
 

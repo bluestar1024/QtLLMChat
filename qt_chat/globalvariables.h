@@ -8,10 +8,11 @@
 
 extern const QString imagesDir;
 extern const QString fontFilePath;
+extern const QString configFilePath;
 extern const QString mathjaxScriptPath;
 extern QString codeThemeFilePath;
 extern const QString webEngineCacheDir;
-extern QWebEngineProfile* sharedProfile;
+extern QWebEngineProfile *sharedProfile;
 extern const int windowFontPointSize;
 extern const int windowFontPixelSize;
 extern const int titleFontPixelSize;
@@ -22,5 +23,19 @@ extern const QColor textEditFullBTColor;
 extern const QColor textEditFullBColor;
 extern const QString testText;
 extern const QString testText_1;
+extern const QString initBaseUrl;
+extern const QString initApiKey;
+extern const QString initModel;
+extern const int maxTokensMinimum;
+extern const int maxTokensMaximum;
+extern const int initMaxTokensCurrentVal;
+extern const int topPMinimum;
+extern const int topPMaximum;
+extern const float initTopPCurrentVal;
+extern const float topPSingleStep;
+extern const float temperatureMinimum;
+extern const int temperatureMaximum;
+extern const float initTemperatureCurrentVal;
+extern const float temperatureSingleStep;
 
 #endif // GLOBALVARIABLES_H
