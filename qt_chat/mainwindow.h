@@ -3,15 +3,19 @@
 
 #pragma once
 #include "widget.h"
+#include "titlewidget.h"
 #include "funwidget.h"
 #include "listwidget.h"
 #include "texteditfull.h"
 #include "splitter.h"
 #include "frame.h"
+#include "settingwidget.h"
+#include "chatrecordswidget.h"
 #include "messagethread.h"
 #include "messagewidget.h"
 #include "itemwidget.h"
 #include "messagethread.h"
+#include "printlabel.h"
 #include "globalvariables.h"
 
 #include <QtWidgets/QMainWindow>
@@ -24,6 +28,7 @@
 #include <QtGui/QScreen>
 #include <QtWidgets/QApplication>
 #include <QtCore/QVariant>
+#include <QtCore/QPropertyAnimation>
 // #include <QtCore/QSignalBlocker>
 #include <QtCore/QQueue>
 
@@ -55,6 +60,9 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
+    void titleWidgetInit();
+    void settingWidgetInit();
+    void chatRecordsWidgetInit();
     void textCopy();
     void messageRenewResponse();
     void checkGraphicsBackend();
@@ -78,16 +86,19 @@ private:
     Splitter *splitter;
     Frame *mainWidget;
     QVBoxLayout *mainVLayout;
-    // TitleWidget     *titleWidget;
+    TitleWidget *titleWidget;
     QList<MessageWidget *> messageWidgetList;
     QQueue<QString> messageQueue;
     QList<int> thinkTimeLengthList;
-    // ChatRecordsWidget *chatRecordsWidget;
-    QString curChatFile;
+    SettingWidget *settingWidget;
+    ChatRecordsWidget *chatRecordsWidget;
+    QPropertyAnimation *settingAnimationMove;
     QPropertyAnimation *chatRecordsAnimationMove;
+    bool settingWidgetIsOpen;
     bool chatRecordsWidgetIsOpen;
-    // PrintLabel *emptyTextLabel;
-    // PrintLabel *textCopyLabel;
+    QString curChatFile;
+    PrintLabel *emptyTextLabel;
+    PrintLabel *textCopyLabel;
 
     bool isProcessing;
     bool isRegenerate;
@@ -127,6 +138,15 @@ private:
 
 private slots:
     void onDpiChanged();
+    void onBaseUrlTextChanged(const QString &text);
+    void onApiKeyTextChanged(const QString &text);
+    void onModelNameTextChanged(const QString &text);
+    void onMaxTokensBoxValueChanged(int i);
+    void onTopPBoxValueChanged(double d);
+    void onTemperatureBoxValueChanged(double d);
+    void onMaxTokensSliderValueChanged(int i);
+    void onTopPSliderValueChanged(int i);
+    void onTemperatureSliderValueChanged(int i);
     void messageWidgetResize(MessageWidget *selfMessageWidget);
     void sendMessage();
     void onExecuteNext();

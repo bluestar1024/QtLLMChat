@@ -1,10 +1,8 @@
 #include "settingwidget.h"
 #include "globalvariables.h"
 
-SettingWidget::SettingWidget(QWidget *titleWidget, QWidget *parent)
+SettingWidget::SettingWidget(QWidget *parent)
     : QWidget(parent),
-      mainWindowTitleWidget(titleWidget),
-      mainWindowMainWidget(parent),
       maxTokensCurrentVal(0),
       topPCurrentVal(0.0),
       temperatureCurrentVal(0.0),
@@ -172,9 +170,7 @@ void SettingWidget::setupUI()
     createTopPWidget();
     createTemperatureWidget();
 
-    setGeometry(-mainWindowMainWidget->width() / 3, mainWindowTitleWidget->height(),
-                mainWindowMainWidget->width() / 3,
-                mainWindowMainWidget->height() - mainWindowTitleWidget->height());
+    resize(400, 760);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     QVBoxLayout *settingVLayout = new QVBoxLayout(this);
@@ -188,26 +184,22 @@ void SettingWidget::setupUI()
 
 void SettingWidget::setupConnections()
 {
-    connect(baseUrlEdit, &QLineEdit::textChanged, mainWindowMainWidget->parent(),
-            &MainWindow::baseUrlTextChanged);
-    connect(apiKeyEdit, &QLineEdit::textChanged, mainWindowMainWidget->parent(),
-            &MainWindow::apiKeyTextChanged);
-    connect(modelNameEdit, &QLineEdit::textChanged, mainWindowMainWidget->parent(),
-            &MainWindow::modelNameTextChanged);
+    connect(baseUrlEdit, &QLineEdit::textChanged, this, &SettingWidget::baseUrlTextChanged);
+    connect(apiKeyEdit, &QLineEdit::textChanged, this, &SettingWidget::apiKeyTextChanged);
+    connect(modelNameEdit, &QLineEdit::textChanged, this, &SettingWidget::modelNameTextChanged);
 
-    connect(maxTokensBox, QOverload<int>::of(&QSpinBox::valueChanged),
-            mainWindowMainWidget->parent(), &MainWindow::maxTokensBoxValueChanged);
-    connect(topPBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            mainWindowMainWidget->parent(), &MainWindow::topPBoxValueChanged);
-    connect(temperatureBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            mainWindowMainWidget->parent(), &MainWindow::temperatureBoxValueChanged);
+    connect(maxTokensBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
+            &SettingWidget::maxTokensBoxValueChanged);
+    connect(topPBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+            &SettingWidget::topPBoxValueChanged);
+    connect(temperatureBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
+            &SettingWidget::temperatureBoxValueChanged);
 
-    connect(maxTokensSlider, &QSlider::valueChanged, mainWindowMainWidget->parent(),
-            &MainWindow::maxTokensSliderValueChanged);
-    connect(topPSlider, &QSlider::valueChanged, mainWindowMainWidget->parent(),
-            &MainWindow::topPSliderValueChanged);
-    connect(temperatureSlider, &QSlider::valueChanged, mainWindowMainWidget->parent(),
-            &MainWindow::temperatureSliderValueChanged);
+    connect(maxTokensSlider, &QSlider::valueChanged, this,
+            &SettingWidget::maxTokensSliderValueChanged);
+    connect(topPSlider, &QSlider::valueChanged, this, &SettingWidget::topPSliderValueChanged);
+    connect(temperatureSlider, &QSlider::valueChanged, this,
+            &SettingWidget::temperatureSliderValueChanged);
 }
 
 void SettingWidget::createModelSelectWidget()

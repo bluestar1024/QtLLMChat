@@ -5,15 +5,17 @@ TitleWidget::TitleWidget(QWidget *parent)
     : QWidget(parent),
       isRound(true),
       titleIconLabel(nullptr),
-      titleLeftSubWidget(nullptr),
-      titleRightSubWidget(nullptr),
       minButton(nullptr),
       maxButton(nullptr),
-      closeButton(nullptr)
+      closeButton(nullptr),
+      titleLeftSubWidget(nullptr),
+      titleRightSubWidget(nullptr)
 {
     setMouseTracking(true);
     initializeUI();
 }
+
+TitleWidget::~TitleWidget() { }
 
 void TitleWidget::setRoundAngle()
 {
@@ -25,21 +27,6 @@ void TitleWidget::setRightAngle()
 {
     isRound = false;
     repaint();
-}
-
-TitleButton *TitleWidget::minimizeButton() const
-{
-    return minButton;
-}
-
-TitleButton *TitleWidget::maximizeButton() const
-{
-    return maxButton;
-}
-
-TitleButton *TitleWidget::closeButton() const
-{
-    return closeButton;
 }
 
 void TitleWidget::paintEvent(QPaintEvent *event)
@@ -83,14 +70,14 @@ void TitleWidget::initializeUI()
 
 void TitleWidget::setupLeftWidget()
 {
-    titleIconLabel = new QLabel(this);
+    titleIconLabel = new QLabel();
     titleIconLabel->setFixedSize(40, 30);
     titleIconLabel->setScaledContents(true);
 
-    QString aiAssistantPath = imagesDir + "/ai_assistant.png";
-    titleIconLabel->setPixmap(QPixmap(aiAssistantPath));
+    QString aiAssistantImagePath = imagesDir + "/ai_assistant.png";
+    titleIconLabel->setPixmap(QPixmap(aiAssistantImagePath));
 
-    titleLeftSubWidget = new QWidget(this);
+    titleLeftSubWidget = new Widget();
     titleLeftSubWidget->resize(titleIconLabel->width() + 15, titleIconLabel->height() + 10);
     titleLeftSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
@@ -102,38 +89,38 @@ void TitleWidget::setupLeftWidget()
 
 void TitleWidget::setupRightWidget()
 {
-    minButton = new TitleButton("", 10, 35, this);
+    minButton = new TitleButton("", 10, 35);
     minButton->setFixedSize(50, 40);
-    QString minPath = imagesDir + "/min.png";
-    minButton->setIcon(QIcon(minPath));
+    QString minImagePath = imagesDir + "/min.png";
+    minButton->setIcon(QIcon(minImagePath));
     minButton->setIconSize(QSize(20, 20));
     minButton->setStyleSheet("QPushButton { border: none; }"
                              "QPushButton:hover { background: #808080; }");
-    connect(minButton, &TitleButton::clicked, this, &TitleWidget::minimizeClicked);
+    connect(minButton, &QPushButton::clicked, this, &TitleWidget::minimizeClicked);
 
-    maxButton = new TitleButton("", 10, 35, this);
+    maxButton = new TitleButton("", 10, 35);
     maxButton->setFixedSize(50, 40);
-    maxPath = imagesDir + "/max.png";
-    normalPath = imagesDir + "/normal.png";
-    maxButton->setIcon(QIcon(maxPath));
+    maxImagePath = imagesDir + "/max.png";
+    normalImagePath = imagesDir + "/normal.png";
+    maxButton->setIcon(QIcon(maxImagePath));
     maxButton->setIconSize(QSize(20, 20));
     maxButton->setStyleSheet("QPushButton { border: none; }"
                              "QPushButton:hover { background: #808080; }");
-    connect(maxButton, &TitleButton::clicked, this, &TitleWidget::maximizeClicked);
+    connect(maxButton, &QPushButton::clicked, this, &TitleWidget::maximizeClicked);
 
-    closeButton = new TitleButton("", 5, 35, this);
+    closeButton = new TitleButton("", 5, 35);
     closeButton->setFixedSize(50, 40);
-    QString closePath = imagesDir + "/close.png";
-    closeButton->setIcon(QIcon(closePath));
+    QString closeImagePath = imagesDir + "/close.png";
+    closeButton->setIcon(QIcon(closeImagePath));
     closeButton->setIconSize(QSize(20, 20));
     closeButton->setStyleSheet("QPushButton { border: none; }"
                                "QPushButton:hover {"
                                "   border-top-right-radius: 16px;"
                                "   background: #c80000;"
                                "}");
-    connect(closeButton, &TitleButton::clicked, this, &TitleWidget::closeClicked);
+    connect(closeButton, &QPushButton::clicked, this, &TitleWidget::closeClicked);
 
-    titleRightSubWidget = new QWidget(this);
+    titleRightSubWidget = new Widget();
     titleRightSubWidget->resize(150, 40);
     titleRightSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
@@ -148,12 +135,11 @@ void TitleWidget::setupRightWidget()
 
 void TitleWidget::setupMainLayout()
 {
+    resize(1200, 40);
+    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
     mainLayout->addWidget(titleLeftSubWidget);
     mainLayout->addWidget(titleRightSubWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0);
-
-    setLayout(mainLayout);
-    resize(1200, 40);
-    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 }

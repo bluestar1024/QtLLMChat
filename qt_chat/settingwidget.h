@@ -20,30 +20,37 @@
 #include <QtCore/QFile>
 #include <QtCore/QTextStream>
 
-class MainWindow;
-
 class SettingWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SettingWidget(QWidget *titleWidget, QWidget *parent = nullptr);
+    explicit SettingWidget(QWidget *parent = nullptr);
     ~SettingWidget();
 
-    void loadConfig();
-    void setupUI();
-    void setupConnections();
+signals:
+    void baseUrlTextChanged(const QString &);
+    void apiKeyTextChanged(const QString &);
+    void modelNameTextChanged(const QString &);
+    void maxTokensBoxValueChanged(int);
+    void topPBoxValueChanged(double);
+    void temperatureBoxValueChanged(double);
+    void maxTokensSliderValueChanged(int);
+    void topPSliderValueChanged(int);
+    void temperatureSliderValueChanged(int);
 
-private:
+protected:
     void paintEvent(QPaintEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
 
+private:
+    void loadConfig();
+    void setupUI();
+    void setupConnections();
     void createModelSelectWidget();
     void createMaxTokensWidget();
     void createTopPWidget();
     void createTemperatureWidget();
 
-    QWidget *mainWindowTitleWidget;
-    QWidget *mainWindowMainWidget;
     QString baseUrl;
     QString apiKey;
     QString model;

@@ -18,7 +18,7 @@ ChatRecordsWidget::ChatRecordsWidget(QWidget *parent)
       mainVLayout(nullptr),
       chatRecordItem(nullptr)
 {
-    resize(1200 / 3, 760);
+    resize(400, 760);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
     int fontId = QFontDatabase::addApplicationFont(fontFilePath);

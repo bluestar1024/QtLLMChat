@@ -738,7 +738,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isPr
     mouseLeftButtonIsPress = false;
     regionDir = RegionEnum::Middle;
     padding = 2;
-    // titleWidgetInit();
+    titleWidgetInit();
     chatFun = new FunWidget();
     chatFun->connectChatRecordsButtonClick(this, &MainWindow::showChatRecords);
     chatFun->connectNewChatButtonClick(this, &MainWindow::newChat);
@@ -801,23 +801,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isPr
     setGraphicsEffect(shadow);
     messageWidgetList.clear();
 
-    // settingWidgetInit();
-    // chatRecordsWidget = ChatRecordsWidget(mainWidget);
-    // chatRecordsWidget.connectSettingButtonClick(settingButtonClicked);
-    // chatRecordsWidget.connectLineEditTextChanged(showSearchRecords);
-    // chatRecordsWidget.connectSearchButtonClick(showSearchRecords);
-    // chatRecordsWidget.connectClearAllButtonClick(clearAllChatRecords);
-    // chatRecordsWidget.connectListItemClick(generateChatRecord);
-    // chatRecordsWidget.move(-self.chatRecordsWidget.width(), self.titleWidget.height());
-    // curChatFile = '';
+    settingWidgetInit();
+    chatRecordsWidgetInit();
 
-    // chatRecordsAnimationMove = new QPropertyAnimation(chatRecordsWidget, "geometry");
-    // chatRecordsAnimationMove->setDuration(1000);
-    // chatRecordsAnimationMove->setEasingCurve(QEasingCurve::OutQuad);
-    // connect(chatRecordsAnimationMove, &QPropertyAnimation::valueChanged, this, &MainWindow::chatRecordsUiAnimationMove);
-    // connect(chatRecordsAnimationMove, &QPropertyAnimation::finished, this, &MainWindow::chatRecordsUiMoveFinished);
-
-    // chatRecordsWidgetIsOpen = false;
     // emptyTextLabel = new PrintLabel("文本不能为空", this);
     // emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
     //                      titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
@@ -864,6 +850,70 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isPr
 }
 
 MainWindow::~MainWindow() { }
+
+void MainWindow::titleWidgetInit()
+{
+    titleWidget = TitleWidget();
+    connect(titleWidget, &TitleWidget::minimizeClicked, this, &MainWindow::uiMinimize);
+    connect(titleWidget, &TitleWidget::maximizeClicked, this, &MainWindow::uiMaximize);
+    connect(titleWidget, &TitleWidget::closeClicked, this, &MainWindow::uiClose);
+}
+
+void MainWindow::settingWidgetInit()
+{
+    settingWidget = SettingWidget(mainWidget);
+    settingWidget->setGeometry(-mainWidget->width() / 3, titleWidget->height(),
+                               mainWidget->width() / 3,
+                               mainWidget->height() - titleWidget->height());
+    connect(settingWidget, &SettingWidget::baseUrlTextChanged, this,
+            &MainWindow::onBaseUrlTextChanged);
+    connect(settingWidget, &SettingWidget::apiKeyTextChanged, this,
+            &MainWindow::onApiKeyTextChanged);
+    connect(settingWidget, &SettingWidget::modelNameTextChanged, this,
+            &MainWindow::onModelNameTextChanged);
+    connect(settingWidget, &SettingWidget::maxTokensBoxValueChanged, this,
+            &MainWindow::onMaxTokensBoxValueChanged);
+    connect(settingWidget, &SettingWidget::topPBoxValueChanged, this,
+            &MainWindow::onTopPBoxValueChanged);
+    connect(settingWidget, &SettingWidget::temperatureBoxValueChanged, this,
+            &MainWindow::onTemperatureBoxValueChanged);
+    connect(settingWidget, &SettingWidget::maxTokensSliderValueChanged, this,
+            &MainWindow::onMaxTokensSliderValueChanged);
+    connect(settingWidget, &SettingWidget::topPSliderValueChanged, this,
+            &MainWindow::onTopPSliderValueChanged);
+    connect(settingWidget, &SettingWidget::temperatureSliderValueChanged, this,
+            &MainWindow::onTemperatureSliderValueChanged);
+
+    settingAnimationMove = QPropertyAnimation(settingWidget, "geometry");
+    settingAnimationMove->setDuration(1000);
+    settingAnimationMove->setEasingCurve(QEasingCurve::OutQuad);
+
+    settingWidgetIsOpen = false;
+}
+
+void MainWindow::chatRecordsWidgetInit()
+{
+    chatRecordsWidget = ChatRecordsWidget(mainWidget);
+    chatRecordsWidget->setGeometry(-mainWidget->width() / 3, titleWidget->height(),
+                                   mainWidget->width() / 3,
+                                   mainWidget->height() - titleWidget->height());
+    chatRecordsWidget->connectSettingButtonClick(this, &MainWindow::settingButtonClicked);
+    chatRecordsWidget->connectLineEditTextChanged(this, &MainWindow::showSearchRecords);
+    chatRecordsWidget->connectSearchButtonClick(this, &MainWindow::showSearchRecords);
+    chatRecordsWidget->connectClearAllButtonClick(this, &MainWindow::clearAllChatRecords);
+    chatRecordsWidget->connectListItemClick(this, &MainWindow::generateChatRecord);
+
+    chatRecordsAnimationMove = new QPropertyAnimation(chatRecordsWidget, "geometry");
+    chatRecordsAnimationMove->setDuration(1000);
+    chatRecordsAnimationMove->setEasingCurve(QEasingCurve::OutQuad);
+    connect(chatRecordsAnimationMove, &QPropertyAnimation::valueChanged, this,
+            &MainWindow::chatRecordsUiAnimationMove);
+    connect(chatRecordsAnimationMove, &QPropertyAnimation::finished, this,
+            &MainWindow::chatRecordsUiMoveFinished);
+
+    curChatFile = "";
+    chatRecordsWidgetIsOpen = false;
+}
 
 void MainWindow::checkGraphicsBackend()
 {
@@ -924,6 +974,378 @@ void MainWindow::isItemShowFull(QWidget *widget)
             }
         }
     }
+}
+
+void MainWindow::onBaseUrlTextChanged(const QString &text)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        if (lines.isEmpty()) {
+            lines.append("");
+        }
+        lines[0] = text;
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+}
+
+void MainWindow::onApiKeyTextChanged(const QString &text)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() < 2) {
+            lines.append("");
+        }
+        lines[1] = text;
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+}
+
+void MainWindow::onModelNameTextChanged(const QString &text)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() < 3) {
+            lines.append("");
+        }
+        lines[2] = text;
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+}
+
+void MainWindow::onMaxTokensBoxValueChanged(int i)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() < 4) {
+            lines.append("");
+        }
+        lines[3] = QString::number(i);
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+
+    // maxTokensSlider->setValue(i);
+}
+
+void MainWindow::onTopPBoxValueChanged(double d)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() < 5) {
+            lines.append("");
+        }
+        lines[4] = QString::number(d);
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+
+    // topPSlider->setValue(static_cast<int>(d * 100));
+}
+
+void MainWindow::onTemperatureBoxValueChanged(double d)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() < 6) {
+            lines.append("");
+        }
+        lines[5] = QString::number(d);
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+
+    // temperatureSlider->setValue(static_cast<int>((d - 0.01) * 100));
+}
+
+void MainWindow::onMaxTokensSliderValueChanged(int i)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() < 4) {
+            lines.append("");
+        }
+        lines[3] = QString::number(i);
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+
+    // maxTokensBox->setValue(i);
+}
+
+void MainWindow::onTopPSliderValueChanged(int i)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() < 5) {
+            lines.append("");
+        }
+        lines[4] = QString::number(i / 100.0);
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+
+    // topPBox->setValue(i / 100.0);
+}
+
+void MainWindow::onTemperatureSliderValueChanged(int i)
+{
+    try {
+        QFile file(configFilePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() < 6) {
+            lines.append("");
+        }
+        lines[5] = QString::number(i / 100.0 + 0.01);
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+
+    // temperatureBox->setValue(i / 100.0 + 0.01);
 }
 
 void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)

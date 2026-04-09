@@ -2,6 +2,7 @@
 #define TITLEWIDGET_H
 
 #pragma once
+#include "widget.h"
 #include "titlebutton.h"
 
 #include <QtWidgets/QWidget>
@@ -16,22 +17,15 @@
 #include <QtGui/QPixmap>
 #include <QtCore/QSize>
 
-class QLabel;
-class TitleButton;
-
 class TitleWidget : public QWidget
 {
     Q_OBJECT
-
 public:
     explicit TitleWidget(QWidget *parent = nullptr);
+    ~TitleWidget();
 
     void setRoundAngle();
     void setRightAngle();
-
-    TitleButton *minimizeButton() const;
-    TitleButton *maximizeButton() const;
-    TitleButton *closeButton() const;
 
 signals:
     void minimizeClicked();
@@ -51,14 +45,14 @@ private:
     bool isRound;
 
     QLabel *titleIconLabel;
-    QWidget *titleLeftSubWidget;
-    QWidget *titleRightSubWidget;
     TitleButton *minButton;
     TitleButton *maxButton;
     TitleButton *closeButton;
+    Widget *titleLeftSubWidget;
+    Widget *titleRightSubWidget;
 
-    QString maxPath;
-    QString normalPath;
+    QString maxImagePath;
+    QString normalImagePath;
 };
 
 #endif // TITLEWIDGET_H
