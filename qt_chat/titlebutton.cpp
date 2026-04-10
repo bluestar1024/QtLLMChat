@@ -9,9 +9,11 @@ TitleButton::TitleButton(const QString &tipText, int tipOffsetX, int tipOffsetY,
     updateTipStartPos();
 }
 
+TitleButton::~TitleButton() { }
+
 void TitleButton::setTipText(const QString &tipText)
 {
-    tipText = tipText;
+    this->tipText = tipText;
 }
 
 void TitleButton::setTipOffset(int x, int y)
@@ -57,7 +59,7 @@ bool TitleButton::event(QEvent *event)
         }
 
         if (!fontFamily.isEmpty()) {
-            QFont font(fontFamily, 10);
+            QFont font(fontFamily, buttonFontPointSize);
             QToolTip::setFont(font);
         }
 

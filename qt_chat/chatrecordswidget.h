@@ -33,6 +33,8 @@ public:
     template <typename T>
     void connectSettingButtonClick(T *receiver, void (T::*slot)(bool));
     template <typename T>
+    void connectLineEditTextChanged(T *receiver, void (T::*slot)());
+    template <typename T>
     void connectLineEditTextChanged(T *receiver, void (T::*slot)(const QString &));
     template <typename T>
     void connectSearchButtonClick(T *receiver, void (T::*slot)());
@@ -90,6 +92,12 @@ template <typename T>
 void ChatRecordsWidget::connectSettingButtonClick(T *receiver, void (T::*slot)(bool))
 {
     connect(settingButton, &QPushButton::clicked, receiver, slot);
+}
+
+template <typename T>
+void ChatRecordsWidget::connectLineEditTextChanged(T *receiver, void (T::*slot)())
+{
+    connect(lineEdit, &QLineEdit::textChanged, [=](const QString &) { (receiver->*slot)(); });
 }
 
 template <typename T>

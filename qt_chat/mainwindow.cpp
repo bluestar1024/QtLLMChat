@@ -26,12 +26,12 @@ const int maxTokensMaximum = 32768;
 const int initMaxTokensCurrentVal = 5000;
 const int topPMinimum = 0;
 const int topPMaximum = 1;
-const float initTopPCurrentVal = 0.8;
-const float topPSingleStep = 0.01;
-const float temperatureMinimum = 0.01;
+const double initTopPCurrentVal = 0.8;
+const double topPSingleStep = 0.01;
+const double temperatureMinimum = 0.01;
 const int temperatureMaximum = 1;
-const float initTemperatureCurrentVal = 0.8;
-const float temperatureSingleStep = 0.01;
+const double initTemperatureCurrentVal = 0.8;
+const double temperatureSingleStep = 0.01;
 const QString testText_1 = R"(<think>
 让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
 
@@ -718,7 +718,22 @@ $$\int_{a}^{b} {f(x)} \, \mathrm{d}x = F(b) - F(a)$$
 $$\frac{d}{dx} e^x = e^x$$
 )";
 
-MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isProcessing(false)
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent),
+      message(""),
+      isProcessing(false),
+      isRegenerate(false),
+      isRegenerateFirst(true),
+      isSetTexting(false),
+      pushButtonIsPress(false),
+      screenChanged(false),
+      isSending(false),
+      isContinueShow(true),
+      isScreenMax(false),
+      isScreenHalf(false),
+      isChangeRectFirst(false),
+      isDpiChanged(false),
+      avoidRepeatSelfFun(false)
 {
     QWebEngineProfile *sharedProfile = new QWebEngineProfile("shared");
     sharedProfile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
@@ -788,7 +803,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isPr
                               "    background-color: #F0F0F0;"
                               "}");
     mainVLayout = new QVBoxLayout(mainWidget);
-    // mainVLayout->addWidget(titleWidget);
+    mainVLayout->addWidget(titleWidget);
     mainVLayout->addWidget(contentWidget);
     mainVLayout->setContentsMargins(0, 0, 0, 0);
     mainVLayout->setSpacing(0);
@@ -799,61 +814,46 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), message(""), isPr
     shadow->setOffset(0, 0);
     shadow->setColor(QColor(0, 0, 0, 150));
     setGraphicsEffect(shadow);
-    messageWidgetList.clear();
-
     settingWidgetInit();
     chatRecordsWidgetInit();
+    emptyTextLabel = new PrintLabel("文本不能为空", this);
+    emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
+                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
+    emptyTextLabel->raise();
+    emptyTextLabel->hide();
+    textCopyLabel = new PrintLabel("文本复制成功", this);
+    textCopyLabel->move((width() - textCopyLabel->width()) / 2,
+                        titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
+    textCopyLabel->raise();
+    textCopyLabel->hide();
 
-    // emptyTextLabel = new PrintLabel("文本不能为空", this);
-    // emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
-    //                      titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
-    // emptyTextLabel->raise();
-    // emptyTextLabel->hide();
-    // textCopyLabel = new PrintLabel("文本复制成功", this);
-    // textCopyLabel->move((width() - textCopyLabel->width()) / 2,
-    //                     titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
-    // textCopyLabel->raise();
-    // textCopyLabel->hide();
-    isRegenerate = false;
-    isRegenerateFirst = true;
-    isSetTexting = false;
-    pushButtonIsPress = false;
+    messageWidgetList.clear();
     lastScreen = curScreen = screen();
     initDpi = lastDpi = curDpi = curScreen->logicalDotsPerInch();
-    screenChanged = false;
     thinkExpandedList.clear();
     thinkTimeLengthList.clear();
-    isSending = false;
-    isContinueShow = true;
-    isScreenMax = false;
-    isScreenHalf = false;
     lastNormalGeometry = geometry();
     uiRectWidth = width();
     uiRectHeight = height();
-    isChangeRectFirst = false;
     screens = QApplication::screens();
     for (QScreen *screen : screens) {
         connect(screen, &QScreen::logicalDotsPerInchChanged, this, &MainWindow::onDpiChanged);
     }
-    isDpiChanged = false;
+
     widgetSizeDict["MainWindow"] = size();
     widgetSizeDict["MainWindow minimumSize"] = minimumSize();
     widgetSizeDict["mainWidget"] = mainWidget->size();
     widgetSizeDict["mainWidget x"] = mainWidget->x();
     widgetSizeDict["mainWidget y"] = mainWidget->y();
-    avoidRepeatSelfFun = false;
-    // messageSendWidgetIsFinished = false;
 
     checkGraphicsBackend();
-
-    // dummyView->deleteLater();
 }
 
 MainWindow::~MainWindow() { }
 
 void MainWindow::titleWidgetInit()
 {
-    titleWidget = TitleWidget();
+    titleWidget = new TitleWidget();
     connect(titleWidget, &TitleWidget::minimizeClicked, this, &MainWindow::uiMinimize);
     connect(titleWidget, &TitleWidget::maximizeClicked, this, &MainWindow::uiMaximize);
     connect(titleWidget, &TitleWidget::closeClicked, this, &MainWindow::uiClose);
@@ -861,7 +861,7 @@ void MainWindow::titleWidgetInit()
 
 void MainWindow::settingWidgetInit()
 {
-    settingWidget = SettingWidget(mainWidget);
+    settingWidget = new SettingWidget(mainWidget);
     settingWidget->setGeometry(-mainWidget->width() / 3, titleWidget->height(),
                                mainWidget->width() / 3,
                                mainWidget->height() - titleWidget->height());
@@ -884,7 +884,7 @@ void MainWindow::settingWidgetInit()
     connect(settingWidget, &SettingWidget::temperatureSliderValueChanged, this,
             &MainWindow::onTemperatureSliderValueChanged);
 
-    settingAnimationMove = QPropertyAnimation(settingWidget, "geometry");
+    settingAnimationMove = new QPropertyAnimation(settingWidget, "geometry");
     settingAnimationMove->setDuration(1000);
     settingAnimationMove->setEasingCurve(QEasingCurve::OutQuad);
 
@@ -893,7 +893,7 @@ void MainWindow::settingWidgetInit()
 
 void MainWindow::chatRecordsWidgetInit()
 {
-    chatRecordsWidget = ChatRecordsWidget(mainWidget);
+    chatRecordsWidget = new ChatRecordsWidget(mainWidget);
     chatRecordsWidget->setGeometry(-mainWidget->width() / 3, titleWidget->height(),
                                    mainWidget->width() / 3,
                                    mainWidget->height() - titleWidget->height());
@@ -917,7 +917,6 @@ void MainWindow::chatRecordsWidgetInit()
 
 void MainWindow::checkGraphicsBackend()
 {
-    // 创建一个成员变量或使用静态变量
     window = new QQuickWindow();
     window->show();
     QTimer::singleShot(500, [&]() {
@@ -930,7 +929,15 @@ void MainWindow::checkGraphicsBackend()
     });
 }
 
-void MainWindow::onDpiChanged() { }
+void MainWindow::moveEvent(QMoveEvent *event)
+{
+    curScreen = screen();
+    if (lastScreen != curScreen) {
+        lastScreen = curScreen;
+        screenChanged = true;
+    }
+    QMainWindow::moveEvent(event);
+}
 
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
@@ -974,6 +981,84 @@ void MainWindow::isItemShowFull(QWidget *widget)
             }
         }
     }
+}
+
+void MainWindow::onDpiChanged() { }
+
+void MainWindow::uiMinimize()
+{
+    showMinimized();
+}
+
+void MainWindow::uiMaximize()
+{
+    if (isScreenMax) {
+        isScreenMax = false;
+        setGeometry(lastNormalGeometry);
+        // maxButton setTipText
+        // maxButton.setIcon(QIcon(maxImagesPath);
+        mainWidget->setStyleSheet("#mainWidget {"
+                                  "    border-radius: 16px;"
+                                  "    background-color: #f0f0f0;"
+                                  "}");
+        titleWidget->setRoundAngle();
+    } else {
+        isScreenMax = true;
+        if (!isScreenHalf)
+            lastNormalGeometry = geometry();
+        setGeometry(screen()->availableGeometry());
+        // maxButton setTipText
+        // maxButton.setIcon(QIcon(normalImagesPath);
+        mainWidget->setStyleSheet("#mainWidget {"
+                                  "    background-color: #f0f0f0;"
+                                  "}");
+        titleWidget->setRightAngle();
+    }
+}
+
+void MainWindow::uiClose()
+{
+    saveCurChatRecord(true);
+    close();
+}
+
+void MainWindow::settingButtonClicked()
+{
+    settingWidget->raise();
+    settingAnimationMove->setStartValue(settingWidget->geometry());
+    settingAnimationMove->setEndValue(
+            QRect(0, titleWidget->height(), settingWidget->width(), settingWidget->height()));
+    settingAnimationMove->start();
+    settingWidgetIsOpen = true;
+    pushButtonIsPress = true;
+}
+
+void MainWindow::chatRecordsUiAnimationMove(const QVariant &value)
+{
+    QRect rect = value.toRect();
+    chatFun->setFixedSize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
+                          chatFun->height());
+    chatFun->setSize();
+    chatShow->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width() - 29,
+                     chatShow->height());
+    chatShowWidget->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
+                           chatShowWidget->height());
+    chatInput->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width() - 40,
+                      chatInput->height());
+    chatInput->resetWidgetSize();
+    chatInputWidget->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
+                            chatInputWidget->height());
+    splitter->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
+                     splitter->height());
+    contentVLayout->setContentsMargins(rect.x() + chatRecordsWidget->width(), 0, 0, 0);
+}
+
+void MainWindow::chatRecordsUiMoveFinished()
+{
+    chatFun->saveWidgetSize();
+    if (!chatRecordsWidgetIsOpen)
+        chatRecordsWidget->delAllListItems();
+    messageWidgetRegenerate();
 }
 
 void MainWindow::onBaseUrlTextChanged(const QString &text)
@@ -1135,7 +1220,7 @@ void MainWindow::onMaxTokensBoxValueChanged(int i)
         qDebug() << "发生未知错误";
     }
 
-    // maxTokensSlider->setValue(i);
+    settingWidget->maxTokensSliderSetValue(i);
 }
 
 void MainWindow::onTopPBoxValueChanged(double d)
@@ -1177,7 +1262,7 @@ void MainWindow::onTopPBoxValueChanged(double d)
         qDebug() << "发生未知错误";
     }
 
-    // topPSlider->setValue(static_cast<int>(d * 100));
+    settingWidget->topPSliderSetValue(static_cast<int>(d * 100));
 }
 
 void MainWindow::onTemperatureBoxValueChanged(double d)
@@ -1219,7 +1304,7 @@ void MainWindow::onTemperatureBoxValueChanged(double d)
         qDebug() << "发生未知错误";
     }
 
-    // temperatureSlider->setValue(static_cast<int>((d - 0.01) * 100));
+    settingWidget->temperatureSliderSetValue(static_cast<int>((d - 0.01) * 100));
 }
 
 void MainWindow::onMaxTokensSliderValueChanged(int i)
@@ -1261,7 +1346,7 @@ void MainWindow::onMaxTokensSliderValueChanged(int i)
         qDebug() << "发生未知错误";
     }
 
-    // maxTokensBox->setValue(i);
+    settingWidget->maxTokensBoxSetValue(i);
 }
 
 void MainWindow::onTopPSliderValueChanged(int i)
@@ -1303,7 +1388,7 @@ void MainWindow::onTopPSliderValueChanged(int i)
         qDebug() << "发生未知错误";
     }
 
-    // topPBox->setValue(i / 100.0);
+    settingWidget->topPBoxSetValue(i / 100.0);
 }
 
 void MainWindow::onTemperatureSliderValueChanged(int i)
@@ -1345,7 +1430,7 @@ void MainWindow::onTemperatureSliderValueChanged(int i)
         qDebug() << "发生未知错误";
     }
 
-    // temperatureBox->setValue(i / 100.0 + 0.01);
+    settingWidget->temperatureBoxSetValue(i / 100.0 + 0.01);
 }
 
 void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
@@ -1447,10 +1532,6 @@ void MainWindow::onExecuteNext()
 
 void MainWindow::startThread()
 {
-    // if (!messageSendWidgetIsFinished) {
-    //     QTimer::singleShot(50, this, &MainWindow::startThread);
-    //     return;
-    // }
     connect(thread, &QThread::started, this, &MainWindow::messageStart);
     connect(thread, &MessageThread::newMessage, this, &MainWindow::queueMessage);
     connect(thread, &QThread::finished, this, &MainWindow::messageFinish);
@@ -1573,11 +1654,47 @@ void MainWindow::textCopy() { }
 
 void MainWindow::messageRenewResponse() { }
 
+void MainWindow::saveCurChatRecord(bool withholdCurChatFile) { }
+
+void MainWindow::chatRecordsGenerateItem(QString searchText) { }
+
+void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandList) { }
+
 void MainWindow::getSetTexting(bool state)
 {
     isSetTexting = state;
 }
 
+void MainWindow::messageWidgetRegenerate() { }
+
 void MainWindow::showChatRecords() { }
+
+void MainWindow::showSearchRecords()
+{
+    QString text = chatRecordsWidget->getLineEditText();
+    chatRecordsWidget->delAllListItems();
+    chatRecordsGenerateItem(text);
+}
+
+void MainWindow::clearAllChatRecords() { }
+
+void MainWindow::generateChatRecord(QListWidgetItem *item)
+{
+    if (isSending) {
+        thread->stop();
+        isSending = false;
+        if (messageRecvWidget)
+            messageRecvWidget->breakHandle();
+    }
+    saveCurChatRecord();
+    messageWidgetList.clear();
+    for (int i = 0; i < chatShow->count(); ++i) {
+        QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
+        itemWidget->deleteLater();
+    }
+    chatShow->clear();
+    curChatFile = chatRecordsWidget->listItemToString(item);
+    generateCurChatRecord();
+}
 
 void MainWindow::newChat() { }

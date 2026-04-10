@@ -31,11 +31,11 @@ extern const int maxTokensMaximum;
 extern const int initMaxTokensCurrentVal;
 extern const int topPMinimum;
 extern const int topPMaximum;
-extern const float initTopPCurrentVal;
-extern const float topPSingleStep;
-extern const float temperatureMinimum;
+extern const double initTopPCurrentVal;
+extern const double topPSingleStep;
+extern const double temperatureMinimum;
 extern const int temperatureMaximum;
-extern const float initTemperatureCurrentVal;
-extern const float temperatureSingleStep;
+extern const double initTemperatureCurrentVal;
+extern const double temperatureSingleStep;
 
 #endif // GLOBALVARIABLES_H

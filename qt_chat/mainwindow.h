@@ -51,22 +51,27 @@ enum class RegionEnum : int {
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 protected:
+    void moveEvent(QMoveEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
     void titleWidgetInit();
     void settingWidgetInit();
     void chatRecordsWidgetInit();
-    void textCopy();
-    void messageRenewResponse();
     void checkGraphicsBackend();
     void isItemShowFull(QWidget *widget);
+    void textCopy();
+    void messageRenewResponse();
+    void saveCurChatRecord(bool withholdCurChatFile = false);
+    void chatRecordsGenerateItem(QString searchText = "");
+    void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
+    void messageWidgetRegenerate();
+    void showChatRecords();
 
     QQuickWindow *window;
 
@@ -138,6 +143,15 @@ private:
 
 private slots:
     void onDpiChanged();
+    void uiMinimize();
+    void uiMaximize();
+    void uiClose();
+    void settingButtonClicked();
+    void chatRecordsUiAnimationMove(const QVariant &value);
+    void chatRecordsUiMoveFinished();
+    void showSearchRecords();
+    void clearAllChatRecords();
+    void generateChatRecord(QListWidgetItem *item);
     void onBaseUrlTextChanged(const QString &text);
     void onApiKeyTextChanged(const QString &text);
     void onModelNameTextChanged(const QString &text);
@@ -156,7 +170,6 @@ private slots:
     void recvMessage(const QString &text);
     void messageFinish();
     void getSetTexting(bool);
-    void showChatRecords();
     void newChat();
 };
 #endif // MAINWINDOW_H

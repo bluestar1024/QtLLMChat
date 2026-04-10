@@ -27,6 +27,13 @@ public:
     explicit SettingWidget(QWidget *parent = nullptr);
     ~SettingWidget();
 
+    void maxTokensBoxSetValue(int i);
+    void topPBoxSetValue(double i);
+    void temperatureBoxSetValue(double i);
+    void maxTokensSliderSetValue(int i);
+    void topPSliderSetValue(int i);
+    void temperatureSliderSetValue(int i);
+
 signals:
     void baseUrlTextChanged(const QString &);
     void apiKeyTextChanged(const QString &);

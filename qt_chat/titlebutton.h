@@ -16,6 +16,7 @@ class TitleButton : public QPushButton
 public:
     explicit TitleButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
                          QWidget *parent = nullptr);
+    ~TitleButton();
 
     void setTipText(const QString &tipText);
     void setTipOffset(int x, int y);

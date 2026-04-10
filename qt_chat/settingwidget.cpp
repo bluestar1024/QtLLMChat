@@ -402,3 +402,33 @@ void SettingWidget::createTemperatureWidget()
     temperatureVLayout->setContentsMargins(15, 25, 15, 25);
     temperatureVLayout->setSpacing(0);
 }
+
+void SettingWidget::maxTokensBoxSetValue(int i)
+{
+    maxTokensBox->setValue(i);
+}
+
+void SettingWidget::topPBoxSetValue(double i)
+{
+    topPBox->setValue(i);
+}
+
+void SettingWidget::temperatureBoxSetValue(double i)
+{
+    temperatureBox->setValue(i);
+}
+
+void SettingWidget::maxTokensSliderSetValue(int i)
+{
+    maxTokensSlider->setValue(i);
+}
+
+void SettingWidget::topPSliderSetValue(int i)
+{
+    topPSlider->setValue(i);
+}
+
+void SettingWidget::temperatureSliderSetValue(int i)
+{
+    temperatureSlider->setValue(i);
+}

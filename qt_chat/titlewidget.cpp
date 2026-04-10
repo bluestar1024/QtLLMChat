@@ -89,7 +89,7 @@ void TitleWidget::setupLeftWidget()
 
 void TitleWidget::setupRightWidget()
 {
-    minButton = new TitleButton("", 10, 35);
+    minButton = new TitleButton("最小化", 10, 35);
     minButton->setFixedSize(50, 40);
     QString minImagePath = imagesDir + "/min.png";
     minButton->setIcon(QIcon(minImagePath));
@@ -98,7 +98,7 @@ void TitleWidget::setupRightWidget()
                              "QPushButton:hover { background: #808080; }");
     connect(minButton, &QPushButton::clicked, this, &TitleWidget::minimizeClicked);
 
-    maxButton = new TitleButton("", 10, 35);
+    maxButton = new TitleButton("最大化", 10, 35);
     maxButton->setFixedSize(50, 40);
     maxImagePath = imagesDir + "/max.png";
     normalImagePath = imagesDir + "/normal.png";
@@ -108,7 +108,7 @@ void TitleWidget::setupRightWidget()
                              "QPushButton:hover { background: #808080; }");
     connect(maxButton, &QPushButton::clicked, this, &TitleWidget::maximizeClicked);
 
-    closeButton = new TitleButton("", 5, 35);
+    closeButton = new TitleButton("关闭", 5, 35);
     closeButton->setFixedSize(50, 40);
     QString closeImagePath = imagesDir + "/close.png";
     closeButton->setIcon(QIcon(closeImagePath));
