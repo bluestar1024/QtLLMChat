@@ -58,6 +58,7 @@ public:
 protected:
     void moveEvent(QMoveEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private:
     void titleWidgetInit();
@@ -65,6 +66,9 @@ private:
     void chatRecordsWidgetInit();
     void checkGraphicsBackend();
     void isItemShowFull(QWidget *widget);
+    void regionDivision();
+    void UiStretch();
+    void UiDrag(QPoint globalPos);
     void textCopy();
     void messageRenewResponse();
     void saveCurChatRecord(bool withholdCurChatFile = false);
@@ -74,10 +78,6 @@ private:
     void showChatRecords();
 
     QQuickWindow *window;
-
-    bool mouseLeftButtonIsPress;
-    RegionEnum regionDir;
-    int padding;
 
     FunWidget *chatFun;
     ListWidget *chatShow;
@@ -120,11 +120,20 @@ private:
     bool isScreenMax;
     bool isScreenHalf;
     QRect lastNormalGeometry;
-    int uiRectWidth;
-    int uiRectHeight;
     bool isChangeRectFirst;
     QList<QScreen *> screens;
+    RegionEnum regionDir;
+    int padding;
+    int cursorGlobalX;
+    int cursorGlobalY;
+    QPoint uiGlobalTL;
+    QPoint uiGlobalBR;
+    QRect screenGeometry;
+    int uiRectWidth;
+    int uiRectHeight;
+    QPoint pressPosDistanceUiGlobalTL;
     bool isDpiChanged;
+    bool mouseLeftButtonIsPress;
     QMap<QString, QVariant> widgetSizeDict;
     bool avoidRepeatSelfFun;
     bool first;

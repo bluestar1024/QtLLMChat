@@ -143,3 +143,31 @@ void TitleWidget::setupMainLayout()
     mainLayout->addWidget(titleRightSubWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0);
 }
+
+void TitleWidget::maxButtonToggleIcon(bool isMaxIcon)
+{
+    if (isMaxIcon) {
+        maxButton->setIcon(QIcon(maxImagePath));
+        maxButton->setTipText("最大化");
+        maxButton->setTipOffset(10, 35);
+    } else {
+        maxButton->setIcon(QIcon(normalImagePath));
+        maxButton->setTipText("正常");
+        maxButton->setTipOffset(5, 35);
+    }
+}
+
+QSize TitleWidget::getMinButtonSize()
+{
+    return minButton->size();
+}
+
+QSize TitleWidget::getMaxButtonSize()
+{
+    return maxButton->size();
+}
+
+QSize TitleWidget::getCloseButtonSize()
+{
+    return closeButton->size();
+}

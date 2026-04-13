@@ -26,6 +26,10 @@ public:
 
     void setRoundAngle();
     void setRightAngle();
+    void maxButtonToggleIcon(bool isMaxIcon = true);
+    QSize getMinButtonSize();
+    QSize getMaxButtonSize();
+    QSize getCloseButtonSize();
 
 signals:
     void minimizeClicked();

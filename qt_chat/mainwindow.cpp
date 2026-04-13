@@ -942,6 +942,52 @@ void MainWindow::moveEvent(QMoveEvent *event)
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
     isItemShowFull(childAt(event->pos()));
+    QPoint cursorGlobalPos = event->globalPosition().toPoint();
+    cursorGlobalX = cursorGlobalPos.x();
+    cursorGlobalY = cursorGlobalPos.y();
+    uiGlobalTL = mainWidget->mapToGlobal(QPoint(0, 0));
+    uiGlobalBR = mainWidget->mapToGlobal(QPoint(mainWidget->width() - 1, mainWidget->height() - 1));
+    if (!mouseLeftButtonIsPress)
+        regionDivision();
+    else {
+        if ((regionDir != RegionEnum::Title) && (regionDir != RegionEnum::Button)
+            && (regionDir != RegionEnum::Middle))
+            UiStretch();
+        else {
+            if (regionDir == RegionEnum::Title) {
+                UiDrag(event->globalPosition().toPoint());
+                if (!(screens.size() > 1)) {
+                    screenGeometry = screen()->availableGeometry();
+                    if (event->globalPosition().toPoint().x() <= screenGeometry.x()) {
+                        if (!((width() == screenGeometry.width() / 2)
+                              && (height() == screenGeometry.height()))) {
+                            uiRectWidth = width();
+                            uiRectHeight = height();
+                            isChangeRectFirst = true;
+                        }
+                        setGeometry(screenGeometry.x(), screenGeometry.y(),
+                                    screenGeometry.width() / 2, screenGeometry.height());
+                        mainWidget->setGeometry(0, 0, width(), height());
+                        mainWidget->setStyleSheet("#mainWidget {"
+                                                  "    background-color: #F0F0F0;"
+                                                  "}");
+                        titleWidget->setRightAngle();
+                        isScreenHalf = true;
+                    } else {
+                        if (isChangeRectFirst) {
+                            isChangeRectFirst = false;
+                            resize(uiRectWidth, uiRectHeight);
+                            mainWidget->setStyleSheet("#mainWidget {"
+                                                      "    border-radius: 16px;"
+                                                      "    background-color: #F0F0F0;"
+                                                      "}");
+                            titleWidget->setRoundAngle();
+                        }
+                    }
+                }
+            }
+        }
+    }
     QMainWindow::mouseMoveEvent(event);
 }
 
@@ -983,6 +1029,170 @@ void MainWindow::isItemShowFull(QWidget *widget)
     }
 }
 
+void MainWindow::regionDivision()
+{
+    if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)
+        && (cursorGlobalY >= uiGlobalTL.y()) && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
+        regionDir = RegionEnum::LeftTop;
+        setCursor(QCursor(Qt::SizeFDiagCursor));
+    } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())
+               && (cursorGlobalY >= uiGlobalTL.y())
+               && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
+        regionDir = RegionEnum::RightTop;
+        setCursor(QCursor(Qt::SizeBDiagCursor));
+    } else if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)
+               && (cursorGlobalY >= uiGlobalBR.y() - padding)
+               && (cursorGlobalY <= uiGlobalBR.y())) {
+        regionDir = RegionEnum::LeftBottom;
+        setCursor(QCursor(Qt::SizeBDiagCursor));
+    } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())
+               && (cursorGlobalY >= uiGlobalBR.y() - padding)
+               && (cursorGlobalY <= uiGlobalBR.y())) {
+        regionDir = RegionEnum::RightBottom;
+        setCursor(QCursor(Qt::SizeFDiagCursor));
+    } else if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)) {
+        regionDir = RegionEnum::Left;
+        setCursor(QCursor(Qt::SizeHorCursor));
+    } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())) {
+        regionDir = RegionEnum::Right;
+        setCursor(QCursor(Qt::SizeHorCursor));
+    } else if ((cursorGlobalY >= uiGlobalTL.y()) && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
+        regionDir = RegionEnum::Top;
+        setCursor(QCursor(Qt::SizeVerCursor));
+    } else if ((cursorGlobalY >= uiGlobalBR.y() - padding) && (cursorGlobalY <= uiGlobalBR.y())) {
+        regionDir = RegionEnum::Bottom;
+        setCursor(QCursor(Qt::SizeVerCursor));
+    } else if ((cursorGlobalX >= uiGlobalTL.x() + padding + 1)
+               && (cursorGlobalX <= uiGlobalBR.x() - padding - 1)
+               && (cursorGlobalY >= uiGlobalTL.y() + padding + 1)
+               && (cursorGlobalY <= uiGlobalTL.y() + titleWidget->height())) {
+        if (cursorGlobalX <= uiGlobalBR.x() - titleWidget->getMinButtonSize().width()
+                    - titleWidget->getMaxButtonSize().width()
+                    - titleWidget->getCloseButtonSize().width() - 1)
+            regionDir = RegionEnum::Title;
+        else
+            regionDir = RegionEnum::Button;
+        setCursor(QCursor(Qt::ArrowCursor));
+    } else {
+        regionDir = RegionEnum::Middle;
+        setCursor(QCursor(Qt::ArrowCursor));
+    }
+}
+
+void MainWindow::UiStretch()
+{
+    QRect uiGlobalRect(uiGlobalTL, uiGlobalBR);
+    switch (regionDir) {
+    case RegionEnum::Left:
+        if (uiGlobalBR.x() - cursorGlobalX
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            uiGlobalRect.setX(cursorGlobalX);
+        else
+            uiGlobalRect.setX(uiGlobalBR.x()
+                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt()) + 1);
+        break;
+    case RegionEnum::Right:
+        if (cursorGlobalX - uiGlobalTL.x()
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
+        else
+            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt());
+        break;
+    case RegionEnum::Top:
+        if (uiGlobalBR.y() - cursorGlobalY
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            uiGlobalRect.setY(cursorGlobalY);
+        else
+            uiGlobalRect.setY(uiGlobalBR.y()
+                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt()) + 1);
+        break;
+    case RegionEnum::Bottom:
+        if (cursorGlobalY - uiGlobalTL.y()
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
+        else
+            uiGlobalRect.setHeight(minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt());
+        break;
+    case RegionEnum::LeftTop:
+        if (uiGlobalBR.x() - cursorGlobalX
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            uiGlobalRect.setX(cursorGlobalX);
+        else
+            uiGlobalRect.setX(uiGlobalBR.x()
+                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt()) + 1);
+        if (uiGlobalBR.y() - cursorGlobalY
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            uiGlobalRect.setY(cursorGlobalY);
+        else
+            uiGlobalRect.setY(uiGlobalBR.y()
+                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt()) + 1);
+        break;
+    case RegionEnum::RightTop:
+        if (cursorGlobalX - uiGlobalTL.x()
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
+        else
+            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt());
+        if (uiGlobalBR.y() - cursorGlobalY
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            uiGlobalRect.setY(cursorGlobalY);
+        else
+            uiGlobalRect.setY(uiGlobalBR.y()
+                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt()) + 1);
+        break;
+    case RegionEnum::LeftBottom:
+        if (uiGlobalBR.x() - cursorGlobalX
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            uiGlobalRect.setX(cursorGlobalX);
+        else
+            uiGlobalRect.setX(uiGlobalBR.x()
+                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt()) + 1);
+        if (cursorGlobalY - uiGlobalTL.y()
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
+        else
+            uiGlobalRect.setHeight(minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt());
+        break;
+    case RegionEnum::RightBottom:
+        if (cursorGlobalX - uiGlobalTL.x()
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
+        else
+            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt());
+        if (cursorGlobalY - uiGlobalTL.y()
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
+        else
+            uiGlobalRect.setHeight(minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt());
+    default:
+        break;
+    }
+    QRect windowGlobalRect(uiGlobalRect.x() - widgetSizeDict["mainWidget x"].toInt(),
+                           uiGlobalRect.y() - widgetSizeDict["mainWidget y"].toInt(),
+                           uiGlobalRect.width() + 2 * widgetSizeDict["mainWidget x"].toInt(),
+                           uiGlobalRect.height() + 2 * widgetSizeDict["mainWidget y"].toInt());
+    setGeometry(windowGlobalRect);
+}
+
+void MainWindow::UiDrag(QPoint globalPos)
+{
+    move(pressPosDistanceUiGlobalTL + globalPos);
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *event)
+{
+    qDebug() << "mousePressEvent isScreenMax" << isScreenMax;
+    if (event->button() == Qt::LeftButton) {
+        mouseLeftButtonIsPress = true;
+        if (regionDir == RegionEnum::Title) {
+            pressPosDistanceUiGlobalTL = geometry().topLeft() - event->globalPosition().toPoint();
+            if ((!isScreenHalf) && (!isScreenMax))
+                lastNormalGeometry = geometry();
+        }
+    }
+    QMainWindow::mousePressEvent(event);
+}
+
 void MainWindow::onDpiChanged() { }
 
 void MainWindow::uiMinimize()
@@ -995,8 +1205,7 @@ void MainWindow::uiMaximize()
     if (isScreenMax) {
         isScreenMax = false;
         setGeometry(lastNormalGeometry);
-        // maxButton setTipText
-        // maxButton.setIcon(QIcon(maxImagesPath);
+        titleWidget->maxButtonToggleIcon(true);
         mainWidget->setStyleSheet("#mainWidget {"
                                   "    border-radius: 16px;"
                                   "    background-color: #f0f0f0;"
@@ -1007,8 +1216,7 @@ void MainWindow::uiMaximize()
         if (!isScreenHalf)
             lastNormalGeometry = geometry();
         setGeometry(screen()->availableGeometry());
-        // maxButton setTipText
-        // maxButton.setIcon(QIcon(normalImagesPath);
+        titleWidget->maxButtonToggleIcon(false);
         mainWidget->setStyleSheet("#mainWidget {"
                                   "    background-color: #f0f0f0;"
                                   "}");
