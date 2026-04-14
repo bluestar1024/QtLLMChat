@@ -58,7 +58,10 @@ public:
 protected:
     void moveEvent(QMoveEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     void titleWidgetInit();
@@ -128,7 +131,6 @@ private:
     int cursorGlobalY;
     QPoint uiGlobalTL;
     QPoint uiGlobalBR;
-    QRect screenGeometry;
     int uiRectWidth;
     int uiRectHeight;
     QPoint pressPosDistanceUiGlobalTL;

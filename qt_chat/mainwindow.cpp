@@ -11,8 +11,9 @@ QString codeThemeFilePath = ":/config/dark_theme.xml";
 const QString webEngineCacheDir = ":/webengine_cache";
 QWebEngineProfile *sharedProfile = nullptr;
 const int windowFontPointSize = 10;
-const int windowFontPixelSize = 20;
-const int titleFontPixelSize = 28;
+int windowFontPixelSize = 20;
+const int titleFontPointSize = 14;
+int titleFontPixelSize = 28;
 const int buttonFontPointSize = 9;
 const QColor textEditFullBGColor = QColor(224, 224, 224);
 const QColor textEditFullBGTColor = QColor(224, 224, 224, 0);
@@ -957,7 +958,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
             if (regionDir == RegionEnum::Title) {
                 UiDrag(event->globalPosition().toPoint());
                 if (!(screens.size() > 1)) {
-                    screenGeometry = screen()->availableGeometry();
+                    QRect screenGeometry = screen()->availableGeometry();
                     if (event->globalPosition().toPoint().x() <= screenGeometry.x()) {
                         if (!((width() == screenGeometry.width() / 2)
                               && (height() == screenGeometry.height()))) {
@@ -1085,98 +1086,133 @@ void MainWindow::UiStretch()
     switch (regionDir) {
     case RegionEnum::Left:
         if (uiGlobalBR.x() - cursorGlobalX
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
             uiGlobalRect.setX(cursorGlobalX);
         else
             uiGlobalRect.setX(uiGlobalBR.x()
-                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt()) + 1);
+                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+                              + 1);
         break;
     case RegionEnum::Right:
         if (cursorGlobalX - uiGlobalTL.x()
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
             uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
         else
-            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt());
+            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
         break;
     case RegionEnum::Top:
         if (uiGlobalBR.y() - cursorGlobalY
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
             uiGlobalRect.setY(cursorGlobalY);
         else
             uiGlobalRect.setY(uiGlobalBR.y()
-                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt()) + 1);
+                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+                              + 1);
         break;
     case RegionEnum::Bottom:
         if (cursorGlobalY - uiGlobalTL.y()
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
             uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
         else
-            uiGlobalRect.setHeight(minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt());
+            uiGlobalRect.setHeight(minimumHeight()
+                                   - 2 * widgetSizeDict["mainWidget y"].value<int>());
         break;
     case RegionEnum::LeftTop:
         if (uiGlobalBR.x() - cursorGlobalX
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
             uiGlobalRect.setX(cursorGlobalX);
         else
             uiGlobalRect.setX(uiGlobalBR.x()
-                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt()) + 1);
+                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+                              + 1);
         if (uiGlobalBR.y() - cursorGlobalY
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
             uiGlobalRect.setY(cursorGlobalY);
         else
             uiGlobalRect.setY(uiGlobalBR.y()
-                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt()) + 1);
+                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+                              + 1);
         break;
     case RegionEnum::RightTop:
         if (cursorGlobalX - uiGlobalTL.x()
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
             uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
         else
-            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt());
+            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
         if (uiGlobalBR.y() - cursorGlobalY
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
             uiGlobalRect.setY(cursorGlobalY);
         else
             uiGlobalRect.setY(uiGlobalBR.y()
-                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt()) + 1);
+                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+                              + 1);
         break;
     case RegionEnum::LeftBottom:
         if (uiGlobalBR.x() - cursorGlobalX
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
             uiGlobalRect.setX(cursorGlobalX);
         else
             uiGlobalRect.setX(uiGlobalBR.x()
-                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt()) + 1);
+                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+                              + 1);
         if (cursorGlobalY - uiGlobalTL.y()
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
             uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
         else
-            uiGlobalRect.setHeight(minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt());
+            uiGlobalRect.setHeight(minimumHeight()
+                                   - 2 * widgetSizeDict["mainWidget y"].value<int>());
         break;
     case RegionEnum::RightBottom:
         if (cursorGlobalX - uiGlobalTL.x()
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt())
+            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
             uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
         else
-            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].toInt());
+            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
         if (cursorGlobalY - uiGlobalTL.y()
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt())
+            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
             uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
         else
-            uiGlobalRect.setHeight(minimumHeight() - 2 * widgetSizeDict["mainWidget y"].toInt());
+            uiGlobalRect.setHeight(minimumHeight()
+                                   - 2 * widgetSizeDict["mainWidget y"].value<int>());
     default:
         break;
     }
-    QRect windowGlobalRect(uiGlobalRect.x() - widgetSizeDict["mainWidget x"].toInt(),
-                           uiGlobalRect.y() - widgetSizeDict["mainWidget y"].toInt(),
-                           uiGlobalRect.width() + 2 * widgetSizeDict["mainWidget x"].toInt(),
-                           uiGlobalRect.height() + 2 * widgetSizeDict["mainWidget y"].toInt());
+    QRect windowGlobalRect(uiGlobalRect.x() - widgetSizeDict["mainWidget x"].value<int>(),
+                           uiGlobalRect.y() - widgetSizeDict["mainWidget y"].value<int>(),
+                           uiGlobalRect.width() + 2 * widgetSizeDict["mainWidget x"].value<int>(),
+                           uiGlobalRect.height() + 2 * widgetSizeDict["mainWidget y"].value<int>());
     setGeometry(windowGlobalRect);
 }
 
 void MainWindow::UiDrag(QPoint globalPos)
 {
     move(pressPosDistanceUiGlobalTL + globalPos);
+}
+
+void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if (regionDir == RegionEnum::Title) {
+        if (isScreenMax) {
+            isScreenMax = false;
+            setGeometry(lastNormalGeometry);
+            titleWidget->maxButtonToggleIcon(true);
+            mainWidget->setStyleSheet("#mainWidget {"
+                                      "    border-radius: 16px;"
+                                      "    background-color: #F0F0F0;"
+                                      "}");
+            titleWidget->setRoundAngle();
+        } else {
+            isScreenMax = true;
+            if (!isScreenHalf)
+                lastNormalGeometry = geometry();
+            setGeometry(screen()->availableGeometry());
+            titleWidget->maxButtonToggleIcon(false);
+            mainWidget->setStyleSheet("#mainWidget {"
+                                      "    background-color: #F0F0F0;"
+                                      "}");
+            titleWidget->setRightAngle();
+        }
+    }
 }
 
 void MainWindow::mousePressEvent(QMouseEvent *event)
@@ -1193,7 +1229,166 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     QMainWindow::mousePressEvent(event);
 }
 
-void MainWindow::onDpiChanged() { }
+void MainWindow::mouseReleaseEvent(QMouseEvent *event)
+{
+    qDebug() << "mouseReleaseEvent isScreenMax" << isScreenMax;
+    if (event->button() == Qt::LeftButton) {
+        mouseLeftButtonIsPress = false;
+        if (isScreenHalf) {
+            QRect screenGeometry = screen()->availableGeometry();
+            QRect screen_half_rect = QRect(screenGeometry.x(), screenGeometry.y(),
+                                           screenGeometry.width() / 2, screenGeometry.height());
+            if ((geometry().topLeft() != screen_half_rect.topLeft())
+                || (geometry().width() != screen_half_rect.width())
+                || (geometry().height() != screen_half_rect.height())) {
+                if (!isScreenMax)
+                    isScreenHalf = false;
+            }
+        }
+        if (pushButtonIsPress)
+            pushButtonIsPress = false;
+        else {
+            QRect chatInputRect;
+            if (settingWidgetIsOpen)
+                chatInputRect =
+                        QRect(chatInput->geometry().x() + settingWidget->width(),
+                              chatInput->geometry().y() + titleWidget->height() + chatFun->height()
+                                      + chatShowWidget->height(),
+                              chatInput->geometry().width(), chatInput->geometry().height());
+            else if (chatRecordsWidgetIsOpen)
+                chatInputRect =
+                        QRect(chatInput->geometry().x() + chatRecordsWidget->width(),
+                              chatInput->geometry().y() + titleWidget->height() + chatFun->height()
+                                      + chatShowWidget->height(),
+                              chatInput->geometry().width(), chatInput->geometry().height());
+            else
+                chatInputRect =
+                        QRect(chatInput->geometry().x(),
+                              chatInput->geometry().y() + titleWidget->height() + chatFun->height()
+                                      + chatShowWidget->height(),
+                              chatInput->geometry().width(), chatInput->geometry().height());
+            if (chatInputRect.contains(event->pos()))
+                chatInput->backgroundColorShowLight();
+            else {
+                chatInput->backgroundColorShowDark();
+                chatInput->clearFocus();
+            }
+        }
+        if (screenChanged) {
+            qDebug() << "mouseReleaseEvent screenChanged";
+            curDpi = curScreen->logicalDotsPerInch();
+            windowFontPixelSize = std::ceil(windowFontPointSize * (curDpi / 72));
+            titleFontPixelSize = std::ceil(titleFontPointSize * (curDpi / 72));
+            screenChanged = false;
+        }
+        if (isRegenerate) {
+            qDebug() << "mouseReleaseEvent isRegenerate";
+            isRegenerate = false;
+            messageWidgetRegenerate();
+        }
+    }
+    QMainWindow::mouseReleaseEvent(event);
+}
+
+void MainWindow::onDpiChanged()
+{
+    qDebug() << "onDpiChanged";
+    lastDpi = curDpi;
+    curDpi = curScreen->logicalDotsPerInch();
+    windowFontPixelSize = std::ceil(windowFontPointSize * (curDpi / 72));
+    isDpiChanged = true;
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    if (avoidRepeatSelfFun) {
+        avoidRepeatSelfFun = false;
+        return;
+    }
+    if (isDpiChanged) {
+        setMinimumSize(qRound(widgetSizeDict["MainWindow minimumSize"].value<QSize>().width()
+                              * curDpi / lastDpi),
+                       qRound(widgetSizeDict["MainWindow minimumSize"].value<QSize>().height()
+                              * curDpi / lastDpi));
+        widgetSizeDict["MainWindow minimumSize"] = minimumSize();
+    }
+    qDebug() << "resizeEvent isScreenMax" << isScreenMax;
+    if (isScreenMax)
+        mainWidget->setGeometry(0, 0, width(), height());
+    else {
+        if (isDpiChanged) {
+            mainWidget->setGeometry(
+                    qRound(widgetSizeDict["mainWidget x"].value<int>() * curDpi / lastDpi),
+                    qRound(widgetSizeDict["mainWidget y"].value<int>() * curDpi / lastDpi),
+                    qRound(widgetSizeDict["mainWidget"].value<QSize>().width() * curDpi / lastDpi),
+                    qRound(widgetSizeDict["mainWidget"].value<QSize>().height() * curDpi
+                           / lastDpi));
+            widgetSizeDict["mainWidget"] = mainWidget->size();
+            widgetSizeDict["mainWidget x"] = mainWidget->x();
+            widgetSizeDict["mainWidget y"] = mainWidget->y();
+        } else {
+            mainWidget->setGeometry(widgetSizeDict["mainWidget x"].value<int>(),
+                                    widgetSizeDict["mainWidget y"].value<int>(),
+                                    width() - 2 * widgetSizeDict["mainWidget x"].value<int>(),
+                                    height() - 2 * widgetSizeDict["mainWidget y"].value<int>());
+            widgetSizeDict["mainWidget"] = mainWidget->size();
+        }
+    }
+    // if isDpiChanged:
+    settingWidget->resize(mainWidget->width() / 3, mainWidget->height() - titleWidget->height());
+    chatRecordsWidget->resize(mainWidget->width() / 3,
+                              mainWidget->height() - titleWidget->height());
+    chatRecordsWidget->resetWidgetSize();
+    if (settingWidgetIsOpen || chatRecordsWidgetIsOpen) {
+        chatFun->setFixedSize(mainWidget->width() * 2 / 3, chatFun->height());
+        chatFun->resetWidgetSize();
+        chatShow->resize(mainWidget->width() * 2 / 3 - 29, chatShow->height());
+        chatShowWidget->resize(mainWidget->width() * 2 / 3, chatShowWidget->height());
+        chatInput->resize(mainWidget->width() * 2 / 3 - 40, chatInput->height());
+        chatInput->resetWidgetSize();
+        chatInputWidget->resize(mainWidget->width() * 2 / 3, chatInputWidget->height());
+        splitter->resize(mainWidget->width() * 2 / 3, splitter->height());
+        contentVLayout->setContentsMargins(mainWidget->width() / 3, 0, 0, 0);
+        if (settingWidgetIsOpen)
+            settingWidget->move(0, titleWidget->height());
+        else
+            settingWidget->move(-settingWidget->width(), titleWidget->height());
+        if (chatRecordsWidgetIsOpen)
+            chatRecordsWidget->move(0, titleWidget->height());
+        else
+            chatRecordsWidget->move(-chatRecordsWidget->width(), titleWidget->height());
+    } else {
+        chatFun->setFixedSize(mainWidget->width(), chatFun->height());
+        chatFun->resetWidgetSize();
+        chatInput->resetWidgetSize();
+        settingWidget->move(-settingWidget->width(), titleWidget->height());
+        chatRecordsWidget->move(-chatRecordsWidget->width(), titleWidget->height());
+    }
+
+    emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
+                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
+    textCopyLabel->move((width() - textCopyLabel->width()) / 2,
+                        titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
+    isRegenerate = true;
+    if (isRegenerateFirst) {
+        isRegenerateFirst = false;
+        isRegenerate = false;
+    }
+    if (isDpiChanged) {
+        isDpiChanged = false;
+        if ((qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi)
+             != width())
+            || (qRound(widgetSizeDict["MainWindow"].value<QSize>().height() * curDpi / lastDpi)
+                != height())) {
+            avoidRepeatSelfFun = true;
+            resize(qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi),
+                   qRound(widgetSizeDict["MainWindow"].value<QSize>().height() * curDpi / lastDpi));
+        }
+        isRegenerate = false;
+        qDebug() << "resizeEvent isDpiChanged isRegenerate";
+        messageWidgetRegenerate();
+    }
+}
 
 void MainWindow::uiMinimize()
 {
