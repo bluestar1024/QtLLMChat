@@ -11,7 +11,7 @@ public:
     explicit SettingEdit(QWidget *parent = nullptr);
     ~SettingEdit();
 
-    void setSize(int width, int height);
+    void setSize(QSize s);
 
 private:
     void updateStyleSheet();

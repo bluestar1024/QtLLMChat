@@ -173,7 +173,7 @@ void SettingWidget::setupUI()
     resize(400, 760);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
-    QVBoxLayout *settingVLayout = new QVBoxLayout(this);
+    settingVLayout = new QVBoxLayout(this);
     settingVLayout->addWidget(modelSelectWidget);
     settingVLayout->addWidget(maxTokensWidget);
     settingVLayout->addWidget(topPWidget);
@@ -213,7 +213,7 @@ void SettingWidget::createModelSelectWidget()
                                      "    background: white;"
                                      "}");
 
-    QWidget *baseUrlWidget = new QWidget();
+    baseUrlWidget = new QWidget();
     baseUrlWidget->setFixedSize(340, 40);
     baseUrlWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     baseUrlWidget->setObjectName("baseUrlWidget");
@@ -221,7 +221,7 @@ void SettingWidget::createModelSelectWidget()
                                  "    background: transparent;"
                                  "}");
 
-    QHBoxLayout *baseUrlHLayout = new QHBoxLayout(baseUrlWidget);
+    baseUrlHLayout = new QHBoxLayout(baseUrlWidget);
     baseUrlHLayout->setSpacing(9);
     baseUrlEdit->setFixedSize(baseUrlWidget->width() - baseUrlLabel->width() - 10,
                               baseUrlEdit->height());
@@ -229,7 +229,7 @@ void SettingWidget::createModelSelectWidget()
     baseUrlHLayout->addWidget(baseUrlEdit);
     baseUrlHLayout->setContentsMargins(0, 4, 0, 4);
 
-    QWidget *apiKeyWidget = new QWidget();
+    apiKeyWidget = new QWidget();
     apiKeyWidget->setFixedSize(340, 40);
     apiKeyWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     apiKeyWidget->setObjectName("apiKeyWidget");
@@ -237,7 +237,7 @@ void SettingWidget::createModelSelectWidget()
                                 "    background: transparent;"
                                 "}");
 
-    QHBoxLayout *apiKeyHLayout = new QHBoxLayout(apiKeyWidget);
+    apiKeyHLayout = new QHBoxLayout(apiKeyWidget);
     apiKeyHLayout->setSpacing(9);
     apiKeyEdit->setFixedSize(apiKeyWidget->width() - apiKeyLabel->width() - 10,
                              apiKeyEdit->height());
@@ -245,7 +245,7 @@ void SettingWidget::createModelSelectWidget()
     apiKeyHLayout->addWidget(apiKeyEdit);
     apiKeyHLayout->setContentsMargins(0, 4, 0, 4);
 
-    QWidget *modelNameWidget = new QWidget();
+    modelNameWidget = new QWidget();
     modelNameWidget->setFixedSize(340, 40);
     modelNameWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     modelNameWidget->setObjectName("modelNameWidget");
@@ -253,7 +253,7 @@ void SettingWidget::createModelSelectWidget()
                                    "    background: transparent;"
                                    "}");
 
-    QHBoxLayout *modelNameHLayout = new QHBoxLayout(modelNameWidget);
+    modelNameHLayout = new QHBoxLayout(modelNameWidget);
     modelNameHLayout->setSpacing(9);
     modelNameEdit->setFixedSize(modelNameWidget->width() - modelNameLabel->width() - 10,
                                 modelNameEdit->height());
@@ -261,7 +261,7 @@ void SettingWidget::createModelSelectWidget()
     modelNameHLayout->addWidget(modelNameEdit);
     modelNameHLayout->setContentsMargins(0, 4, 0, 4);
 
-    QVBoxLayout *modelSelectVLayout = new QVBoxLayout(modelSelectWidget);
+    modelSelectVLayout = new QVBoxLayout(modelSelectWidget);
     modelSelectVLayout->addWidget(baseUrlWidget);
     modelSelectVLayout->addWidget(apiKeyWidget);
     modelSelectVLayout->addWidget(modelNameWidget);
@@ -280,7 +280,7 @@ void SettingWidget::createMaxTokensWidget()
                                    "    background: white;"
                                    "}");
 
-    QWidget *maxTokensTopSubWidget = new QWidget();
+    maxTokensTopSubWidget = new QWidget();
     maxTokensTopSubWidget->resize(340, 40);
     maxTokensTopSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     maxTokensTopSubWidget->setObjectName("maxTokensTopSubWidget");
@@ -288,14 +288,14 @@ void SettingWidget::createMaxTokensWidget()
                                          "    background: transparent;"
                                          "}");
 
-    QHBoxLayout *maxTokensTopSubHLayout = new QHBoxLayout(maxTokensTopSubWidget);
+    maxTokensTopSubHLayout = new QHBoxLayout(maxTokensTopSubWidget);
     maxTokensTopSubHLayout->setSpacing(maxTokensTopSubWidget->width() / 2
                                        - maxTokensLabel->width());
     maxTokensTopSubHLayout->addWidget(maxTokensLabel);
     maxTokensTopSubHLayout->addWidget(maxTokensBox);
     maxTokensTopSubHLayout->setContentsMargins(0, 5, 0, 3);
 
-    QWidget *maxTokensBottomSubWidget = new QWidget();
+    maxTokensBottomSubWidget = new QWidget();
     maxTokensBottomSubWidget->resize(340, 40);
     maxTokensBottomSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     maxTokensBottomSubWidget->setObjectName("maxTokensBottomSubWidget");
@@ -303,11 +303,11 @@ void SettingWidget::createMaxTokensWidget()
                                             "    background: transparent;"
                                             "}");
 
-    QHBoxLayout *maxTokensBottomSubHLayout = new QHBoxLayout(maxTokensBottomSubWidget);
+    maxTokensBottomSubHLayout = new QHBoxLayout(maxTokensBottomSubWidget);
     maxTokensBottomSubHLayout->addWidget(maxTokensSlider);
     maxTokensBottomSubHLayout->setContentsMargins(0, 9, 0, 5);
 
-    QVBoxLayout *maxTokensVLayout = new QVBoxLayout(maxTokensWidget);
+    maxTokensVLayout = new QVBoxLayout(maxTokensWidget);
     maxTokensVLayout->addWidget(maxTokensTopSubWidget);
     maxTokensVLayout->addWidget(maxTokensBottomSubWidget);
     maxTokensVLayout->setContentsMargins(15, 25, 15, 25);
@@ -325,7 +325,7 @@ void SettingWidget::createTopPWidget()
                               "    background: white;"
                               "}");
 
-    QWidget *topPTopSubWidget = new QWidget();
+    topPTopSubWidget = new QWidget();
     topPTopSubWidget->resize(340, 40);
     topPTopSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     topPTopSubWidget->setObjectName("topPTopSubWidget");
@@ -333,13 +333,13 @@ void SettingWidget::createTopPWidget()
                                     "    background: transparent;"
                                     "}");
 
-    QHBoxLayout *topPTopSubHLayout = new QHBoxLayout(topPTopSubWidget);
+    topPTopSubHLayout = new QHBoxLayout(topPTopSubWidget);
     topPTopSubHLayout->setSpacing(topPTopSubWidget->width() / 2 - topPLabel->width());
     topPTopSubHLayout->addWidget(topPLabel);
     topPTopSubHLayout->addWidget(topPBox);
     topPTopSubHLayout->setContentsMargins(0, 5, 0, 3);
 
-    QWidget *topPBottomSubWidget = new QWidget();
+    topPBottomSubWidget = new QWidget();
     topPBottomSubWidget->resize(340, 40);
     topPBottomSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     topPBottomSubWidget->setObjectName("topPBottomSubWidget");
@@ -347,11 +347,11 @@ void SettingWidget::createTopPWidget()
                                        "    background: transparent;"
                                        "}");
 
-    QHBoxLayout *topPBottomSubHLayout = new QHBoxLayout(topPBottomSubWidget);
+    topPBottomSubHLayout = new QHBoxLayout(topPBottomSubWidget);
     topPBottomSubHLayout->addWidget(topPSlider);
     topPBottomSubHLayout->setContentsMargins(0, 9, 0, 5);
 
-    QVBoxLayout *topPVLayout = new QVBoxLayout(topPWidget);
+    topPVLayout = new QVBoxLayout(topPWidget);
     topPVLayout->addWidget(topPTopSubWidget);
     topPVLayout->addWidget(topPBottomSubWidget);
     topPVLayout->setContentsMargins(15, 25, 15, 25);
@@ -369,7 +369,7 @@ void SettingWidget::createTemperatureWidget()
                                      "    background: white;"
                                      "}");
 
-    QWidget *temperatureTopSubWidget = new QWidget();
+    temperatureTopSubWidget = new QWidget();
     temperatureTopSubWidget->resize(340, 40);
     temperatureTopSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     temperatureTopSubWidget->setObjectName("temperatureTopSubWidget");
@@ -377,14 +377,14 @@ void SettingWidget::createTemperatureWidget()
                                            "    background: transparent;"
                                            "}");
 
-    QHBoxLayout *temperatureTopSubHLayout = new QHBoxLayout(temperatureTopSubWidget);
+    temperatureTopSubHLayout = new QHBoxLayout(temperatureTopSubWidget);
     temperatureTopSubHLayout->setSpacing(temperatureTopSubWidget->width() / 2
                                          - temperatureLabel->width());
     temperatureTopSubHLayout->addWidget(temperatureLabel);
     temperatureTopSubHLayout->addWidget(temperatureBox);
     temperatureTopSubHLayout->setContentsMargins(0, 5, 0, 3);
 
-    QWidget *temperatureBottomSubWidget = new QWidget();
+    temperatureBottomSubWidget = new QWidget();
     temperatureBottomSubWidget->resize(340, 40);
     temperatureBottomSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     temperatureBottomSubWidget->setObjectName("temperatureBottomSubWidget");
@@ -392,11 +392,11 @@ void SettingWidget::createTemperatureWidget()
                                               "    background: transparent;"
                                               "}");
 
-    QHBoxLayout *temperatureBottomSubHLayout = new QHBoxLayout(temperatureBottomSubWidget);
+    temperatureBottomSubHLayout = new QHBoxLayout(temperatureBottomSubWidget);
     temperatureBottomSubHLayout->addWidget(temperatureSlider);
     temperatureBottomSubHLayout->setContentsMargins(0, 9, 0, 5);
 
-    QVBoxLayout *temperatureVLayout = new QVBoxLayout(temperatureWidget);
+    temperatureVLayout = new QVBoxLayout(temperatureWidget);
     temperatureVLayout->addWidget(temperatureTopSubWidget);
     temperatureVLayout->addWidget(temperatureBottomSubWidget);
     temperatureVLayout->setContentsMargins(15, 25, 15, 25);
@@ -431,4 +431,259 @@ void SettingWidget::topPSliderSetValue(int i)
 void SettingWidget::temperatureSliderSetValue(int i)
 {
     temperatureSlider->setValue(i);
+}
+
+void SettingWidget::setSize()
+{
+    modelSelectWidget->setFixedSize(
+            width() - settingVLayout->contentsMargins().left()
+                    - settingVLayout->contentsMargins().right(),
+            qRound((height() - settingVLayout->contentsMargins().top()
+                    - settingVLayout->contentsMargins().bottom() - 3 * settingVLayout->spacing())
+                   * 190 / qreal(580)));
+    maxTokensWidget->setFixedSize(
+            width() - settingVLayout->contentsMargins().left()
+                    - settingVLayout->contentsMargins().right(),
+            qRound((height() - settingVLayout->contentsMargins().top()
+                    - settingVLayout->contentsMargins().bottom() - 3 * settingVLayout->spacing())
+                   * 130 / qreal(580)));
+    topPWidget->setFixedSize(
+            width() - settingVLayout->contentsMargins().left()
+                    - settingVLayout->contentsMargins().right(),
+            qRound((height() - settingVLayout->contentsMargins().top()
+                    - settingVLayout->contentsMargins().bottom() - 3 * settingVLayout->spacing())
+                   * 130 / qreal(580)));
+    temperatureWidget->setFixedSize(
+            width() - settingVLayout->contentsMargins().left()
+                    - settingVLayout->contentsMargins().right(),
+            qRound((height() - settingVLayout->contentsMargins().top()
+                    - settingVLayout->contentsMargins().bottom() - 3 * settingVLayout->spacing())
+                   * 130 / qreal(580)));
+
+    baseUrlWidget->setFixedSize(
+            modelSelectWidget->width() - modelSelectVLayout->contentsMargins().left()
+                    - modelSelectVLayout->contentsMargins().right(),
+            qRound((modelSelectWidget->height() - modelSelectVLayout->contentsMargins().top()
+                    - modelSelectVLayout->contentsMargins().bottom()
+                    - 2 * modelSelectVLayout->spacing())
+                   / qreal(3)));
+    apiKeyWidget->setFixedSize(
+            modelSelectWidget->width() - modelSelectVLayout->contentsMargins().left()
+                    - modelSelectVLayout->contentsMargins().right(),
+            qRound((modelSelectWidget->height() - modelSelectVLayout->contentsMargins().top()
+                    - modelSelectVLayout->contentsMargins().bottom()
+                    - 2 * modelSelectVLayout->spacing())
+                   / qreal(3)));
+    modelNameWidget->setFixedSize(
+            modelSelectWidget->width() - modelSelectVLayout->contentsMargins().left()
+                    - modelSelectVLayout->contentsMargins().right(),
+            qRound((modelSelectWidget->height() - modelSelectVLayout->contentsMargins().top()
+                    - modelSelectVLayout->contentsMargins().bottom()
+                    - 2 * modelSelectVLayout->spacing())
+                   / qreal(3)));
+
+    baseUrlLabel->setFixedSize(baseUrlLabel->size());
+    apiKeyLabel->setFixedSize(apiKeyLabel->size());
+    modelNameLabel->setFixedSize(modelNameLabel->size());
+    baseUrlEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
+                                      - baseUrlHLayout->contentsMargins().right()
+                                      - baseUrlHLayout->spacing() - baseUrlLabel->width() - 1,
+                              baseUrlEdit->height());
+    apiKeyEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
+                                     - baseUrlHLayout->contentsMargins().right()
+                                     - baseUrlHLayout->spacing() - apiKeyLabel->width() - 1,
+                             apiKeyEdit->height());
+    modelNameEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
+                                        - baseUrlHLayout->contentsMargins().right()
+                                        - baseUrlHLayout->spacing() - modelNameLabel->width() - 1,
+                                modelNameEdit->height());
+
+    maxTokensTopSubWidget->setFixedSize(
+            maxTokensWidget->width() - maxTokensVLayout->contentsMargins().left()
+                    - maxTokensVLayout->contentsMargins().right(),
+            qRound((maxTokensWidget->height() - maxTokensVLayout->contentsMargins().top()
+                    - maxTokensVLayout->contentsMargins().bottom())
+                   / qreal(2)));
+    maxTokensBottomSubWidget->setFixedSize(
+            maxTokensWidget->width() - maxTokensVLayout->contentsMargins().left()
+                    - maxTokensVLayout->contentsMargins().right(),
+            qRound((maxTokensWidget->height() - maxTokensVLayout->contentsMargins().top()
+                    - maxTokensVLayout->contentsMargins().bottom())
+                   / qreal(2)));
+    topPTopSubWidget->setFixedSize(
+            topPWidget->width() - topPVLayout->contentsMargins().left()
+                    - topPVLayout->contentsMargins().right(),
+            qRound((topPWidget->height() - topPVLayout->contentsMargins().top()
+                    - topPVLayout->contentsMargins().bottom())
+                   / qreal(2)));
+    topPBottomSubWidget->setFixedSize(
+            topPWidget->width() - topPVLayout->contentsMargins().left()
+                    - topPVLayout->contentsMargins().right(),
+            qRound((topPWidget->height() - topPVLayout->contentsMargins().top()
+                    - topPVLayout->contentsMargins().bottom())
+                   / qreal(2)));
+    temperatureTopSubWidget->setFixedSize(
+            temperatureWidget->width() - temperatureVLayout->contentsMargins().left()
+                    - temperatureVLayout->contentsMargins().right(),
+            qRound((temperatureWidget->height() - temperatureVLayout->contentsMargins().top()
+                    - temperatureVLayout->contentsMargins().bottom())
+                   / qreal(2)));
+    temperatureBottomSubWidget->setFixedSize(
+            temperatureWidget->width() - temperatureVLayout->contentsMargins().left()
+                    - temperatureVLayout->contentsMargins().right(),
+            qRound((temperatureWidget->height() - temperatureVLayout->contentsMargins().top()
+                    - temperatureVLayout->contentsMargins().bottom())
+                   / qreal(2)));
+
+    maxTokensLabel->setFixedSize(maxTokensLabel->size());
+    topPLabel->setFixedSize(topPLabel->size());
+    temperatureLabel->setFixedSize(temperatureLabel->size());
+    maxTokensTopSubHLayout->setSpacing(maxTokensTopSubWidget->width() / 2
+                                       - maxTokensLabel->width());
+    topPTopSubHLayout->setSpacing(topPTopSubWidget->width() / 2 - topPLabel->width());
+    temperatureTopSubHLayout->setSpacing(temperatureTopSubWidget->width() / 2
+                                         - temperatureLabel->width());
+    maxTokensBox->setFixedSize(maxTokensTopSubWidget->width() / 2, maxTokensBox->height());
+    topPBox->setFixedSize(topPTopSubWidget->width() / 2, topPBox->height());
+    temperatureBox->setFixedSize(temperatureTopSubWidget->width() / 2, temperatureBox->height());
+    qDebug() << "resizeEvent maxTokensBox size" << maxTokensBox->size()
+             << maxTokensTopSubWidget->height() << maxTokensTopSubHLayout->contentsMargins().top()
+             << maxTokensTopSubHLayout->contentsMargins().bottom();
+    qDebug() << "resizeEvent topPBox size" << topPBox->size() << topPTopSubWidget->height()
+             << topPTopSubHLayout->contentsMargins().top()
+             << topPTopSubHLayout->contentsMargins().bottom();
+    qDebug() << "resizeEvent temperatureBox size" << temperatureBox->size()
+             << temperatureTopSubWidget->height()
+             << temperatureTopSubHLayout->contentsMargins().top()
+             << temperatureTopSubHLayout->contentsMargins().bottom();
+    maxTokensSlider->setFixedSize(maxTokensBottomSubWidget->width(), maxTokensSlider->height());
+    topPSlider->setFixedSize(topPBottomSubWidget->width(), topPSlider->height());
+    temperatureSlider->setFixedSize(temperatureBottomSubWidget->width(),
+                                    temperatureSlider->height());
+    qDebug() << "resizeEvent maxTokensSlider size" << maxTokensSlider->size()
+             << maxTokensBottomSubWidget->height()
+             << maxTokensBottomSubHLayout->contentsMargins().top()
+             << maxTokensBottomSubHLayout->contentsMargins().bottom();
+    qDebug() << "resizeEvent topPSlider size" << topPSlider->size() << topPBottomSubWidget->height()
+             << topPBottomSubHLayout->contentsMargins().top()
+             << topPBottomSubHLayout->contentsMargins().bottom();
+    qDebug() << "resizeEvent temperatureSlider size" << temperatureSlider->size()
+             << temperatureBottomSubWidget->height()
+             << temperatureBottomSubHLayout->contentsMargins().top()
+             << temperatureBottomSubHLayout->contentsMargins().bottom();
+    qDebug() << "resizeEvent titleWidget size" << size();
+}
+
+void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
+{
+    if (lastDpi == 0)
+        return;
+    qreal ratio = qreal(curDpi / lastDpi);
+
+    auto scale = [=](const QSize &s) -> QSize {
+        return QSize(qRound(s.width() * ratio), qRound(s.height() * ratio));
+    };
+    auto scaleMargins = [=](const QMargins &m) -> QMargins {
+        return QMargins(qRound(m.left() * ratio), qRound(m.top() * ratio),
+                        qRound(m.right() * ratio), qRound(m.bottom() * ratio));
+    };
+
+    baseUrlLabel->setFixedSize(scale(widgetSizeDict["baseUrlLabel"].value<QSize>()));
+    apiKeyLabel->setFixedSize(scale(widgetSizeDict["apiKeyLabel"].value<QSize>()));
+    modelNameLabel->setFixedSize(scale(widgetSizeDict["modelNameLabel"].value<QSize>()));
+    maxTokensLabel->setFixedSize(scale(widgetSizeDict["maxTokensLabel"].value<QSize>()));
+    topPLabel->setFixedSize(scale(widgetSizeDict["topPLabel"].value<QSize>()));
+    temperatureLabel->setFixedSize(scale(widgetSizeDict["temperatureLabel"].value<QSize>()));
+    qDebug() << "baseUrlLabel" << baseUrlLabel->size();
+    qDebug() << "apiKeyLabel" << apiKeyLabel->size();
+    qDebug() << "modelNameLabel" << modelNameLabel->size();
+    qDebug() << "maxTokensLabel" << maxTokensLabel->size();
+    qDebug() << "topPLabel" << topPLabel->size();
+    qDebug() << "temperatureLabel" << temperatureLabel->size();
+
+    baseUrlEdit->setSize(scale(widgetSizeDict["baseUrlEdit"].value<QSize>()));
+    apiKeyEdit->setSize(scale(widgetSizeDict["apiKeyEdit"].value<QSize>()));
+    modelNameEdit->setSize(scale(widgetSizeDict["modelNameEdit"].value<QSize>()));
+
+    baseUrlHLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["baseUrlHLayout contentsMargins"].value<QMargins>()));
+    apiKeyHLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["apiKeyHLayout contentsMargins"].value<QMargins>()));
+    modelNameHLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["modelNameHLayout contentsMargins"].value<QMargins>()));
+    baseUrlHLayout->setSpacing(
+            qRound(widgetSizeDict["baseUrlHLayout spacing"].value<int>() * ratio));
+    apiKeyHLayout->setSpacing(qRound(widgetSizeDict["apiKeyHLayout spacing"].value<int>() * ratio));
+    modelNameHLayout->setSpacing(
+            qRound(widgetSizeDict["modelNameHLayout spacing"].value<int>() * ratio));
+
+    baseUrlWidget->setFixedSize(scale(widgetSizeDict["baseUrlWidget"].value<QSize>()));
+    if (baseUrlWidget->width()
+        < baseUrlLabel->width() + baseUrlEdit->width() + baseUrlHLayout->spacing())
+        baseUrlHLayout->setSpacing(baseUrlWidget->width() - baseUrlLabel->width()
+                                   - baseUrlEdit->width() - 1);
+    apiKeyWidget->setFixedSize(scale(widgetSizeDict["apiKeyWidget"].value<QSize>()));
+    if (apiKeyWidget->width()
+        < apiKeyLabel->width() + apiKeyEdit->width() + apiKeyHLayout->spacing())
+        apiKeyHLayout->setSpacing(apiKeyWidget->width() - apiKeyLabel->width() - apiKeyEdit->width()
+                                  - 1);
+    modelNameWidget->setFixedSize(scale(widgetSizeDict["modelNameWidget"].value<QSize>()));
+    if (modelNameWidget->width()
+        < modelNameLabel->width() + modelNameEdit->width() + modelNameHLayout->spacing())
+        modelNameHLayout->setSpacing(modelNameWidget->width() - modelNameLabel->width()
+                                     - modelNameEdit->width() - 1);
+    modelSelectVLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["modelSelectVLayout contentsMargins"].value<QMargins>()));
+    modelSelectVLayout->setSpacing(
+            qRound(widgetSizeDict["modelSelectVLayout spacing"].value<int>() * ratio));
+    modelSelectWidget->setFixedSize(scale(widgetSizeDict["modelSelectWidget"].value<QSize>()));
+
+    maxTokensWidget->setFixedSize(scale(widgetSizeDict["maxTokensWidget"].value<QSize>()));
+    maxTokensVLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["maxTokensVLayout contentsMargins"].value<QMargins>()));
+    topPWidget->setFixedSize(scale(widgetSizeDict["topPWidget"].value<QSize>()));
+    topPVLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["topPVLayout contentsMargins"].value<QMargins>()));
+    temperatureWidget->setFixedSize(scale(widgetSizeDict["temperatureWidget"].value<QSize>()));
+    temperatureVLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["temperatureVLayout contentsMargins"].value<QMargins>()));
+
+    maxTokensTopSubWidget->setFixedSize(
+            scale(widgetSizeDict["maxTokensTopSubWidget"].value<QSize>()));
+    topPTopSubWidget->setFixedSize(scale(widgetSizeDict["topPTopSubWidget"].value<QSize>()));
+    temperatureTopSubWidget->setFixedSize(
+            scale(widgetSizeDict["temperatureTopSubWidget"].value<QSize>()));
+    maxTokensTopSubHLayout->setContentsMargins(scaleMargins(
+            widgetSizeDict["maxTokensTopSubHLayout contentsMargins"].value<QMargins>()));
+    topPTopSubHLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["topPTopSubHLayout contentsMargins"].value<QMargins>()));
+    temperatureTopSubHLayout->setContentsMargins(scaleMargins(
+            widgetSizeDict["temperatureTopSubHLayout contentsMargins"].value<QMargins>()));
+    maxTokensTopSubHLayout->setSpacing(maxTokensTopSubWidget->width() / 2
+                                       - maxTokensLabel->width());
+    topPTopSubHLayout->setSpacing(topPTopSubWidget->width() / 2 - topPLabel->width());
+    temperatureTopSubHLayout->setSpacing(temperatureTopSubWidget->width() / 2
+                                         - temperatureLabel->width());
+    maxTokensBox->setSize(maxTokensTopSubWidget->width() / 2,
+                          qRound(widgetSizeDict["maxTokensBox"].value<QSize>().height() * ratio));
+    topPBox->setSize(topPTopSubWidget->width() / 2,
+                     qRound(widgetSizeDict["topPBox"].value<QSize>().height() * ratio));
+    temperatureBox->setSize(
+            temperatureTopSubWidget->width() / 2,
+            qRound(widgetSizeDict["temperatureBox"].value<QSize>().height() * ratio));
+
+    maxTokensBottomSubWidget->setFixedSize(
+            scale(widgetSizeDict["maxTokensBottomSubWidget"].value<QSize>()));
+    topPBottomSubWidget->setFixedSize(scale(widgetSizeDict["topPBottomSubWidget"].value<QSize>()));
+    temperatureBottomSubWidget->setFixedSize(
+            scale(widgetSizeDict["temperatureBottomSubWidget"].value<QSize>()));
+    maxTokensBottomSubHLayout->setContentsMargins(scaleMargins(
+            widgetSizeDict["maxTokensBottomSubHLayout contentsMargins"].value<QMargins>()));
+    topPBottomSubHLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["topPBottomSubHLayout contentsMargins"].value<QMargins>()));
+    temperatureBottomSubHLayout->setContentsMargins(scaleMargins(
+            widgetSizeDict["temperatureBottomSubHLayout contentsMargins"].value<QMargins>()));
+    maxTokensSlider->setSize(scale(widgetSizeDict["maxTokensSlider"].value<QSize>()));
+    topPSlider->setSize(scale(widgetSizeDict["topPSlider"].value<QSize>()));
+    temperatureSlider->setSize(scale(widgetSizeDict["temperatureSlider"].value<QSize>()));
 }

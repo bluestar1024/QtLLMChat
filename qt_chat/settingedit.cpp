@@ -9,9 +9,9 @@ SettingEdit::SettingEdit(QWidget *parent) : QLineEdit(parent)
 
 SettingEdit::~SettingEdit() { }
 
-void SettingEdit::setSize(int width, int height)
+void SettingEdit::setSize(QSize s)
 {
-    setFixedSize(width, height);
+    setFixedSize(s);
     updateStyleSheet();
 }
 

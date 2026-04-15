@@ -33,6 +33,8 @@ public:
     void maxTokensSliderSetValue(int i);
     void topPSliderSetValue(int i);
     void temperatureSliderSetValue(int i);
+    void setSize();
+    void updateSize(qreal curDpi, qreal lastDpi);
 
 signals:
     void baseUrlTextChanged(const QString &);
@@ -84,10 +86,39 @@ private:
     Slider *topPSlider;
     Slider *temperatureSlider;
 
+    QWidget *baseUrlWidget;
+    QHBoxLayout *baseUrlHLayout;
+    QWidget *apiKeyWidget;
+    QHBoxLayout *apiKeyHLayout;
+    QWidget *modelNameWidget;
+    QHBoxLayout *modelNameHLayout;
+    QVBoxLayout *modelSelectVLayout;
     QWidget *modelSelectWidget;
+
+    QWidget *maxTokensTopSubWidget;
+    QHBoxLayout *maxTokensTopSubHLayout;
+    QWidget *maxTokensBottomSubWidget;
+    QHBoxLayout *maxTokensBottomSubHLayout;
+    QVBoxLayout *maxTokensVLayout;
     QWidget *maxTokensWidget;
+
+    QWidget *topPTopSubWidget;
+    QHBoxLayout *topPTopSubHLayout;
+    QWidget *topPBottomSubWidget;
+    QHBoxLayout *topPBottomSubHLayout;
+    QVBoxLayout *topPVLayout;
     QWidget *topPWidget;
+
+    QWidget *temperatureTopSubWidget;
+    QHBoxLayout *temperatureTopSubHLayout;
+    QWidget *temperatureBottomSubWidget;
+    QHBoxLayout *temperatureBottomSubHLayout;
+    QVBoxLayout *temperatureVLayout;
     QWidget *temperatureWidget;
+
+    QVBoxLayout *settingVLayout;
+
+    QMap<QString, QVariant> widgetSizeDict;
 };
 
 #endif // SETTINGWIDGET_H

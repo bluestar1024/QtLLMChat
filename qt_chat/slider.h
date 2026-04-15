@@ -13,7 +13,7 @@ public:
     explicit Slider(QWidget *parent = nullptr);
     ~Slider();
 
-    void setSize(int width, int height);
+    void setSize(QSize s);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;

@@ -1334,7 +1334,15 @@ void MainWindow::resizeEvent(QResizeEvent *event)
             widgetSizeDict["mainWidget"] = mainWidget->size();
         }
     }
-    // if isDpiChanged:
+    if (isDpiChanged) {
+        emptyTextLabel->updateSize(curDpi, lastDpi);
+        textCopyLabel->updateSize(curDpi, lastDpi);
+        settingWidget->updateSize(curDpi, lastDpi);
+        titleWidget->updateSize(curDpi, lastDpi);
+        chatRecordsWidget->updateSize(curDpi, lastDpi);
+        chatFun->updateSize(curDpi, lastDpi);
+        chatInput->updateSendButtonSize(curDpi, lastDpi);
+    }
     settingWidget->resize(mainWidget->width() / 3, mainWidget->height() - titleWidget->height());
     chatRecordsWidget->resize(mainWidget->width() / 3,
                               mainWidget->height() - titleWidget->height());
@@ -1365,6 +1373,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         chatRecordsWidget->move(-chatRecordsWidget->width(), titleWidget->height());
     }
 
+    settingWidget->setSize();
     emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
                          titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     textCopyLabel->move((width() - textCopyLabel->width()) / 2,

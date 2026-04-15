@@ -171,3 +171,25 @@ QSize TitleWidget::getCloseButtonSize()
 {
     return closeButton->size();
 }
+
+void TitleWidget::updateSize(qreal curDpi, qreal lastDpi)
+{
+    if (lastDpi == 0)
+        return;
+    qreal ratio = qreal(curDpi / lastDpi);
+
+    auto scale = [=](const QSize &s) -> QSize {
+        return QSize(qRound(s.width() * ratio), qRound(s.height() * ratio));
+    };
+
+    titleIconLabel->setFixedSize(scale(widgetSizeDict["titleIconLabel"].value<QSize>()));
+    titleLeftSubWidget->resize(scale(widgetSizeDict["titleLeftSubWidget"].value<QSize>()));
+    minButton->setFixedSize(scale(widgetSizeDict["minButton"].value<QSize>()));
+    minButton->setIconSize(scale(widgetSizeDict["minButton iconSize"].value<QSize>()));
+    maxButton->setFixedSize(scale(widgetSizeDict["maxButton"].value<QSize>()));
+    maxButton->setIconSize(scale(widgetSizeDict["maxButton iconSize"].value<QSize>()));
+    closeButton->setFixedSize(scale(widgetSizeDict["closeButton"].value<QSize>()));
+    closeButton->setIconSize(scale(widgetSizeDict["closeButton iconSize"].value<QSize>()));
+    titleRightSubWidget->resize(scale(widgetSizeDict["titleRightSubWidget"].value<QSize>()));
+    setFixedHeight(qRound(widgetSizeDict["self"].value<QSize>().height() * ratio));
+}

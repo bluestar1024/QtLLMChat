@@ -42,8 +42,10 @@ void Slider::mouseReleaseEvent(QMouseEvent *event)
     event->ignore();
 }
 
-void Slider::setSize(int width, int height)
+void Slider::setSize(QSize s)
 {
+    int width = s.width();
+    int height = s.height();
     if (height % 3 == 1) {
         height = height - 1;
     }

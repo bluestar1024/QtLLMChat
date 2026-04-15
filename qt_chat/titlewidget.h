@@ -30,6 +30,7 @@ public:
     QSize getMinButtonSize();
     QSize getMaxButtonSize();
     QSize getCloseButtonSize();
+    void updateSize(qreal curDpi, qreal lastDpi);
 
 signals:
     void minimizeClicked();
@@ -46,8 +47,6 @@ private:
     void setupRightWidget();
     void setupMainLayout();
 
-    bool isRound;
-
     QLabel *titleIconLabel;
     TitleButton *minButton;
     TitleButton *maxButton;
@@ -55,8 +54,10 @@ private:
     Widget *titleLeftSubWidget;
     Widget *titleRightSubWidget;
 
+    bool isRound;
     QString maxImagePath;
     QString normalImagePath;
+    QMap<QString, QVariant> widgetSizeDict;
 };
 
 #endif // TITLEWIDGET_H
