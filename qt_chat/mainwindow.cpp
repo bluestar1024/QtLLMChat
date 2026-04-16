@@ -1372,8 +1372,10 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         settingWidget->move(-settingWidget->width(), titleWidget->height());
         chatRecordsWidget->move(-chatRecordsWidget->width(), titleWidget->height());
     }
-
-    settingWidget->setSize();
+    if (isDpiChanged)
+        settingWidget->updateLayoutMarginsSpacing(curDpi, lastDpi);
+    settingWidget->resetWidgetSize();
+    titleWidget->saveWidgetSize();
     emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
                          titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     textCopyLabel->move((width() - textCopyLabel->width()) / 2,
@@ -1397,6 +1399,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         qDebug() << "resizeEvent isDpiChanged isRegenerate";
         messageWidgetRegenerate();
     }
+    widgetSizeDict["MainWindow"] = size();
 }
 
 void MainWindow::uiMinimize()

@@ -34,7 +34,10 @@ public:
     void topPSliderSetValue(int i);
     void temperatureSliderSetValue(int i);
     void setSize();
+    void saveWidgetSize();
+    void resetWidgetSize();
     void updateSize(qreal curDpi, qreal lastDpi);
+    void updateLayoutMarginsSpacing(qreal curDpi, qreal lastDpi);
 
 signals:
     void baseUrlTextChanged(const QString &);

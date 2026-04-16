@@ -47,6 +47,8 @@ public:
     template <typename T>
     void connectListItemClick(T *receiver, void (T::*slot)(QListWidgetItem *));
 
+    void setSize();
+    void saveWidgetSize();
     void resetWidgetSize();
     void updateSize(int curDpi, int lastDpi);
     QString getLineEditText() const;

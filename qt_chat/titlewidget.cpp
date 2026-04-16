@@ -172,6 +172,20 @@ QSize TitleWidget::getCloseButtonSize()
     return closeButton->size();
 }
 
+void TitleWidget::saveWidgetSize()
+{
+    widgetSizeDict["titleIconLabel"] = titleIconLabel->size();
+    widgetSizeDict["titleLeftSubWidget"] = titleLeftSubWidget->size();
+    widgetSizeDict["minButton"] = minButton->size();
+    widgetSizeDict["minButton iconSize"] = minButton->iconSize();
+    widgetSizeDict["maxButton"] = maxButton->size();
+    widgetSizeDict["maxButton iconSize"] = maxButton->iconSize();
+    widgetSizeDict["closeButton"] = closeButton->size();
+    widgetSizeDict["closeButton iconSize"] = closeButton->iconSize();
+    widgetSizeDict["titleRightSubWidget"] = titleRightSubWidget->size();
+    widgetSizeDict["titleWidget"] = size();
+}
+
 void TitleWidget::updateSize(qreal curDpi, qreal lastDpi)
 {
     if (lastDpi == 0)

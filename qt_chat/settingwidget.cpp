@@ -571,7 +571,80 @@ void SettingWidget::setSize()
              << temperatureBottomSubWidget->height()
              << temperatureBottomSubHLayout->contentsMargins().top()
              << temperatureBottomSubHLayout->contentsMargins().bottom();
-    qDebug() << "resizeEvent titleWidget size" << size();
+}
+
+void SettingWidget::saveWidgetSize()
+{
+    widgetSizeDict["baseUrlWidget"] = baseUrlWidget->size();
+    widgetSizeDict["baseUrlLabel"] = baseUrlLabel->size();
+    widgetSizeDict["baseUrlEdit"] = baseUrlEdit->size();
+    widgetSizeDict["baseUrlHLayout contentsMargins"] =
+            QVariant::fromValue(baseUrlHLayout->contentsMargins());
+    widgetSizeDict["baseUrlHLayout spacing"] = baseUrlHLayout->spacing();
+    widgetSizeDict["apiKeyWidget"] = apiKeyWidget->size();
+    widgetSizeDict["apiKeyLabel"] = apiKeyLabel->size();
+    widgetSizeDict["apiKeyEdit"] = apiKeyEdit->size();
+    widgetSizeDict["apiKeyHLayout contentsMargins"] =
+            QVariant::fromValue(apiKeyHLayout->contentsMargins());
+    widgetSizeDict["apiKeyHLayout spacing"] = apiKeyHLayout->spacing();
+    widgetSizeDict["modelNameWidget"] = modelNameWidget->size();
+    widgetSizeDict["modelNameLabel"] = modelNameLabel->size();
+    widgetSizeDict["modelNameEdit"] = modelNameEdit->size();
+    widgetSizeDict["modelNameHLayout contentsMargins"] =
+            QVariant::fromValue(modelNameHLayout->contentsMargins());
+    widgetSizeDict["modelNameHLayout spacing"] = modelNameHLayout->spacing();
+    widgetSizeDict["modelSelectWidget"] = modelSelectWidget->size();
+    widgetSizeDict["modelSelectVLayout contentsMargins"] =
+            QVariant::fromValue(modelSelectVLayout->contentsMargins());
+    widgetSizeDict["modelSelectVLayout spacing"] = modelSelectVLayout->spacing();
+    widgetSizeDict["maxTokensWidget"] = maxTokensWidget->size();
+    widgetSizeDict["maxTokensVLayout contentsMargins"] =
+            QVariant::fromValue(maxTokensVLayout->contentsMargins());
+    widgetSizeDict["maxTokensTopSubWidget"] = maxTokensTopSubWidget->size();
+    widgetSizeDict["maxTokensTopSubHLayout contentsMargins"] =
+            QVariant::fromValue(maxTokensTopSubHLayout->contentsMargins());
+    widgetSizeDict["maxTokensTopSubHLayout spacing"] = maxTokensTopSubHLayout->spacing();
+    widgetSizeDict["maxTokensLabel"] = maxTokensLabel->size();
+    widgetSizeDict["maxTokensBox"] = maxTokensBox->size();
+    widgetSizeDict["maxTokensBottomSubWidget"] = maxTokensBottomSubWidget->size();
+    widgetSizeDict["maxTokensBottomSubHLayout contentsMargins"] =
+            QVariant::fromValue(maxTokensBottomSubHLayout->contentsMargins());
+    widgetSizeDict["maxTokensSlider"] = maxTokensSlider->size();
+    widgetSizeDict["topPWidget"] = topPWidget->size();
+    widgetSizeDict["topPVLayout contentsMargins"] =
+            QVariant::fromValue(topPVLayout->contentsMargins());
+    widgetSizeDict["topPTopSubWidget"] = topPTopSubWidget->size();
+    widgetSizeDict["topPTopSubHLayout contentsMargins"] =
+            QVariant::fromValue(topPTopSubHLayout->contentsMargins());
+    widgetSizeDict["topPTopSubHLayout spacing"] = topPTopSubHLayout->spacing();
+    widgetSizeDict["topPLabel"] = topPLabel->size();
+    widgetSizeDict["topPBox"] = topPBox->size();
+    widgetSizeDict["topPBottomSubWidget"] = topPBottomSubWidget->size();
+    widgetSizeDict["topPBottomSubHLayout contentsMargins"] =
+            QVariant::fromValue(topPBottomSubHLayout->contentsMargins());
+    widgetSizeDict["topPSlider"] = topPSlider->size();
+    widgetSizeDict["temperatureWidget"] = temperatureWidget->size();
+    widgetSizeDict["temperatureVLayout contentsMargins"] =
+            QVariant::fromValue(temperatureVLayout->contentsMargins());
+    widgetSizeDict["temperatureTopSubWidget"] = temperatureTopSubWidget->size();
+    widgetSizeDict["temperatureTopSubHLayout contentsMargins"] =
+            QVariant::fromValue(temperatureTopSubHLayout->contentsMargins());
+    widgetSizeDict["temperatureTopSubHLayout spacing"] = temperatureTopSubHLayout->spacing();
+    widgetSizeDict["temperatureLabel"] = temperatureLabel->size();
+    widgetSizeDict["temperatureBox"] = temperatureBox->size();
+    widgetSizeDict["temperatureBottomSubWidget"] = temperatureBottomSubWidget->size();
+    widgetSizeDict["temperatureBottomSubHLayout contentsMargins"] =
+            QVariant::fromValue(temperatureBottomSubHLayout->contentsMargins());
+    widgetSizeDict["temperatureSlider"] = temperatureSlider->size();
+    widgetSizeDict["settingVLayout contentsMargins"] =
+            QVariant::fromValue(settingVLayout->contentsMargins());
+    widgetSizeDict["settingVLayout spacing"] = settingVLayout->spacing();
+}
+
+void SettingWidget::resetWidgetSize()
+{
+    setSize();
+    saveWidgetSize();
 }
 
 void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
@@ -686,4 +759,38 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
     maxTokensSlider->setSize(scale(widgetSizeDict["maxTokensSlider"].value<QSize>()));
     topPSlider->setSize(scale(widgetSizeDict["topPSlider"].value<QSize>()));
     temperatureSlider->setSize(scale(widgetSizeDict["temperatureSlider"].value<QSize>()));
+}
+
+void SettingWidget::updateLayoutMarginsSpacing(qreal curDpi, qreal lastDpi)
+{
+    if (lastDpi == 0)
+        return;
+    qreal ratio = qreal(curDpi / lastDpi);
+    auto scaleMargins = [=](const QMargins &m) -> QMargins {
+        return QMargins(qRound(m.left() * ratio), qRound(m.top() * ratio),
+                        qRound(m.right() * ratio), qRound(m.bottom() * ratio));
+    };
+
+    settingVLayout->setContentsMargins(
+            scaleMargins(widgetSizeDict["settingVLayout contentsMargins"].value<QMargins>()));
+    settingVLayout->setSpacing(
+            qRound(widgetSizeDict["settingVLayout spacing"].value<int>() * ratio));
+    if (height() < modelSelectWidget->height() + maxTokensWidget->height() + topPWidget->height()
+                + temperatureWidget->height() + settingVLayout->contentsMargins().top()
+                + settingVLayout->contentsMargins().bottom() + 3 * settingVLayout->spacing()) {
+        int settingVLayoutVMargins =
+                qRound((height()
+                        - (modelSelectWidget->height() + maxTokensWidget->height()
+                           + topPWidget->height() + temperatureWidget->height()))
+                       * 1 / qreal(4));
+        int settingVLayoutSpacing =
+                qRound((height()
+                        - (modelSelectWidget->height() + maxTokensWidget->height()
+                           + topPWidget->height() + temperatureWidget->height()))
+                       * 1 / qreal(6));
+        settingVLayout->setContentsMargins(
+                settingVLayout->contentsMargins().left(), settingVLayoutVMargins,
+                settingVLayout->contentsMargins().right(), settingVLayoutVMargins);
+        settingVLayout->setSpacing(settingVLayoutSpacing);
+    }
 }

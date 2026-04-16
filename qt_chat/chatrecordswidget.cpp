@@ -194,7 +194,7 @@ void ChatRecordsWidget::mouseMoveEvent(QMouseEvent *event)
     event->ignore();
 }
 
-void ChatRecordsWidget::resetWidgetSize()
+void ChatRecordsWidget::setSize()
 {
     QMargins mainMargins = mainVLayout->contentsMargins();
     label->setFixedSize(width() - mainMargins.left() - mainMargins.right() - buttonWidget->width(),
@@ -211,7 +211,10 @@ void ChatRecordsWidget::resetWidgetSize()
                              height() - headWidget->height() - searchWidget->height()
                                      - mainMargins.top() - 2 * mainVLayout->spacing());
     mainWidget->resize(width(), height());
+}
 
+void ChatRecordsWidget::saveWidgetSize()
+{
     widgetSizeDict["self"] = size();
     widgetSizeDict["settingButton"] = settingButton->size();
     widgetSizeDict["settingButton iconSize"] = settingButton->iconSize();
@@ -234,6 +237,12 @@ void ChatRecordsWidget::resetWidgetSize()
     widgetSizeDict["mainVLayout contentsMargins"] =
             QVariant::fromValue(mainVLayout->contentsMargins());
     widgetSizeDict["mainVLayout spacing"] = mainVLayout->spacing();
+}
+
+void ChatRecordsWidget::resetWidgetSize()
+{
+    setSize();
+    saveWidgetSize();
 }
 
 void ChatRecordsWidget::updateSize(int curDpi, int lastDpi)

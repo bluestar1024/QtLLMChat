@@ -30,6 +30,7 @@ public:
     QSize getMinButtonSize();
     QSize getMaxButtonSize();
     QSize getCloseButtonSize();
+    void saveWidgetSize();
     void updateSize(qreal curDpi, qreal lastDpi);
 
 signals:
