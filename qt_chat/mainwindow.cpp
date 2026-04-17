@@ -966,6 +966,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
                             uiRectHeight = height();
                             isChangeRectFirst = true;
                         }
+                        qDebug() << "mouseMoveEvent screenGeometry:" << screenGeometry;
                         setGeometry(screenGeometry.x(), screenGeometry.y(),
                                     screenGeometry.width() / 2, screenGeometry.height());
                         mainWidget->setGeometry(0, 0, width(), height());
@@ -1203,8 +1204,10 @@ void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
             titleWidget->setRoundAngle();
         } else {
             isScreenMax = true;
-            if (!isScreenHalf)
+            if (!isScreenHalf) {
                 lastNormalGeometry = geometry();
+                qDebug() << "mouseDoubleClickEvent lastNormalGeometry:" << lastNormalGeometry;
+            }
             setGeometry(screen()->availableGeometry());
             titleWidget->maxButtonToggleIcon(false);
             mainWidget->setStyleSheet("#mainWidget {"
@@ -1222,8 +1225,10 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
         mouseLeftButtonIsPress = true;
         if (regionDir == RegionEnum::Title) {
             pressPosDistanceUiGlobalTL = geometry().topLeft() - event->globalPosition().toPoint();
-            if ((!isScreenHalf) && (!isScreenMax))
+            if ((!isScreenHalf) && (!isScreenMax)) {
                 lastNormalGeometry = geometry();
+                qDebug() << "mousePressEvent lastNormalGeometry:" << lastNormalGeometry;
+            }
         }
     }
     QMainWindow::mousePressEvent(event);
@@ -1232,15 +1237,18 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
 void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 {
     qDebug() << "mouseReleaseEvent isScreenMax" << isScreenMax;
+    qDebug() << "mouseReleaseEvent MainWindow size:" << size();
     if (event->button() == Qt::LeftButton) {
         mouseLeftButtonIsPress = false;
         if (isScreenHalf) {
             QRect screenGeometry = screen()->availableGeometry();
-            QRect screen_half_rect = QRect(screenGeometry.x(), screenGeometry.y(),
-                                           screenGeometry.width() / 2, screenGeometry.height());
-            if ((geometry().topLeft() != screen_half_rect.topLeft())
-                || (geometry().width() != screen_half_rect.width())
-                || (geometry().height() != screen_half_rect.height())) {
+            qDebug() << "mouseReleaseEvent screenGeometry:" << screenGeometry;
+            QRect screenHalfRect = QRect(screenGeometry.x(), screenGeometry.y(),
+                                         screenGeometry.width() / 2, screenGeometry.height());
+            qDebug() << "mouseReleaseEvent screenHalfRect:" << screenHalfRect;
+            if ((geometry().topLeft() != screenHalfRect.topLeft())
+                || (geometry().width() != screenHalfRect.width())
+                || (geometry().height() != screenHalfRect.height())) {
                 if (!isScreenMax)
                     isScreenHalf = false;
             }
@@ -1400,6 +1408,8 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         messageWidgetRegenerate();
     }
     widgetSizeDict["MainWindow"] = size();
+    qDebug() << "resizeEvent MainWindow size:" << size();
+    qDebug() << "resizeEvent lastNormalGeometry:" << lastNormalGeometry;
 }
 
 void MainWindow::uiMinimize()
@@ -1420,8 +1430,10 @@ void MainWindow::uiMaximize()
         titleWidget->setRoundAngle();
     } else {
         isScreenMax = true;
-        if (!isScreenHalf)
+        if (!isScreenHalf) {
             lastNormalGeometry = geometry();
+            qDebug() << "uiMaximize lastNormalGeometry:" << lastNormalGeometry;
+        }
         setGeometry(screen()->availableGeometry());
         titleWidget->maxButtonToggleIcon(false);
         mainWidget->setStyleSheet("#mainWidget {"

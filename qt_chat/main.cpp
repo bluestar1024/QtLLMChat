@@ -5,8 +5,7 @@
 #include <QtGui/QOpenGLContext>
 #include <QDebug>
 
-void myMessageHandler(QtMsgType type, const QMessageLogContext &context,
-                      const QString &msg)
+void myMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     // 捕获 Qt 警告和调试信息
     if (type == QtWarningMsg || type == QtCriticalMsg) {
@@ -79,9 +78,28 @@ int main(int argc, char *argv[])
     //         "--enable-gpu-rasterization "
     //         "--enable-native-gpu-memory-buffers");
 
+    // qputenv("QT_SCALE_FACTOR", "0.66");
+    qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "1");
+    // QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    // QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    // QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
+    //         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+
     QApplication a(argc, argv);
 
     diagnoseGraphics();
+    qDebug() << "DPI Rounding Policy:" << QGuiApplication::highDpiScaleFactorRoundingPolicy();
+    QScreen *primary = QGuiApplication::primaryScreen();
+    qDebug() << "设备像素比 (DPR):" << primary->devicePixelRatio();
+    qreal systemDpr = primary->devicePixelRatio();
+    QString scaleFactor = QString::number(systemDpr, 'f', 2);
+    qputenv("QT_SCALE_FACTOR", scaleFactor.toLatin1());
+    qDebug() << "=== 系统DPI缩放信息 ===";
+    qDebug() << "屏幕名称:" << primary->name();
+    qDebug() << "设备像素比 (DPR):" << primary->devicePixelRatio();
+    qDebug() << "逻辑DPI:" << primary->logicalDotsPerInch();
+    qDebug() << "物理DPI:" << primary->physicalDotsPerInch();
+    qDebug() << "原生分辨率:" << primary->geometry().size() * primary->devicePixelRatio();
 
     MainWindow w;
     w.show();
