@@ -81,15 +81,19 @@ int main(int argc, char *argv[])
     // qputenv("QT_SCALE_FACTOR", "0.66");
     // qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "1");
     // QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
+    // QApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
     // QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     // QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     // QGuiApplication::setHighDpiScaleFactorRoundingPolicy(
     //         Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 
+    qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
+    // qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
+
     QApplication a(argc, argv);
 
     diagnoseGraphics();
-    a.setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+    // a.setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     qDebug() << "DPI Rounding Policy:" << QGuiApplication::highDpiScaleFactorRoundingPolicy();
     QScreen *primary = QGuiApplication::primaryScreen();
     qDebug() << "设备像素比 (DPR):" << primary->devicePixelRatio();

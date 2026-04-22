@@ -4,11 +4,11 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets
 
 CONFIG += c++11
 
-for(item, QMAKE_LFLAGS) {
-    message(QMAKE_LFLAGS contains: $$item)
-}
+#for(item, QMAKE_LFLAGS) {
+#    message(QMAKE_LFLAGS contains: $$item)
+#}
 
-win32 {
+#win32 {
     #CONFIG -= embed_manifest_exe
     #QMAKE_LFLAGS += /MANIFEST /MANIFESTINPUT:$$PWD/manifest.xml
     #QMAKE_LFLAGS += /MANIFEST:EMBED
@@ -22,7 +22,7 @@ win32 {
     #                  mt.exe -manifest manifest.xml -outputresource:$$OUT_PWD/$${TARGET}.exe\;1
     #QMAKE_POST_LINK = $$escape_expand(\\n\\t) copy /Y $$PWD/manifest.xml $$OUT_PWD
     #QMAKE_POST_LINK += $$escape_expand(\\n\\t) mt.exe -manifest $$OUT_PWD/manifest.xml -outputresource:$$OUT_PWD/$${TARGET}.exe\;1
-}
+#}
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings

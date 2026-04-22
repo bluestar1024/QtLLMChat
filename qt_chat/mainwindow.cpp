@@ -33,7 +33,7 @@ const double temperatureMinimum = 0.01;
 const int temperatureMaximum = 1;
 const double initTemperatureCurrentVal = 0.8;
 const double temperatureSingleStep = 0.01;
-const QString testText_1 = R"(<think>
+const QString testText1 = R"(<think>
 让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
 
 那我先写出循环的方法。代码结构大概是：
@@ -437,7 +437,7 @@ print(total)
 ### C++
 )";
 
-const QString testText2 = R"(<think>
+const QString testText_code = R"(<think>
 让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
 
 那我先写出循环的方法。代码结构大概是：
@@ -453,8 +453,8 @@ std::cout << sum << std::endl;
 #include <iostream>
 #include <QDebug>
 
-#sdfgs	"fdgdf"
-#cfdsf	546
+#define sdfgs	"fdgdf"
+#define cfdsf	546
 
 int main()
 {
@@ -598,7 +598,7 @@ print(total)
 这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
 )";
 
-const QString testText1 = R"(
+const QString testText_markdown = R"(
 一级标题
 ========
 二级标题

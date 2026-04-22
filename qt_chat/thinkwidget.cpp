@@ -5,7 +5,8 @@
 
 #include <cmath>
 
-ThinkWidget::ThinkWidget(const QString &text, std::function<void()> sizeFinishFun, int maxWidth, QWidget *parent)
+ThinkWidget::ThinkWidget(const QString &text, std::function<void()> sizeFinishFun, int maxWidth,
+                         QWidget *parent)
     : QWidget(parent),
       text(text.trimmed()),
       sizeFinishFun(sizeFinishFun),
@@ -104,7 +105,8 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 <body>
 <div class="content">
 )")
-                         .arg(mathjaxScriptPath, windowFontPixelSize);
+                         .arg(mathjaxScriptPath)
+                         .arg(windowFontPixelSize);
     // ---- markdown → html ----
     if (!text.isEmpty()) {
         TableInfo tbl = getTable(text);
@@ -254,7 +256,8 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 <body>
 <div class="content">
 )")
-                         .arg(mathjaxScriptPath, windowFontPixelSize);
+                         .arg(mathjaxScriptPath)
+                         .arg(windowFontPixelSize);
     // ---- markdown → html ----
     if (!text.isEmpty()) {
         TableInfo tbl = getTable(text);
@@ -415,7 +418,8 @@ QString ThinkWidget::getText()
 // <body>
 // <div class="content">
 // )")
-//                          .arg(mathjaxScriptPath, windowFontPixelSize);
+//                          .arg(mathjaxScriptPath)
+//                          .arg(windowFontPixelSize);
 //     // ---- markdown → html ----
 //     if (!text.isEmpty()) {
 //         TableInfo tbl = getTable(text);
