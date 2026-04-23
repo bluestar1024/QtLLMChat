@@ -930,6 +930,86 @@ void MainWindow::checkGraphicsBackend()
     });
 }
 
+bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
+{
+
+#ifdef Q_OS_WIN
+    if (eventType != "windows_generic_MSG")
+        return false;
+
+    MSG *msg = static_cast<MSG *>(message);
+
+    QWidget *widget = QWidget::find(reinterpret_cast<WId>(msg->hwnd));
+    if (!widget)
+        return false;
+
+    switch (msg->message) {
+    case WM_NCCALCSIZE: {
+        if (msg->wParam == true) {
+            *result = 0;
+            return true;
+        }
+        return false;
+    }
+
+    case WM_NCHITTEST: {
+        int x = GET_X_LPARAM(msg->lParam);
+        int y = GET_Y_LPARAM(msg->lParam);
+        QPoint pt = mapFromGlobal(QPoint(x, y));
+
+        QWidget *tempWidget = this->childAt(pt.x(), pt.y());
+        if (tempWidget == NULL) {
+            *result = HTCAPTION;
+        } else {
+            *result = HTCLIENT;
+        }
+        return true;
+    }
+
+    case WM_GETMINMAXINFO: {
+        MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
+
+        RECT workArea;
+        SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+
+        mmi->ptMaxPosition.x = workArea.left;
+        mmi->ptMaxPosition.y = workArea.top;
+        mmi->ptMaxSize.x = workArea.right - workArea.left;
+        mmi->ptMaxSize.y = workArea.bottom - workArea.top;
+
+        mmi->ptMinTrackSize.x = 300;
+        mmi->ptMinTrackSize.y = 200;
+        mmi->ptMaxTrackSize.x = mmi->ptMaxSize.x;
+        mmi->ptMaxTrackSize.y = mmi->ptMaxSize.y;
+
+        *result = 0;
+        return true;
+    }
+
+    case WM_SIZE: {
+        if (msg->wParam == SIZE_MAXIMIZED) {
+            // isScreenMax = true;
+            RECT frame = { 0, 0, 0, 0 };
+            AdjustWindowRectEx(&frame, WS_OVERLAPPEDWINDOW, FALSE, 0);
+            int borderWidth = abs(frame.left);
+            int titleBarHeight = abs(frame.top);
+            widget->setContentsMargins(borderWidth, titleBarHeight, borderWidth, borderWidth);
+        } else if (msg->wParam == SIZE_RESTORED) {
+            // isScreenMax = false;
+            widget->setContentsMargins(0, 0, 0, 0);
+        }
+        break;
+    }
+
+    default:
+        break;
+    }
+
+#endif
+
+    return QMainWindow::nativeEvent(eventType, message, result);
+}
+
 void MainWindow::moveEvent(QMoveEvent *event)
 {
     curScreen = screen();

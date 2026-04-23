@@ -18,6 +18,9 @@
 #include "printlabel.h"
 #include "globalvariables.h"
 
+#include <dwmapi.h>
+#include <windowsx.h>
+
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QGraphicsDropShadowEffect>
 #include <QtWidgets/QHBoxLayout>
@@ -29,7 +32,6 @@
 #include <QtWidgets/QApplication>
 #include <QtCore/QVariant>
 #include <QtCore/QPropertyAnimation>
-// #include <QtCore/QSignalBlocker>
 #include <QtCore/QQueue>
 
 #include <QQuickWindow>
@@ -56,6 +58,7 @@ public:
     ~MainWindow();
 
 protected:
+    bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
     void moveEvent(QMoveEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
