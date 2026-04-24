@@ -71,6 +71,7 @@ private:
     void settingWidgetInit();
     void chatRecordsWidgetInit();
     void checkGraphicsBackend();
+    LRESULT OnTestBorder(const QPoint &pt);
     void isItemShowFull(QWidget *widget);
     void regionDivision();
     void UiStretch();

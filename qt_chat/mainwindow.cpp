@@ -945,11 +945,13 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
     switch (msg->message) {
     case WM_NCCALCSIZE: {
-        if (msg->wParam == true) {
-            *result = 0;
-            return true;
-        }
-        return false;
+        // if (msg->wParam == true) {
+        //     *result = 0;
+        //     return true;
+        // }
+        // return false;
+        *result = 0;
+        return true;
     }
 
     case WM_NCHITTEST: {
@@ -957,32 +959,51 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         int y = GET_Y_LPARAM(msg->lParam);
         QPoint pt = mapFromGlobal(QPoint(x, y));
 
-        QWidget *tempWidget = this->childAt(pt.x(), pt.y());
-        if (tempWidget == NULL) {
-            *result = HTCAPTION;
-        } else {
-            *result = HTCLIENT;
+        // QWidget *tempWidget = this->childAt(pt.x(), pt.y());
+        // if (tempWidget == NULL) {
+        //     *result = HTCAPTION;
+        // } else {
+        //     *result = HTCLIENT;
+        // }
+        *result = OnTestBorder(pt);
+        if (*result == HTCLIENT) {
+            QWidget *tempWidget = this->childAt(pt.x(), pt.y());
+            if (tempWidget == NULL) {
+                *result = HTCAPTION;
+            }
         }
+
         return true;
     }
 
     case WM_GETMINMAXINFO: {
-        MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
+        // MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
 
-        RECT workArea;
-        SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+        // RECT workArea;
+        // SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
 
-        mmi->ptMaxPosition.x = workArea.left;
-        mmi->ptMaxPosition.y = workArea.top;
-        mmi->ptMaxSize.x = workArea.right - workArea.left;
-        mmi->ptMaxSize.y = workArea.bottom - workArea.top;
+        // mmi->ptMaxPosition.x = workArea.left;
+        // mmi->ptMaxPosition.y = workArea.top;
+        // mmi->ptMaxSize.x = workArea.right - workArea.left;
+        // mmi->ptMaxSize.y = workArea.bottom - workArea.top;
 
-        mmi->ptMinTrackSize.x = 300;
-        mmi->ptMinTrackSize.y = 200;
-        mmi->ptMaxTrackSize.x = mmi->ptMaxSize.x;
-        mmi->ptMaxTrackSize.y = mmi->ptMaxSize.y;
+        // mmi->ptMinTrackSize.x = 300;
+        // mmi->ptMinTrackSize.y = 200;
+        // mmi->ptMaxTrackSize.x = mmi->ptMaxSize.x;
+        // mmi->ptMaxTrackSize.y = mmi->ptMaxSize.y;
 
-        *result = 0;
+        // *result = 0;
+        if (::IsZoomed(msg->hwnd)) {
+            RECT frame = { 0, 0, 0, 0 };
+            AdjustWindowRectEx(&frame, WS_OVERLAPPEDWINDOW, FALSE, 0);
+            frame.left = abs(frame.left);
+            frame.top = abs(frame.bottom);
+            widget->setContentsMargins(frame.left, frame.top, frame.right, frame.bottom);
+        } else {
+            widget->setContentsMargins(0, 0, 0, 0);
+        }
+
+        *result = ::DefWindowProc(msg->hwnd, msg->message, msg->wParam, msg->lParam);
         return true;
     }
 
@@ -1008,6 +1029,49 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 #endif
 
     return QMainWindow::nativeEvent(eventType, message, result);
+}
+
+LRESULT MainWindow::OnTestBorder(const QPoint &pt)
+{
+    if (::IsZoomed(reinterpret_cast<HWND>(this->winId()))) {
+        return HTCLIENT;
+    }
+    int borderSize = 4;
+    int cx = this->size().width();
+    int cy = this->size().height();
+    QRect rectTopLeft(0, 0, borderSize, borderSize);
+    if (rectTopLeft.contains(pt)) {
+        return HTTOPLEFT;
+    }
+    QRect rectLeft(0, borderSize, borderSize, cy - borderSize * 2);
+    if (rectLeft.contains(pt)) {
+        return HTLEFT;
+    }
+    QRect rectTopRight(cx - borderSize, 0, borderSize, borderSize);
+    if (rectTopRight.contains(pt)) {
+        return HTTOPRIGHT;
+    }
+    QRect rectRight(cx - borderSize, borderSize, borderSize, cy - borderSize * 2);
+    if (rectRight.contains(pt)) {
+        return HTRIGHT;
+    }
+    QRect rectTop(borderSize, 0, cx - borderSize * 2, borderSize);
+    if (rectTop.contains(pt)) {
+        return HTTOP;
+    }
+    QRect rectBottomLeft(0, cy - borderSize, borderSize, borderSize);
+    if (rectBottomLeft.contains(pt)) {
+        return HTBOTTOMLEFT;
+    }
+    QRect rectBottomRight(cx - borderSize, cy - borderSize, borderSize, borderSize);
+    if (rectBottomRight.contains(pt)) {
+        return HTBOTTOMRIGHT;
+    }
+    QRect rectBottom(borderSize, cy - borderSize, cx - borderSize * 2, borderSize);
+    if (rectBottom.contains(pt)) {
+        return HTBOTTOM;
+    }
+    return HTCLIENT;
 }
 
 void MainWindow::moveEvent(QMoveEvent *event)
