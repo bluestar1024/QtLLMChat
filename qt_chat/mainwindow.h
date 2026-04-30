@@ -58,6 +58,7 @@ public:
     ~MainWindow();
 
 protected:
+    void showEvent(QShowEvent *event) override;
     bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
     void moveEvent(QMoveEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -112,6 +113,7 @@ private:
     PrintLabel *emptyTextLabel;
     PrintLabel *textCopyLabel;
 
+    bool isShowFirst;
     bool isProcessing;
     bool isRegenerate;
     bool isRegenerateFirst;
