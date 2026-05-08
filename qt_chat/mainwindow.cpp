@@ -748,8 +748,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     setMinimumSize(1110, 795);
     resize(1220, 820);
-    setAttribute(Qt::WA_TranslucentBackground, true);
-    setWindowFlags(Qt::FramelessWindowHint | Qt::CustomizeWindowHint);
+    // setAttribute(Qt::WA_TranslucentBackground, true);
+    setStyleSheet("QMainWindow{"
+                  "background: green;"
+                  "}");
+    setWindowFlags(Qt::FramelessWindowHint | Qt::CustomizeWindowHint | Qt::Window);
     setMouseTracking(true);
 
     mouseLeftButtonIsPress = false;
@@ -931,12 +934,41 @@ void MainWindow::checkGraphicsBackend()
     });
 }
 
+// void MainWindow::showEvent(QShowEvent *event)
+// {
+//     QMainWindow::showEvent(event);
+
+// #ifdef Q_OS_WIN
+//     if (!isShowFirst)
+//         return;
+//     isShowFirst = false;
+
+//     HWND hwnd = reinterpret_cast<HWND>(winId());
+//     if (!hwnd) {
+//         qWarning() << "Failed to get native window handle";
+//         return;
+//     }
+
+//     LONG style = GetWindowLong(hwnd, GWL_STYLE);
+//     style &= ~WS_CAPTION;
+//     style &= ~WS_SYSMENU;
+//     style |= WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
+//     SetWindowLong(hwnd, GWL_STYLE, style);
+
+//     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+//                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
+//                          | SWP_NOACTIVATE);
+
+//     qDebug() << "Window style updated for Aero Snap support";
+// #endif
+// }
+
 void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
 
 #ifdef Q_OS_WIN
-    if (!isShowFirst)
+    if (isShowFirst)
         return;
     isShowFirst = false;
 
@@ -946,19 +978,160 @@ void MainWindow::showEvent(QShowEvent *event)
         return;
     }
 
+    DWMNCRENDERINGPOLICY policy = DWMNCRP_ENABLED;
+    DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
+    MARGINS margins = { 1, 1, 1, 1 };
+    DwmExtendFrameIntoClientArea(hwnd, &margins);
+
     LONG style = GetWindowLong(hwnd, GWL_STYLE);
     style &= ~WS_CAPTION;
     style &= ~WS_SYSMENU;
     style |= WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
     SetWindowLong(hwnd, GWL_STYLE, style);
-
     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
                          | SWP_NOACTIVATE);
 
-    qDebug() << "Window style updated for Aero Snap support";
+    qDebug() << "Window style updated with DWM shadow and Aero Snap support";
 #endif
 }
+
+// bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
+// {
+// #ifdef Q_OS_WIN
+//     if (eventType != "windows_generic_MSG")
+//         return false;
+
+//     MSG *msg = static_cast<MSG *>(message);
+//     HWND hwnd = msg->hwnd;
+
+//     switch (msg->message) {
+//     case WM_NCCALCSIZE: {
+//         if (msg->wParam == TRUE) {
+//             NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS *>(msg->lParam);
+//             RECT rcProposed = params->rgrc[0];
+//             int borderWidth = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+//             int borderHeight = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+//             // int captionHeight = 0;
+//             params->rgrc[0].left = rcProposed.left + borderWidth;
+//             params->rgrc[0].top = rcProposed.top + captionHeight;
+//             params->rgrc[0].right = rcProposed.right - borderWidth;
+//             params->rgrc[0].bottom = rcProposed.bottom - borderHeight;
+//             *result = 0;
+//             return true;
+//         }
+//         return false;
+//     }
+
+//     case WM_NCHITTEST: {
+//         int x = GET_X_LPARAM(msg->lParam);
+//         int y = GET_Y_LPARAM(msg->lParam);
+
+//         RECT rcWindow;
+//         GetWindowRect(hwnd, &rcWindow);
+
+//         int relX = x - rcWindow.left;
+//         int relY = y - rcWindow.top;
+
+//         int frameX = GetSystemMetrics(SM_CXFRAME);
+//         int frameY = GetSystemMetrics(SM_CYFRAME);
+//         int padding = GetSystemMetrics(SM_CXPADDEDBORDER);
+//         int bw = frameX + padding;
+//         int bh = frameY + padding;
+
+//         int w = rcWindow.right - rcWindow.left;
+//         int h = rcWindow.bottom - rcWindow.top;
+
+//         if (relX < bw && relY < bh) {
+//             *result = HTTOPLEFT;
+//             return true;
+//         }
+//         if (relX < bw && relY >= h - bh) {
+//             *result = HTBOTTOMLEFT;
+//             return true;
+//         }
+//         if (relX >= w - bw && relY < bh) {
+//             *result = HTTOPRIGHT;
+//             return true;
+//         }
+//         if (relX >= w - bw && relY >= h - bh) {
+//             *result = HTBOTTOMRIGHT;
+//             return true;
+//         }
+
+//         if (relX < bw) {
+//             *result = HTLEFT;
+//             return true;
+//         }
+//         if (relX >= w - bw) {
+//             *result = HTRIGHT;
+//             return true;
+//         }
+//         if (relY >= h - bh) {
+//             *result = HTBOTTOM;
+//             return true;
+//         }
+//         if (relY < bh && relY >= 0) {
+//             *result = HTTOP;
+//             return true;
+//         }
+
+//         POINT pt = { x, y };
+//         ScreenToClient(hwnd, &pt);
+//         if (pt.y >= 0 && pt.y < titleWidget->height() && pt.x >= 0 && pt.x < w) {
+//             if (pt.x < w - (titleWidget->getMinButtonSize().width() + titleWidget->getMaxButtonSize().width() + titleWidget->getCloseButtonSize().width())) {
+//                 *result = HTCAPTION;
+//                 return true;
+//             }
+//         }
+
+//         *result = HTCLIENT;
+//         return true;
+//     }
+
+//     case WM_GETMINMAXINFO: {
+//         MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
+
+//         MONITORINFO mi = { sizeof(mi) };
+//         if (GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
+//             mmi->ptMaxPosition.x = mi.rcWork.left;
+//             mmi->ptMaxPosition.y = mi.rcWork.top;
+//             mmi->ptMaxSize.x = mi.rcWork.right - mi.rcWork.left;
+//             mmi->ptMaxSize.y = mi.rcWork.bottom - mi.rcWork.top;
+//         }
+
+//         mmi->ptMinTrackSize.x = 1100;
+//         mmi->ptMinTrackSize.y = 795;
+
+//         *result = 0;
+//         return true;
+//     }
+
+//     case WM_NCACTIVATE: {
+//         *result = TRUE;
+//         return true;
+//     }
+
+//     case WM_NCPAINT: {
+//         *result = 0;
+//         return true;
+//     }
+
+//     case WM_WINDOWPOSCHANGING: {
+//         WINDOWPOS *pos = reinterpret_cast<WINDOWPOS *>(msg->lParam);
+//         if (pos->flags & SWP_FRAMECHANGED) {
+//             qDebug() << "nativeEvent WM_WINDOWPOSCHANGING";
+//         }
+//         break;
+//     }
+
+//     default:
+//         break;
+//     }
+// #endif
+
+//     return QMainWindow::nativeEvent(eventType, message, result);
+// }
 
 bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
 {
@@ -973,15 +1146,14 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     case WM_NCCALCSIZE: {
         if (msg->wParam == TRUE) {
             NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS *>(msg->lParam);
-            RECT rcProposed = params->rgrc[0];
+            RECT rcBefore = params->rgrc[0];
             int borderWidth = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
             int borderHeight = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-            int captionHeight = titleWidget->height();
-            params->rgrc[0].left = rcProposed.left + borderWidth;
-            params->rgrc[0].top = rcProposed.top + borderHeight + captionHeight;
-            params->rgrc[0].right = rcProposed.right - borderWidth;
-            params->rgrc[0].bottom = rcProposed.bottom - borderHeight;
-            *result = 0;
+            params->rgrc[0].left = rcBefore.left;
+            params->rgrc[0].top = rcBefore.top;
+            params->rgrc[0].right = rcBefore.right;
+            params->rgrc[0].bottom = rcBefore.bottom;
+            *result = WVR_REDRAW;
             return true;
         }
         return false;
@@ -990,15 +1162,20 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     case WM_NCHITTEST: {
         int x = GET_X_LPARAM(msg->lParam);
         int y = GET_Y_LPARAM(msg->lParam);
+
         RECT rcWindow;
         GetWindowRect(hwnd, &rcWindow);
+
         int relX = x - rcWindow.left;
         int relY = y - rcWindow.top;
-        int bw = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-        int bh = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+
+        int frameX = GetSystemMetrics(SM_CXFRAME);
+        int frameY = GetSystemMetrics(SM_CYFRAME);
+        int padding = GetSystemMetrics(SM_CXPADDEDBORDER);
+        int bw = frameX + padding;
+        int bh = frameY + padding;
         int w = rcWindow.right - rcWindow.left;
         int h = rcWindow.bottom - rcWindow.top;
-        int captionHeight = titleWidget->height();
 
         if (relX < bw && relY < bh) {
             *result = HTTOPLEFT;
@@ -1025,27 +1202,33 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             *result = HTRIGHT;
             return true;
         }
-        if (relY < bh) {
-            *result = HTTOP;
-            return true;
-        }
         if (relY >= h - bh) {
             *result = HTBOTTOM;
             return true;
         }
-
-        if (relY >= bh && relY < bh + captionHeight) {
-            *result = HTCAPTION;
+        if (relY < bh && relY >= 0) {
+            *result = HTTOP;
             return true;
+        }
+
+        POINT pt = { x, y };
+        ScreenToClient(hwnd, &pt);
+
+        if (pt.y >= 0 && pt.y < titleWidget->height() && pt.x >= 0 && pt.x < w) {
+            if (pt.x < w
+                        - (titleWidget->getMinButtonSize().width()
+                           + titleWidget->getMaxButtonSize().width()
+                           + titleWidget->getCloseButtonSize().width())) {
+                *result = HTCAPTION;
+                return true;
+            }
         }
 
         *result = HTCLIENT;
         return true;
     }
-
     case WM_GETMINMAXINFO: {
         MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
-
         MONITORINFO mi = { sizeof(mi) };
         if (GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
             mmi->ptMaxPosition.x = mi.rcWork.left;
@@ -1054,23 +1237,27 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             mmi->ptMaxSize.y = mi.rcWork.bottom - mi.rcWork.top;
         }
 
-        mmi->ptMinTrackSize.x = 1100;
+        mmi->ptMinTrackSize.x = 1110;
         mmi->ptMinTrackSize.y = 795;
 
         *result = 0;
         return true;
     }
 
-    case WM_WINDOWPOSCHANGING: {
-        WINDOWPOS *pos = reinterpret_cast<WINDOWPOS *>(msg->lParam);
-        if (pos->flags & SWP_FRAMECHANGED) {
-            qDebug() << "nativeEvent WM_WINDOWPOSCHANGING";
-        }
-        break;
+    case WM_NCACTIVATE: {
+        *result = TRUE;
+        return true;
     }
+
+    case WM_NCPAINT: {
+        *result = 0;
+        return true;
+    }
+
     default:
         break;
     }
+
 #endif
 
     return QMainWindow::nativeEvent(eventType, message, result);
