@@ -18,8 +18,15 @@
 #include "printlabel.h"
 #include "globalvariables.h"
 
-#include <dwmapi.h>
-#include <windowsx.h>
+// #include <windowsx.h>
+#ifdef Q_OS_WIN
+#  include <qt_windows.h>
+#  include <Windowsx.h>
+#  include <dwmapi.h>
+#  pragma comment(lib, "user32.lib")
+#  pragma comment(lib, "dwmapi.lib")
+#  pragma comment(lib, "gdi32.lib")
+#endif
 
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QGraphicsDropShadowEffect>
@@ -33,8 +40,8 @@
 #include <QtCore/QVariant>
 #include <QtCore/QPropertyAnimation>
 #include <QtCore/QQueue>
-
-#include <QQuickWindow>
+#include <QtQuick/QQuickWindow>
+#include <QtGui/QWindowStateChangeEvent>
 
 enum class RegionEnum : int {
     Left = 0,
@@ -59,6 +66,7 @@ public:
 
 protected:
     void showEvent(QShowEvent *event) override;
+    void changeEvent(QEvent *event) override;
     bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
     void moveEvent(QMoveEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -72,7 +80,7 @@ private:
     void settingWidgetInit();
     void chatRecordsWidgetInit();
     void checkGraphicsBackend();
-    LRESULT OnTestBorder(const QPoint &pt);
+    void applyDWMShadow();
     void isItemShowFull(QWidget *widget);
     void regionDivision();
     void UiStretch();
@@ -97,7 +105,7 @@ private:
     QVBoxLayout *chatInputVLayout;
     QVBoxLayout *contentVLayout;
     Splitter *splitter;
-    Frame *mainWidget;
+    Widget *mainWidget;
     QVBoxLayout *mainVLayout;
     TitleWidget *titleWidget;
     QList<MessageWidget *> messageWidgetList;
@@ -146,6 +154,8 @@ private:
     bool avoidRepeatSelfFun;
     bool first;
     bool messageSendWidgetIsFinished;
+    int borderLen;
+    bool isMaximize;
 
     MessageWidget *messageSendWidget;
     MessageWidget *messageRecvWidget;

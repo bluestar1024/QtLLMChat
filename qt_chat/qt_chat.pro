@@ -25,8 +25,8 @@ CONFIG += c++11
 #}
 
 win32 {
-    LIBS += -ldwmapi
-    LIBS += -luser32 -lgdi32
+    # LIBS += -ldwmapi
+    # LIBS += -luser32 -lgdi32
     DEFINES += UNICODE _UNICODE
 }
 
