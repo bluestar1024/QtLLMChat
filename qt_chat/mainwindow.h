@@ -93,7 +93,7 @@ private:
     void messageWidgetRegenerate();
     void showChatRecords();
 
-    QQuickWindow *window;
+    QQuickWindow *qwindow;
 
     FunWidget *chatFun;
     ListWidget *chatShow;

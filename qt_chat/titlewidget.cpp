@@ -17,17 +17,17 @@ TitleWidget::TitleWidget(QWidget *parent)
 
 TitleWidget::~TitleWidget() { }
 
-void TitleWidget::setRoundAngle()
-{
-    isRound = true;
-    repaint();
-}
+// void TitleWidget::setRoundAngle()
+// {
+//     isRound = true;
+//     repaint();
+// }
 
-void TitleWidget::setRightAngle()
-{
-    isRound = false;
-    repaint();
-}
+// void TitleWidget::setRightAngle()
+// {
+//     isRound = false;
+//     repaint();
+// }
 
 void TitleWidget::paintEvent(QPaintEvent *event)
 {

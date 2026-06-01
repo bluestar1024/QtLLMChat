@@ -24,8 +24,8 @@ public:
     explicit TitleWidget(QWidget *parent = nullptr);
     ~TitleWidget();
 
-    void setRoundAngle();
-    void setRightAngle();
+    // void setRoundAngle();
+    // void setRightAngle();
     void maxButtonToggleIcon(bool isMaxIcon = true);
     QSize getMinButtonSize();
     QSize getMaxButtonSize();

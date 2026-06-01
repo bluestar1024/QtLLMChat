@@ -812,11 +812,11 @@ MainWindow::MainWindow(QWidget *parent)
     mainVLayout->setSpacing(0);
     mainVLayout->setStretch(0, 0);
     mainVLayout->setStretch(1, 1);
-    QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(this);
-    shadow->setBlurRadius(20);
-    shadow->setOffset(0, 0);
-    shadow->setColor(QColor(0, 0, 0, 150));
-    setGraphicsEffect(shadow);
+    // QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(this);
+    // shadow->setBlurRadius(20);
+    // shadow->setOffset(0, 0);
+    // shadow->setColor(QColor(0, 0, 0, 150));
+    // setGraphicsEffect(shadow);
     settingWidgetInit();
     chatRecordsWidgetInit();
     emptyTextLabel = new PrintLabel("文本不能为空", this);
@@ -926,15 +926,15 @@ void MainWindow::chatRecordsWidgetInit()
 
 void MainWindow::checkGraphicsBackend()
 {
-    window = new QQuickWindow();
-    window->show();
+    qwindow = new QQuickWindow();
+    qwindow->show();
     QTimer::singleShot(500, [&]() {
         qDebug() << "===== 图形后端信息 =====";
-        qDebug() << "当前渲染器:" << window->rendererInterface()->graphicsApi();
-        qDebug() << "场景图后端:" << window->sceneGraphBackend();
+        qDebug() << "当前渲染器:" << qwindow->rendererInterface()->graphicsApi();
+        qDebug() << "场景图后端:" << qwindow->sceneGraphBackend();
         qDebug() << "======================";
-        window->close();
-        window->deleteLater();
+        qwindow->close();
+        qwindow->deleteLater();
     });
 }
 
@@ -1067,53 +1067,53 @@ void MainWindow::moveEvent(QMoveEvent *event)
 void MainWindow::mouseMoveEvent(QMouseEvent *event)
 {
     isItemShowFull(childAt(event->pos()));
-    QPoint cursorGlobalPos = event->globalPosition().toPoint();
-    cursorGlobalX = cursorGlobalPos.x();
-    cursorGlobalY = cursorGlobalPos.y();
-    uiGlobalTL = mainWidget->mapToGlobal(QPoint(0, 0));
-    uiGlobalBR = mainWidget->mapToGlobal(QPoint(mainWidget->width() - 1, mainWidget->height() - 1));
-    if (!mouseLeftButtonIsPress)
-        regionDivision();
-    else {
-        if ((regionDir != RegionEnum::Title) && (regionDir != RegionEnum::Button)
-            && (regionDir != RegionEnum::Middle))
-            UiStretch();
-        else {
-            if (regionDir == RegionEnum::Title) {
-                UiDrag(event->globalPosition().toPoint());
-                if (!(screens.size() > 1)) {
-                    QRect screenGeometry = screen()->availableGeometry();
-                    if (event->globalPosition().toPoint().x() <= screenGeometry.x()) {
-                        if (!((width() == screenGeometry.width() / 2)
-                              && (height() == screenGeometry.height()))) {
-                            uiRectWidth = width();
-                            uiRectHeight = height();
-                            isChangeRectFirst = true;
-                        }
-                        qDebug() << "mouseMoveEvent screenGeometry:" << screenGeometry;
-                        setGeometry(screenGeometry.x(), screenGeometry.y(),
-                                    screenGeometry.width() / 2, screenGeometry.height());
-                        mainWidget->setGeometry(0, 0, width(), height());
-                        mainWidget->setStyleSheet("#mainWidget {"
-                                                  "    background-color: #F0F0F0;"
-                                                  "}");
-                        titleWidget->setRightAngle();
-                        isScreenHalf = true;
-                    } else {
-                        if (isChangeRectFirst) {
-                            isChangeRectFirst = false;
-                            resize(uiRectWidth, uiRectHeight);
-                            mainWidget->setStyleSheet("#mainWidget {"
-                                                      "    border-radius: 16px;"
-                                                      "    background-color: #F0F0F0;"
-                                                      "}");
-                            titleWidget->setRoundAngle();
-                        }
-                    }
-                }
-            }
-        }
-    }
+    // QPoint cursorGlobalPos = event->globalPosition().toPoint();
+    // cursorGlobalX = cursorGlobalPos.x();
+    // cursorGlobalY = cursorGlobalPos.y();
+    // uiGlobalTL = mainWidget->mapToGlobal(QPoint(0, 0));
+    // uiGlobalBR = mainWidget->mapToGlobal(QPoint(mainWidget->width() - 1, mainWidget->height() - 1));
+    // if (!mouseLeftButtonIsPress)
+    //     regionDivision();
+    // else {
+    //     if ((regionDir != RegionEnum::Title) && (regionDir != RegionEnum::Button)
+    //         && (regionDir != RegionEnum::Middle))
+    //         UiStretch();
+    //     else {
+    //         if (regionDir == RegionEnum::Title) {
+    //             UiDrag(event->globalPosition().toPoint());
+    //             if (!(screens.size() > 1)) {
+    //                 QRect screenGeometry = screen()->availableGeometry();
+    //                 if (event->globalPosition().toPoint().x() <= screenGeometry.x()) {
+    //                     if (!((width() == screenGeometry.width() / 2)
+    //                           && (height() == screenGeometry.height()))) {
+    //                         uiRectWidth = width();
+    //                         uiRectHeight = height();
+    //                         isChangeRectFirst = true;
+    //                     }
+    //                     qDebug() << "mouseMoveEvent screenGeometry:" << screenGeometry;
+    //                     setGeometry(screenGeometry.x(), screenGeometry.y(),
+    //                                 screenGeometry.width() / 2, screenGeometry.height());
+    //                     mainWidget->setGeometry(0, 0, width(), height());
+    //                     mainWidget->setStyleSheet("#mainWidget {"
+    //                                               "    background-color: #F0F0F0;"
+    //                                               "}");
+    //                     titleWidget->setRightAngle();
+    //                     isScreenHalf = true;
+    //                 } else {
+    //                     if (isChangeRectFirst) {
+    //                         isChangeRectFirst = false;
+    //                         resize(uiRectWidth, uiRectHeight);
+    //                         mainWidget->setStyleSheet("#mainWidget {"
+    //                                                   "    border-radius: 16px;"
+    //                                                   "    background-color: #F0F0F0;"
+    //                                                   "}");
+    //                         titleWidget->setRoundAngle();
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
     QMainWindow::mouseMoveEvent(event);
 }
 
@@ -1386,19 +1386,19 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     qDebug() << "mouseReleaseEvent MainWindow size:" << size();
     if (event->button() == Qt::LeftButton) {
         mouseLeftButtonIsPress = false;
-        if (isScreenHalf) {
-            QRect screenGeometry = screen()->availableGeometry();
-            qDebug() << "mouseReleaseEvent screenGeometry:" << screenGeometry;
-            QRect screenHalfRect = QRect(screenGeometry.x(), screenGeometry.y(),
-                                         screenGeometry.width() / 2, screenGeometry.height());
-            qDebug() << "mouseReleaseEvent screenHalfRect:" << screenHalfRect;
-            if ((geometry().topLeft() != screenHalfRect.topLeft())
-                || (geometry().width() != screenHalfRect.width())
-                || (geometry().height() != screenHalfRect.height())) {
-                if (!isScreenMax)
-                    isScreenHalf = false;
-            }
-        }
+        // if (isScreenHalf) {
+        //     QRect screenGeometry = screen()->availableGeometry();
+        //     qDebug() << "mouseReleaseEvent screenGeometry:" << screenGeometry;
+        //     QRect screenHalfRect = QRect(screenGeometry.x(), screenGeometry.y(),
+        //                                  screenGeometry.width() / 2, screenGeometry.height());
+        //     qDebug() << "mouseReleaseEvent screenHalfRect:" << screenHalfRect;
+        //     if ((geometry().topLeft() != screenHalfRect.topLeft())
+        //         || (geometry().width() != screenHalfRect.width())
+        //         || (geometry().height() != screenHalfRect.height())) {
+        //         if (!isScreenMax)
+        //             isScreenHalf = false;
+        //     }
+        // }
         if (pushButtonIsPress)
             pushButtonIsPress = false;
         else {
@@ -1466,9 +1466,9 @@ void MainWindow::resizeEvent(QResizeEvent *event)
                               * curDpi / lastDpi));
         widgetSizeDict["MainWindow minimumSize"] = minimumSize();
     }
-    qDebug() << "resizeEvent isScreenMax" << isScreenMax;
-    if (isScreenMax)
-        mainWidget->setGeometry(0, 0, width(), height());
+    // qDebug() << "resizeEvent isScreenMax" << isScreenMax;
+    // if (isScreenMax)
+    //     mainWidget->setGeometry(0, 0, width(), height());
     else {
         if (isDpiChanged) {
             mainWidget->setGeometry(
@@ -1565,28 +1565,28 @@ void MainWindow::uiMinimize()
 
 void MainWindow::uiMaximize()
 {
-    if (isScreenMax) {
-        isScreenMax = false;
-        setGeometry(lastNormalGeometry);
-        titleWidget->maxButtonToggleIcon(true);
-        mainWidget->setStyleSheet("#mainWidget {"
-                                  "    border-radius: 16px;"
-                                  "    background-color: #f0f0f0;"
-                                  "}");
-        titleWidget->setRoundAngle();
-    } else {
-        isScreenMax = true;
-        if (!isScreenHalf) {
-            lastNormalGeometry = geometry();
-            qDebug() << "uiMaximize lastNormalGeometry:" << lastNormalGeometry;
-        }
-        setGeometry(screen()->availableGeometry());
-        titleWidget->maxButtonToggleIcon(false);
-        mainWidget->setStyleSheet("#mainWidget {"
-                                  "    background-color: #f0f0f0;"
-                                  "}");
-        titleWidget->setRightAngle();
-    }
+    // if (isScreenMax) {
+    //     isScreenMax = false;
+    //     setGeometry(lastNormalGeometry);
+    //     titleWidget->maxButtonToggleIcon(true);
+    //     mainWidget->setStyleSheet("#mainWidget {"
+    //                               "    border-radius: 16px;"
+    //                               "    background-color: #F0F0F0;"
+    //                               "}");
+    //     titleWidget->setRoundAngle();
+    // } else {
+    //     isScreenMax = true;
+    //     if (!isScreenHalf) {
+    //         lastNormalGeometry = geometry();
+    //         qDebug() << "uiMaximize lastNormalGeometry:" << lastNormalGeometry;
+    //     }
+    //     setGeometry(screen()->availableGeometry());
+    //     titleWidget->maxButtonToggleIcon(false);
+    //     mainWidget->setStyleSheet("#mainWidget {"
+    //                               "    background-color: #F0F0F0;"
+    //                               "}");
+    //     titleWidget->setRightAngle();
+    // }
 }
 
 void MainWindow::uiClose()
