@@ -13,7 +13,10 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     funLeftSubWidget = new Widget();
     funLeftSubWidget->resize(chatRecordsButton->width() + 15, chatRecordsButton->height() + 16);
     funLeftSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-
+    // funLeftSubWidget->setObjectName("funLeftSubWidget");
+    // funLeftSubWidget->setStyleSheet("QWidget {"
+    //                                 "    background: green;"
+    //                                 "}");
     funLeftSubHLayout = new QHBoxLayout(funLeftSubWidget);
     funLeftSubHLayout->addWidget(chatRecordsButton);
     funLeftSubHLayout->setAlignment(Qt::AlignLeft);
@@ -33,7 +36,10 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     funMidSubWidget = new Widget();
     funMidSubWidget->resize(titleLabel->size());
     funMidSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-
+    // funMidSubWidget->setObjectName("funMidSubWidget");
+    // funMidSubWidget->setStyleSheet("QWidget {"
+    //                                "    background: green;"
+    //                                "}");
     funMidSubHLayout = new QHBoxLayout(funMidSubWidget);
     funMidSubHLayout->addWidget(titleLabel);
     funMidSubHLayout->setAlignment(Qt::AlignCenter);
@@ -48,6 +54,10 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     funRightSubWidget = new Widget();
     funRightSubWidget->resize(newChatButton->width() + 15, newChatButton->height() + 16);
     funRightSubWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    // funRightSubWidget->setObjectName("funRightSubWidget");
+    // funRightSubWidget->setStyleSheet("QWidget {"
+    //                                  "    background: green;"
+    //                                  "}");
     funRightSubHLayout = new QHBoxLayout(funRightSubWidget);
     funRightSubHLayout->addWidget(newChatButton);
     funRightSubHLayout->setAlignment(Qt::AlignRight);
@@ -59,6 +69,14 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     mainHLayout->setContentsMargins(0, 0, 0, 0);
 
     setFixedSize(1200, 60);
+    // setObjectName("this");
+    // setStyleSheet("QWidget {"
+    //               "    background: blue;"
+    //               "}");
+    // qDebug() << "funRightSubHLayout contentsmargins:" << funRightSubHLayout->contentsMargins();
+    // qDebug() << "funLeftSubWidget size:" << funLeftSubWidget->size();
+    // qDebug() << "funMidSubWidget size:" << funMidSubWidget->size();
+    // qDebug() << "funRightSubWidget size:" << funRightSubWidget->size();
     setMouseTracking(true);
     saveWidgetSize();
 }
@@ -73,9 +91,17 @@ void FunWidget::mouseMoveEvent(QMouseEvent *e)
 
 void FunWidget::setSize()
 {
+    // qDebug() << "funLeftSubWidget size:" << funLeftSubWidget->size();
+    // qDebug() << "funMidSubWidget size:" << funMidSubWidget->size();
+    // qDebug() << "funRightSubWidget size:" << funRightSubWidget->size();
     int side = (width() - funMidSubWidget->width()) / 2;
-    funLeftSubWidget->setFixedSize(side, funLeftSubWidget->height());
-    funRightSubWidget->setFixedSize(side, funRightSubWidget->height());
+    funLeftSubWidget->resize(side, funLeftSubWidget->height());
+    funRightSubWidget->resize(side, funRightSubWidget->height());
+    // qDebug() << "funRightSubHLayout contentsmargins:" << funRightSubHLayout->contentsMargins();
+    // qDebug() << "FunWidget size:" << size();
+    // qDebug() << "funLeftSubWidget size:" << funLeftSubWidget->size();
+    // qDebug() << "funMidSubWidget size:" << funMidSubWidget->size();
+    // qDebug() << "funRightSubWidget size:" << funRightSubWidget->size();
 }
 
 void FunWidget::saveWidgetSize()

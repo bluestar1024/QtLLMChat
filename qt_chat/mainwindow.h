@@ -68,6 +68,7 @@ protected:
     void showEvent(QShowEvent *event) override;
     void changeEvent(QEvent *event) override;
     bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
+    void paintEvent(QPaintEvent *event) override;
     void moveEvent(QMoveEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -82,6 +83,7 @@ private:
     void checkGraphicsBackend();
     void applyDWMShadow();
     void isItemShowFull(QWidget *widget);
+    bool isWindowMaximized() const;
     void regionDivision();
     void UiStretch();
     void UiDrag(QPoint globalPos);
@@ -155,7 +157,6 @@ private:
     bool first;
     bool messageSendWidgetIsFinished;
     int borderLen;
-    bool isMaximize;
 
     MessageWidget *messageSendWidget;
     MessageWidget *messageRecvWidget;
