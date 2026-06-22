@@ -855,18 +855,21 @@ MainWindow::MainWindow(QWidget *parent)
 #ifdef Q_OS_WIN
     HWND hwnd = reinterpret_cast<HWND>(winId());
     DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    style = (style & ~WS_CAPTION) | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
-    SetWindowLongPtr(hwnd, GWL_STYLE, style);
-
-    DWORD exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-    exStyle |= WS_EX_LAYERED;
-    SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle);
-
+    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
     // HWND hwnd = reinterpret_cast<HWND>(winId());
     // DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    // SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+    // style = (style & ~WS_CAPTION) | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
+    // SetWindowLongPtr(hwnd, GWL_STYLE, style);
+
+    // DWORD exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    // exStyle |= WS_EX_LAYERED;
+    // SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle);
+
+    // SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+    //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 #endif
 }
 
@@ -964,9 +967,10 @@ void MainWindow::applyDWMShadow()
     MARGINS margins = { 1, 1, 1, 1 };
     DwmExtendFrameIntoClientArea(hwnd, &margins);
 
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
-                         | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    RedrawWindow(hwnd, NULL, NULL, RDW_FRAME | RDW_INVALIDATE | RDW_UPDATENOW);
+    // SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+    //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
+    //                      | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 #endif
 }
 
@@ -975,31 +979,32 @@ void MainWindow::showEvent(QShowEvent *event)
     QMainWindow::showEvent(event);
 
 #ifdef Q_OS_WIN
-    static bool firstShow = true;
-    if (firstShow) {
-        firstShow = false;
+    // static bool firstShow = true;
+    // if (firstShow) {
+    //     firstShow = false;
 
-        HWND hwnd = reinterpret_cast<HWND>(winId());
-        if (!hwnd)
-            return;
+    //     HWND hwnd = reinterpret_cast<HWND>(winId());
+    //     if (!hwnd)
+    //         return;
 
-        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+    //     DWORD style = GetWindowLong(hwnd, GWL_STYLE);
 
-        style |= WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_CAPTION;
-        style &= ~(WS_BORDER | WS_DLGFRAME);
-        SetWindowLongPtr(hwnd, GWL_STYLE, style);
+    //     style |= WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_CAPTION;
+    //     style &= ~(WS_BORDER | WS_DLGFRAME);
+    //     SetWindowLongPtr(hwnd, GWL_STYLE, style);
 
-        DWORD exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-        exStyle &= ~(WS_EX_CLIENTEDGE | WS_EX_WINDOWEDGE | WS_EX_STATICEDGE | WS_EX_LAYERED);
-        exStyle |= WS_EX_NOREDIRECTIONBITMAP;
-        SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle);
+    //     DWORD exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
+    //     exStyle &= ~(WS_EX_CLIENTEDGE | WS_EX_WINDOWEDGE | WS_EX_STATICEDGE | WS_EX_LAYERED);
+    //     exStyle |= WS_EX_NOREDIRECTIONBITMAP;
+    //     SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle);
 
-        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
-                             | SWP_NOACTIVATE);
+    //     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+    //                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
+    //                          | SWP_NOACTIVATE);
 
-        applyDWMShadow();
-    }
+    //     applyDWMShadow();
+    // }
+    applyDWMShadow();
 #endif
 }
 
@@ -1014,12 +1019,12 @@ void MainWindow::changeEvent(QEvent *event)
         if ((oldState & Qt::WindowMinimized) && !(newState & Qt::WindowMinimized)) {
             QTimer::singleShot(100, this, [this]() {
                 applyDWMShadow();
-                HWND hwnd = reinterpret_cast<HWND>(winId());
-                if (hwnd) {
-                    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-                                         | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
-                }
+                // HWND hwnd = reinterpret_cast<HWND>(winId());
+                // if (hwnd) {
+                //     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                //                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+                //                          | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+                // }
             });
         }
 
@@ -1027,12 +1032,12 @@ void MainWindow::changeEvent(QEvent *event)
             titleWidget->maxButtonToggleIcon(false);
 
             QTimer::singleShot(0, this, [this]() {
-                HWND hwnd = reinterpret_cast<HWND>(winId());
-                if (!hwnd)
-                    return;
-                SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                             SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-                                     | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+                // HWND hwnd = reinterpret_cast<HWND>(winId());
+                // if (!hwnd)
+                //     return;
+                // SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+                //                      | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
                 applyDWMShadow();
             });
         } else if ((newState & Qt::WindowNoState) && (oldState & Qt::WindowMaximized)) {
@@ -1197,8 +1202,8 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
         MONITORINFO mi = { sizeof(mi) };
         if (GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
-            mmi->ptMaxPosition.x = mi.rcWork.left;
-            mmi->ptMaxPosition.y = mi.rcWork.top;
+            mmi->ptMaxPosition.x = mi.rcWork.left + 1;
+            mmi->ptMaxPosition.y = mi.rcWork.top + 1;
             mmi->ptMaxSize.x = mi.rcWork.right - mi.rcWork.left;
             mmi->ptMaxSize.y = mi.rcWork.bottom - mi.rcWork.top;
         }
@@ -1233,6 +1238,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
+    QMainWindow::mousePressEvent(event);
     if (event->button() == Qt::LeftButton) {
         QPoint pos = event->pos();
 
@@ -1260,11 +1266,11 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             }
         }
     }
-    QMainWindow::mousePressEvent(event);
 }
 
 void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
 {
+    // QMainWindow::mouseDoubleClickEvent(event);
     if (event->button() == Qt::LeftButton) {
         QPoint pos = event->pos();
         int titleHeight = titleWidget->height();
@@ -1285,7 +1291,6 @@ void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
             }
         }
     }
-    QMainWindow::mouseDoubleClickEvent(event);
 }
 
 void MainWindow::paintEvent(QPaintEvent *event)
