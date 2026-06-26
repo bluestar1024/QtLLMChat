@@ -14,12 +14,17 @@ WebEngineView::~WebEngineView() { }
 
 bool WebEngineView::eventFilter(QObject *o, QEvent *e)
 {
+    qDebug() << "WebEngineView eventFilter before:" << e->type();
     if (o == focusProxy() && e->type() == QEvent::MouseButtonRelease) {
         auto *me = static_cast<QMouseEvent *>(e);
-        QMouseEvent newMe(me->type(), me->position(), me->globalPosition(), me->button(),
-                          me->buttons(), me->modifiers());
-        QCoreApplication::postEvent(focusProxy()->parentWidget(), &newMe);
+        // QMouseEvent newMe(me->type(), me->position(), me->globalPosition(), me->button(),
+        //                   me->buttons(), me->modifiers());
+        // QCoreApplication::postEvent(focusProxy()->parentWidget(), &newMe);
+        QMouseEvent *newMe = new QMouseEvent(me->type(), me->position(), me->globalPosition(),
+                                             me->button(), me->buttons(), me->modifiers());
+        QCoreApplication::postEvent(focusProxy()->parentWidget(), newMe);
     }
+    qDebug() << "WebEngineView eventFilter after:" << e->type();
     return QWebEngineView::eventFilter(o, e);
 }
 
