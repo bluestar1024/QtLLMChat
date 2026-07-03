@@ -90,6 +90,11 @@ int main(int argc, char *argv[])
     qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
     // qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
 
+    // qputenv("QTWEBENGINE_CHROMIUM_FLAGS",
+    //         "--disable-site-isolation-trials "
+    //         "--disable-features=site-per-process "
+    //         "--single-process");
+
     QApplication a(argc, argv);
 
     diagnoseGraphics();
