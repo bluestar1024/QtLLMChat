@@ -3,7 +3,7 @@
 
 TitleWidget::TitleWidget(QWidget *parent)
     : QWidget(parent),
-      isRound(true),
+      // isRound(true),
       titleIconLabel(nullptr),
       minButton(nullptr),
       maxButton(nullptr),
@@ -39,13 +39,14 @@ void TitleWidget::paintEvent(QPaintEvent *event)
     QPainterPath path;
     path.setFillRule(Qt::WindingFill);
 
-    if (isRound) {
-        path.addRoundedRect(rect().x(), rect().y(), rect().width(), rect().height(), 16, 16);
-        path.addRect(rect().x(), rect().height() - 16, 16, 16);
-        path.addRect(rect().width() - 16, rect().height() - 16, 16, 16);
-    } else {
-        path.addRect(rect().x(), rect().y(), rect().width(), rect().height());
-    }
+    // if (isRound) {
+    //     path.addRoundedRect(rect().x(), rect().y(), rect().width(), rect().height(), 16, 16);
+    //     path.addRect(rect().x(), rect().height() - 16, 16, 16);
+    //     path.addRect(rect().width() - 16, rect().height() - 16, 16, 16);
+    // } else {
+    //     path.addRect(rect().x(), rect().y(), rect().width(), rect().height());
+    // }
+    path.addRect(rect().x(), rect().y(), rect().width(), rect().height());
 
     QBrush brush(Qt::SolidPattern);
     brush.setColor(QColor(60, 60, 60));
@@ -114,10 +115,7 @@ void TitleWidget::setupRightWidget()
     closeButton->setIcon(QIcon(closeImagePath));
     closeButton->setIconSize(QSize(20, 20));
     closeButton->setStyleSheet("QPushButton { border: none; }"
-                               "QPushButton:hover {"
-                               "   border-top-right-radius: 16px;"
-                               "   background: #c80000;"
-                               "}");
+                               "QPushButton:hover { background: #c80000; }");
     connect(closeButton, &QPushButton::clicked, this, &TitleWidget::closeClicked);
 
     titleRightSubWidget = new Widget();
