@@ -55,7 +55,7 @@ private:
     Widget *titleLeftSubWidget;
     Widget *titleRightSubWidget;
 
-    bool isRound;
+    // bool isRound;
     QString maxImagePath;
     QString normalImagePath;
     QMap<QString, QVariant> widgetSizeDict;
