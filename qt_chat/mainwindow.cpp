@@ -8,7 +8,7 @@ const QString fontFilePath = ":/font/msyhl.ttc";
 const QString configFilePath = ":/config/config.txt";
 const QString mathjaxScriptPath = "mathjax/es5/tex-mml-chtml.js";
 QString codeThemeFilePath = ":/config/dark_theme.xml";
-const QString webEngineCacheDir = ":/webengine_cache";
+const QString webEngineCacheDir = "webengine_cache";
 QWebEngineProfile *sharedProfile = nullptr;
 const int windowFontPointSize = 10;
 int windowFontPixelSize = 20;
@@ -741,11 +741,65 @@ MainWindow::MainWindow(QWidget *parent)
     QWebEngineProfile *sharedProfile = new QWebEngineProfile("shared");
     sharedProfile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
     sharedProfile->setCachePath(webEngineCacheDir);
-    QWebEngineView *dummyView = new QWebEngineView(this);
-    dummyView->setPage(new WebEnginePage(sharedProfile, dummyView));
+    QWebEngineView *dummyView = new QWebEngineView();
+    // dummyView->setPage(new WebEnginePage(sharedProfile, dummyView));
+    WebEnginePage *page = new WebEnginePage(sharedProfile, nullptr); // 无 parent
+    dummyView->setPage(page);
+    connect(
+            dummyView, &QWebEngineView::loadFinished, dummyView,
+            [dummyView]() {
+                qDebug() << "load finished";
+                dummyView->stop();
+                QTimer::singleShot(0, dummyView, [dummyView]() {
+                    if (dummyView->page()) {
+                        dummyView->page()->triggerAction(QWebEnginePage::Stop);
+                    }
+                    QTimer::singleShot(100, dummyView, [dummyView]() {
+                        QWebEnginePage *page = dummyView->page();
+                        dummyView->setPage(nullptr);
+                        if (page) {
+                            delete page;
+                        }
+                        QTimer::singleShot(500, dummyView, [dummyView]() {
+                            delete dummyView;
+                            qDebug() << "cleanup done";
+                        });
+                    });
+                });
+            },
+            Qt::QueuedConnection);
+
+    // connect(
+    //         dummyView, &QWebEngineView::loadFinished, dummyView,
+    //         [dummyView, page]() {
+    //             qDebug() << "load finished, scheduling safe delete";
+    //             dummyView->stop();
+    //             QTimer::singleShot(0, [dummyView, page]() {
+    //                 dummyView->setPage(nullptr);
+    //                 delete page;
+    //                 delete dummyView;
+    //                 qDebug() << "safe delete completed";
+    //             });
+    //         },
+    //         Qt::QueuedConnection);
+
+    // QTimer::singleShot(1000, dummyView, [dummyView]() {
+    //     qDebug() << "delayed delete dummyView";
+    //     QWebEnginePage *page = dummyView->page();
+    //     dummyView->setPage(nullptr);
+    //     delete page;
+    //     dummyView->deleteLater();
+    // });
+
+    // connect(dummyView, &QWebEngineView::loadFinished, this, [dummyView]() {
+    //     qDebug() << "delayed delete dummyView";
+    //     QWebEnginePage *page = dummyView->page();
+    //     dummyView->setPage(nullptr);
+    //     delete page;
+    //     dummyView->deleteLater();
+    // });
     dummyView->load(QUrl("about:blank"));
-    connect(dummyView, &QWebEngineView::loadFinished, dummyView, &QObject::deleteLater);
-    connect(dummyView, &QWebEngineView::loadFinished, []() { qDebug() << "dummyView delete"; });
+    // connect(dummyView, &QWebEngineView::loadFinished, []() { qDebug() << "dummyView delete"; });
 
     setMinimumSize(1110, 795);
     resize(1200, 800);
@@ -1982,6 +2036,7 @@ void MainWindow::onDpiChanged()
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
+    Q_UNUSED(event);
     if (avoidRepeatSelfFun) {
         avoidRepeatSelfFun = false;
         return;
@@ -2749,11 +2804,21 @@ void MainWindow::textCopy() { }
 
 void MainWindow::messageRenewResponse() { }
 
-void MainWindow::saveCurChatRecord(bool withholdCurChatFile) { }
+void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
+{
+    Q_UNUSED(withholdCurChatFile);
+}
 
-void MainWindow::chatRecordsGenerateItem(QString searchText) { }
+void MainWindow::chatRecordsGenerateItem(QString searchText)
+{
+    Q_UNUSED(searchText);
+}
 
-void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandList) { }
+void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandList)
+{
+    Q_UNUSED(lastIsToggle);
+    Q_UNUSED(useThinkExpandList);
+}
 
 void MainWindow::getSetTexting(bool state)
 {
