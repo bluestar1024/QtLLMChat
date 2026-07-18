@@ -8,6 +8,8 @@ WebEngineView::WebEngineView(QWidget *parent) : QWebEngineView(parent)
     page()->setBackgroundColor(Qt::transparent);
     load(QUrl());
     focusProxy()->installEventFilter(this);
+    // focusProxy()->setAttribute(Qt::WA_TransparentForMouseEvents);
+    // setFocusPolicy(Qt::NoFocus);
 }
 
 WebEngineView::~WebEngineView() { }
@@ -22,7 +24,9 @@ bool WebEngineView::eventFilter(QObject *o, QEvent *e)
         // QCoreApplication::postEvent(focusProxy()->parentWidget(), &newMe);
         QMouseEvent *newMe = new QMouseEvent(me->type(), me->position(), me->globalPosition(),
                                              me->button(), me->buttons(), me->modifiers());
-        QCoreApplication::postEvent(focusProxy()->parentWidget(), newMe);
+        // QCoreApplication::postEvent(focusProxy()->parentWidget(), newMe);
+        QCoreApplication::sendEvent(focusProxy()->parentWidget(), newMe);
+        return true;
     }
     qDebug() << "WebEngineView eventFilter after:" << e->type();
     return QWebEngineView::eventFilter(o, e);

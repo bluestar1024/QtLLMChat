@@ -41,6 +41,8 @@ signals:
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+    // void mousePressEvent(QMouseEvent *e) override;
+    // void mouseReleaseEvent(QMouseEvent *e) override;
 
 private:
     void initializeUI();

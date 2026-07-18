@@ -176,6 +176,52 @@ print(total)
 ### C++
 )";
 
+const QString testText_simple = R"(<think>
+那我先写出循环的方法。代码结构大概是：
+
+```cpp
+int sum = 0;
+for (int i = 1; i <= 100; ++i) {
+    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+    sum += i;
+}
+
+int main()
+{
+    int n, sum = 0;
+
+    for (int i = 1; i <= n; ++i)
+    {
+        sum += i;
+    }
+
+    std::cout << "Sum = " << sum;
+    return 0;
+}
+```
+
+或者用公式：
+
+所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
+</think>
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+### Python
+```python
+n = 100
+total = n * (n + 1) // 2
+#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
+print(total)
+```
+
+这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
+
+以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
+
+### C++
+)";
+
 const QString testText = R"(<think>
 让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
 
@@ -1071,6 +1117,7 @@ void MainWindow::changeEvent(QEvent *event)
         Qt::WindowStates newState = windowState();
 
         if ((oldState & Qt::WindowMinimized) && !(newState & Qt::WindowMinimized)) {
+            qDebug() << "从最小化恢复";
             QTimer::singleShot(100, this, [this]() {
                 applyDWMShadow();
                 // HWND hwnd = reinterpret_cast<HWND>(winId());
@@ -1082,9 +1129,10 @@ void MainWindow::changeEvent(QEvent *event)
             });
         }
 
-        if ((newState & Qt::WindowMaximized) && !(oldState & Qt::WindowMaximized)) {
+        // if ((newState & Qt::WindowMaximized) && !(oldState & Qt::WindowMaximized)) {
+        if (!(oldState & Qt::WindowMaximized) && (newState & Qt::WindowMaximized)) {
+            qDebug() << "最大化";
             titleWidget->maxButtonToggleIcon(false);
-
             QTimer::singleShot(0, this, [this]() {
                 // HWND hwnd = reinterpret_cast<HWND>(winId());
                 // if (!hwnd)
@@ -1094,10 +1142,23 @@ void MainWindow::changeEvent(QEvent *event)
                 //                      | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
                 applyDWMShadow();
             });
-        } else if ((newState & Qt::WindowNoState) && (oldState & Qt::WindowMaximized)) {
+            // HWND hwnd = reinterpret_cast<HWND>(winId());
+            // DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+            // SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+            // SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+            //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+            //                      | SWP_NOOWNERZORDER);
+            // } else if ((newState & Qt::WindowNoState) && (oldState & Qt::WindowMaximized)) {
+        } else if ((oldState & Qt::WindowMaximized) && !(newState & Qt::WindowMaximized)) {
+            qDebug() << "从最大化恢复正常";
             titleWidget->maxButtonToggleIcon(true);
-
             QTimer::singleShot(50, this, [this]() { applyDWMShadow(); });
+            // HWND hwnd = reinterpret_cast<HWND>(winId());
+            // DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+            // SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+            // SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+            //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+            //                      | SWP_NOOWNERZORDER);
         }
     }
 #endif
@@ -1171,8 +1232,8 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 int closeBtnWidth = titleWidget->getCloseButtonSize().width();
                 int maxBtnWidth = titleWidget->getMaxButtonSize().width();
                 int minBtnWidth = titleWidget->getMinButtonSize().width();
-                int btnRight = w - 10;
-                int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth - 40;
+                int btnRight = w;
+                int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth;
 
                 if (btnLeft < 0)
                     btnLeft = 0;
@@ -1194,8 +1255,8 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         int closeBtnWidth = titleWidget->getCloseButtonSize().width();
         int maxBtnWidth = titleWidget->getMaxButtonSize().width();
         int minBtnWidth = titleWidget->getMinButtonSize().width();
-        int btnRight = w - 10;
-        int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth - 40;
+        int btnRight = w;
+        int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth;
         if (btnLeft < detectBorder)
             btnLeft = detectBorder;
 
@@ -1239,6 +1300,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 return true;
             }
             if (nX >= detectBorder && nX < btnLeft) {
+                qDebug() << "MainWindow::nativeEvent HTCAPTION";
                 *result = HTCAPTION;
                 return true;
             }
@@ -1274,6 +1336,60 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         break;
     }
 
+        // case WM_NCLBUTTONDBLCLK: {
+        //     POINT pt;
+        //     pt.x = GET_X_LPARAM(msg->lParam);
+        //     pt.y = GET_Y_LPARAM(msg->lParam);
+        //     ScreenToClient(hwnd, &pt);
+
+        //     QPoint pos(pt.x, pt.y);
+        //     int titleHeight = titleWidget->height();
+
+        //     if (pos.y() < titleHeight) {
+        //         int closeBtnWidth = titleWidget->getCloseButtonSize().width();
+        //         int maxBtnWidth = titleWidget->getMaxButtonSize().width();
+        //         int minBtnWidth = titleWidget->getMinButtonSize().width();
+        //         int btnRight = width() - 10;
+        //         int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth - 40;
+        //         if (btnLeft < 0)
+        //             btnLeft = 0;
+
+        //         if (pos.x() < btnLeft) {
+        //             qDebug() << "WM_NCLBUTTONDBLCLK uiMaximize";
+        //             uiMaximize();
+        //             *result = 0;
+        //             return true;
+        //         }
+        //     }
+        //     break;
+        // }
+
+        // case WM_LBUTTONDBLCLK: {
+        //     POINT pt;
+        //     pt.x = GET_X_LPARAM(msg->lParam);
+        //     pt.y = GET_Y_LPARAM(msg->lParam);
+
+        //     int titleHeight = titleWidget->height();
+
+        //     if (pt.y >= 0 && pt.y < titleHeight) {
+        //         int closeBtnWidth = titleWidget->getCloseButtonSize().width();
+        //         int maxBtnWidth = titleWidget->getMaxButtonSize().width();
+        //         int minBtnWidth = titleWidget->getMinButtonSize().width();
+        //         int btnRight = width() - 10;
+        //         int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth - 40;
+        //         if (btnLeft < 0)
+        //             btnLeft = 0;
+
+        //         if (pt.x < btnLeft) {
+        //             qDebug() << "WM_LBUTTONDBLCLK uiMaximize";
+        //             uiMaximize();
+        //             *result = 0;
+        //             return true;
+        //         }
+        //     }
+        //     break;
+        // }
+
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
         break;
@@ -1292,6 +1408,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
 void MainWindow::mousePressEvent(QMouseEvent *event)
 {
+    qDebug() << "MainWindow::mousePressEvent";
     QMainWindow::mousePressEvent(event);
     if (event->button() == Qt::LeftButton) {
         QPoint pos = event->pos();
@@ -1302,8 +1419,8 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
             int closeBtnWidth = titleWidget->getCloseButtonSize().width();
             int maxBtnWidth = titleWidget->getMaxButtonSize().width();
             int minBtnWidth = titleWidget->getMinButtonSize().width();
-            int btnRight = width() - 10;
-            int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth - 40;
+            int btnRight = width();
+            int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth;
 
             if (btnLeft < 0)
                 btnLeft = 0;
@@ -1327,19 +1444,23 @@ void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
     // QMainWindow::mouseDoubleClickEvent(event);
     if (event->button() == Qt::LeftButton) {
         QPoint pos = event->pos();
+        // QPoint pos = mapFromGlobal(event->globalPosition().toPoint());
+        qDebug() << "MainWindow::mouseDoubleClickEvent" << pos << event->globalPosition().toPoint()
+                 << mapFromGlobal(event->globalPosition().toPoint());
         int titleHeight = titleWidget->height();
 
         if (pos.y() < titleHeight) {
             int closeBtnWidth = titleWidget->getCloseButtonSize().width();
             int maxBtnWidth = titleWidget->getMaxButtonSize().width();
             int minBtnWidth = titleWidget->getMinButtonSize().width();
-            int btnRight = width() - 10;
-            int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth - 40;
+            int btnRight = width();
+            int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth;
 
             if (btnLeft < 0)
                 btnLeft = 0;
 
             if (pos.x() < btnLeft) {
+                qDebug() << "mouseDoubleClickEvent uiMaximize";
                 uiMaximize();
                 return;
             }
@@ -1919,28 +2040,28 @@ void MainWindow::UiDrag(QPoint globalPos)
 
 // void MainWindow::mousePressEvent(QMouseEvent *event)
 // {
-//     if (event->button() == Qt::LeftButton) {
-//         QPoint pos = event->pos();
+//             if (event->button() == Qt::LeftButton) {
+//             QPoint pos = event->pos();
 
-//         if (pos.y() < titleWidget->height()) {
-//             int btnRight = width() - 10;
-//             int btnLeft = btnRight - titleWidget->getCloseButtonSize().width()
-//                     - titleWidget->getMaxButtonSize().width()
-//                     - titleWidget->getMinButtonSize().width() - 40;
+//             if (pos.y() < titleWidget->height()) {
+//                 int btnRight = width() - 10;
+//                 int btnLeft = btnRight - titleWidget->getCloseButtonSize().width()
+//                         - titleWidget->getMaxButtonSize().width()
+//                         - titleWidget->getMinButtonSize().width() - 40;
 
-//             if (pos.x() < btnLeft) {
-// #ifdef Q_OS_WIN
-//                 HWND hwnd = reinterpret_cast<HWND>(winId());
-//                 if (hwnd) {
-//                     ReleaseCapture();
-//                     SendMessage(hwnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+//                 if (pos.x() < btnLeft) {
+//     #ifdef Q_OS_WIN
+//                     HWND hwnd = reinterpret_cast<HWND>(winId());
+//                     if (hwnd) {
+//                         ReleaseCapture();
+//                         SendMessage(hwnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+//                     }
+//     #endif
+//                     return;
 //                 }
-// #endif
-//                 return;
 //             }
 //         }
-//     }
-//     QMainWindow::mousePressEvent(event);
+//         QMainWindow::mousePressEvent(event);
 // }
 
 // void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
@@ -2152,12 +2273,13 @@ bool MainWindow::isWindowMaximized() const
 
 void MainWindow::uiMaximize()
 {
+    qDebug() << "MainWindow::uiMaximize";
     if (isWindowMaximized()) {
         showNormal();
-        titleWidget->maxButtonToggleIcon(true);
+        // titleWidget->maxButtonToggleIcon(true);
     } else {
         showMaximized();
-        titleWidget->maxButtonToggleIcon(false);
+        // titleWidget->maxButtonToggleIcon(false);
     }
 }
 
@@ -2723,6 +2845,12 @@ void MainWindow::messageStart()
 
     first = true;
     qDebug() << "messageStart";
+
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 }
 
 void MainWindow::queueMessage(const QString &text)
@@ -2756,6 +2884,13 @@ void MainWindow::recvMessage(const QString &text)
                 0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
         recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
     }
+
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
     qDebug() << "recvMessage: setText finish";
     messageQueue.dequeue();
     qDebug() << "recvMessage: messageQueue dequeue";
