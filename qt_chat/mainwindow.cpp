@@ -1118,47 +1118,18 @@ void MainWindow::changeEvent(QEvent *event)
 
         if ((oldState & Qt::WindowMinimized) && !(newState & Qt::WindowMinimized)) {
             qDebug() << "从最小化恢复";
-            QTimer::singleShot(100, this, [this]() {
-                applyDWMShadow();
-                // HWND hwnd = reinterpret_cast<HWND>(winId());
-                // if (hwnd) {
-                //     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                //                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-                //                          | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
-                // }
-            });
+            QTimer::singleShot(10, this, [this]() { applyDWMShadow(); });
         }
-
         // if ((newState & Qt::WindowMaximized) && !(oldState & Qt::WindowMaximized)) {
         if (!(oldState & Qt::WindowMaximized) && (newState & Qt::WindowMaximized)) {
             qDebug() << "最大化";
             titleWidget->maxButtonToggleIcon(false);
-            QTimer::singleShot(0, this, [this]() {
-                // HWND hwnd = reinterpret_cast<HWND>(winId());
-                // if (!hwnd)
-                //     return;
-                // SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-                //                      | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
-                applyDWMShadow();
-            });
-            // HWND hwnd = reinterpret_cast<HWND>(winId());
-            // DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-            // SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-            // SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-            //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-            //                      | SWP_NOOWNERZORDER);
+            QTimer::singleShot(10, this, [this]() { applyDWMShadow(); });
             // } else if ((newState & Qt::WindowNoState) && (oldState & Qt::WindowMaximized)) {
         } else if ((oldState & Qt::WindowMaximized) && !(newState & Qt::WindowMaximized)) {
             qDebug() << "从最大化恢复正常";
             titleWidget->maxButtonToggleIcon(true);
-            QTimer::singleShot(50, this, [this]() { applyDWMShadow(); });
-            // HWND hwnd = reinterpret_cast<HWND>(winId());
-            // DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-            // SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-            // SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-            //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-            //                      | SWP_NOOWNERZORDER);
+            QTimer::singleShot(10, this, [this]() { applyDWMShadow(); });
         }
     }
 #endif
@@ -1177,32 +1148,6 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
     switch (msg->message) {
     case WM_NCCALCSIZE: {
-        // if (msg->wParam == TRUE) {
-        //     NCCALCSIZE_PARAMS *pncsp = reinterpret_cast<NCCALCSIZE_PARAMS *>(msg->lParam);
-
-        //     LRESULT ret = DefWindowProc(hwnd, WM_NCCALCSIZE, msg->wParam, msg->lParam);
-
-        //     WINDOWPLACEMENT wp = { sizeof(wp) };
-        //     bool isMaximized = GetWindowPlacement(hwnd, &wp) && wp.showCmd == SW_MAXIMIZE;
-
-        //     if (!isMaximized) {
-        //         RECT rcBefore = pncsp->rgrc[0];
-
-        //         pncsp->rgrc[0].bottom -= 1;
-
-        //         if (pncsp->rgrc[0].right <= pncsp->rgrc[0].left + 10
-        //             || pncsp->rgrc[0].bottom <= pncsp->rgrc[0].top + 10) {
-        //             pncsp->rgrc[0] = rcBefore;
-        //         }
-
-        //         *result = WVR_REDRAW;
-        //         return true;
-        //     } else {
-        //         pncsp->rgrc[0] = pncsp->rgrc[1];
-        //         *result = WVR_REDRAW;
-        //         return true;
-        //     }
-        // }
         *result = 0;
         return true;
     }
@@ -1300,11 +1245,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 return true;
             }
             if (nX >= detectBorder && nX < btnLeft) {
-                qDebug() << "MainWindow::nativeEvent HTCAPTION";
-                *result = HTCAPTION;
-                return true;
-            }
-            if (nX < detectBorder) {
+                // qDebug() << "MainWindow::nativeEvent HTCAPTION";
                 *result = HTCAPTION;
                 return true;
             }
@@ -1336,60 +1277,6 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         break;
     }
 
-        // case WM_NCLBUTTONDBLCLK: {
-        //     POINT pt;
-        //     pt.x = GET_X_LPARAM(msg->lParam);
-        //     pt.y = GET_Y_LPARAM(msg->lParam);
-        //     ScreenToClient(hwnd, &pt);
-
-        //     QPoint pos(pt.x, pt.y);
-        //     int titleHeight = titleWidget->height();
-
-        //     if (pos.y() < titleHeight) {
-        //         int closeBtnWidth = titleWidget->getCloseButtonSize().width();
-        //         int maxBtnWidth = titleWidget->getMaxButtonSize().width();
-        //         int minBtnWidth = titleWidget->getMinButtonSize().width();
-        //         int btnRight = width() - 10;
-        //         int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth - 40;
-        //         if (btnLeft < 0)
-        //             btnLeft = 0;
-
-        //         if (pos.x() < btnLeft) {
-        //             qDebug() << "WM_NCLBUTTONDBLCLK uiMaximize";
-        //             uiMaximize();
-        //             *result = 0;
-        //             return true;
-        //         }
-        //     }
-        //     break;
-        // }
-
-        // case WM_LBUTTONDBLCLK: {
-        //     POINT pt;
-        //     pt.x = GET_X_LPARAM(msg->lParam);
-        //     pt.y = GET_Y_LPARAM(msg->lParam);
-
-        //     int titleHeight = titleWidget->height();
-
-        //     if (pt.y >= 0 && pt.y < titleHeight) {
-        //         int closeBtnWidth = titleWidget->getCloseButtonSize().width();
-        //         int maxBtnWidth = titleWidget->getMaxButtonSize().width();
-        //         int minBtnWidth = titleWidget->getMinButtonSize().width();
-        //         int btnRight = width() - 10;
-        //         int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth - 40;
-        //         if (btnLeft < 0)
-        //             btnLeft = 0;
-
-        //         if (pt.x < btnLeft) {
-        //             qDebug() << "WM_LBUTTONDBLCLK uiMaximize";
-        //             uiMaximize();
-        //             *result = 0;
-        //             return true;
-        //         }
-        //     }
-        //     break;
-        // }
-
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
         break;
@@ -1406,365 +1293,73 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     return QMainWindow::nativeEvent(eventType, message, result);
 }
 
-void MainWindow::mousePressEvent(QMouseEvent *event)
-{
-    qDebug() << "MainWindow::mousePressEvent";
-    QMainWindow::mousePressEvent(event);
-    if (event->button() == Qt::LeftButton) {
-        QPoint pos = event->pos();
-
-        int titleHeight = titleWidget->height();
-
-        if (pos.y() < titleHeight) {
-            int closeBtnWidth = titleWidget->getCloseButtonSize().width();
-            int maxBtnWidth = titleWidget->getMaxButtonSize().width();
-            int minBtnWidth = titleWidget->getMinButtonSize().width();
-            int btnRight = width();
-            int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth;
-
-            if (btnLeft < 0)
-                btnLeft = 0;
-
-            if (pos.x() < btnLeft) {
-#ifdef Q_OS_WIN
-                HWND hwnd = reinterpret_cast<HWND>(winId());
-                if (hwnd) {
-                    ReleaseCapture();
-                    SendMessage(hwnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
-                }
-#endif
-                return;
-            }
-        }
-    }
-}
-
-void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
-{
-    // QMainWindow::mouseDoubleClickEvent(event);
-    if (event->button() == Qt::LeftButton) {
-        QPoint pos = event->pos();
-        // QPoint pos = mapFromGlobal(event->globalPosition().toPoint());
-        qDebug() << "MainWindow::mouseDoubleClickEvent" << pos << event->globalPosition().toPoint()
-                 << mapFromGlobal(event->globalPosition().toPoint());
-        int titleHeight = titleWidget->height();
-
-        if (pos.y() < titleHeight) {
-            int closeBtnWidth = titleWidget->getCloseButtonSize().width();
-            int maxBtnWidth = titleWidget->getMaxButtonSize().width();
-            int minBtnWidth = titleWidget->getMinButtonSize().width();
-            int btnRight = width();
-            int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth;
-
-            if (btnLeft < 0)
-                btnLeft = 0;
-
-            if (pos.x() < btnLeft) {
-                qDebug() << "mouseDoubleClickEvent uiMaximize";
-                uiMaximize();
-                return;
-            }
-        }
-    }
-}
-
-void MainWindow::paintEvent(QPaintEvent *event)
-{
-    QMainWindow::paintEvent(event);
-
-    if (!isWindowMaximized()) {
-        QPainter painter(this);
-        painter.setRenderHint(QPainter::Antialiasing);
-
-        QPen pen(QColor(200, 200, 200, 180));
-        pen.setWidth(1);
-        painter.setPen(pen);
-        painter.setBrush(Qt::NoBrush);
-
-        QRectF rect = mainWidget->geometry().adjusted(0.5, 0.5, -0.5, -0.5);
-
-        if (rect.width() > 0 && rect.height() > 0) {
-            painter.drawRoundedRect(rect, 16, 16);
-        }
-    }
-}
-
-// void MainWindow::applyDWMShadow()
+// void MainWindow::mousePressEvent(QMouseEvent *event)
 // {
+//     qDebug() << "MainWindow::mousePressEvent";
+//     QMainWindow::mousePressEvent(event);
+//     if (event->button() == Qt::LeftButton) {
+//         QPoint pos = event->pos();
+
+//         int titleHeight = titleWidget->height();
+
+//         if (pos.y() < titleHeight) {
+//             int closeBtnWidth = titleWidget->getCloseButtonSize().width();
+//             int maxBtnWidth = titleWidget->getMaxButtonSize().width();
+//             int minBtnWidth = titleWidget->getMinButtonSize().width();
+//             int btnRight = width();
+//             int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth;
+
+//             if (btnLeft < 0)
+//                 btnLeft = 0;
+
+//             if (pos.x() < btnLeft) {
 // #ifdef Q_OS_WIN
-//     HWND hwnd = reinterpret_cast<HWND>(winId());
-//     if (!hwnd || !IsWindow(hwnd)) {
-//         return;
-//     }
-
-//     DWMNCRENDERINGPOLICY policy = DWMNCRP_ENABLED;
-//     DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
-
-//     MARGINS margins = { 0, 0, 0, 1 };
-//     DwmExtendFrameIntoClientArea(hwnd, &margins);
-
-//     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-//                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
-//                          | SWP_NOACTIVATE);
-// #endif
-// }
-
-// void MainWindow::showEvent(QShowEvent *event)
-// {
-//     QMainWindow::showEvent(event);
-
-// #ifdef Q_OS_WIN
-//     static bool firstShow = true;
-//     if (firstShow) {
-//         firstShow = false;
-
-//         HWND hwnd = reinterpret_cast<HWND>(winId());
-//         if (!hwnd)
-//             return;
-
-//         DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-
-//         style |= WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
-//         style &= ~(WS_CAPTION | WS_BORDER | WS_DLGFRAME);
-//         SetWindowLongPtr(hwnd, GWL_STYLE, style);
-
-//         DWORD exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
-//         exStyle |= WS_EX_LAYERED;
-//         exStyle &= ~(WS_EX_CLIENTEDGE | WS_EX_WINDOWEDGE | WS_EX_STATICEDGE);
-//         SetWindowLongPtr(hwnd, GWL_EXSTYLE, exStyle);
-
-//         SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-//                      SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
-//                              | SWP_NOACTIVATE);
-
-//         applyDWMShadow();
-//     }
-// #endif
-// }
-
-// void MainWindow::changeEvent(QEvent *event)
-// {
-// #ifdef Q_OS_WIN
-//     if (event->type() == QEvent::WindowStateChange) {
-//         QWindowStateChangeEvent *stateEvent = static_cast<QWindowStateChangeEvent *>(event);
-//         Qt::WindowStates oldState = stateEvent->oldState();
-//         Qt::WindowStates newState = windowState();
-
-//         if ((oldState & Qt::WindowMinimized) && !(newState & Qt::WindowMinimized)) {
-//             QTimer::singleShot(50, this, &MainWindow::applyDWMShadow);
-//         }
-
-//         if ((newState & Qt::WindowMaximized) && !(oldState & Qt::WindowMaximized)) {
-//             // isMaximize = true;
-//             titleWidget->maxButtonToggleIcon(false);
-
-//             mainWidget->setStyleSheet("#mainWidget {"
-//                                       "    background-color: #F0F0F0;"
-//                                       "    border-radius: 0px;"
-//                                       "}");
-//             if (titleWidget->metaObject()->indexOfMethod("setRightAngle()") != -1)
-//                 // titleWidget->setRightAngle();
-
-//                 QTimer::singleShot(0, this, [this]() {
-//                     HWND hwnd = reinterpret_cast<HWND>(winId());
-//                     SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-//                                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-//                                          | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
-//                 });
-
-//         } else if ((newState & Qt::WindowNoState) && (oldState & Qt::WindowMaximized)) {
-//             // isMaximize = false;
-//             titleWidget->maxButtonToggleIcon(true);
-
-//             mainWidget->setStyleSheet("#mainWidget {"
-//                                       "    background-color: #F0F0F0;"
-//                                       "    border-radius: 16px;"
-//                                       "}");
-//             if (titleWidget->metaObject()->indexOfMethod("setRoundAngle()") != -1)
-//                 // titleWidget->setRoundAngle();
-
-//                 QTimer::singleShot(50, this, &MainWindow::applyDWMShadow);
-//         }
-//     }
-// #endif
-
-//     QMainWindow::changeEvent(event);
-// }
-
-// bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
-// {
-// #ifdef Q_OS_WIN
-//     if (eventType != "windows_generic_MSG")
-//         return false;
-
-//     MSG *msg = static_cast<MSG *>(message);
-//     HWND hwnd = msg->hwnd;
-
-//     switch (msg->message) {
-//     case WM_NCCALCSIZE: {
-//         // if (msg->wParam == TRUE) {
-//         //     NCCALCSIZE_PARAMS *pncsp = reinterpret_cast<NCCALCSIZE_PARAMS *>(msg->lParam);
-
-//         //     LRESULT ret = DefWindowProc(hwnd, WM_NCCALCSIZE, msg->wParam, msg->lParam);
-
-//         //     WINDOWPLACEMENT wp = { sizeof(wp) };
-//         //     bool isMaximized = GetWindowPlacement(hwnd, &wp) && wp.showCmd == SW_MAXIMIZE;
-
-//         //     if (!isMaximized) {
-//         //         RECT rcBefore = pncsp->rgrc[0];
-
-//         //         pncsp->rgrc[0].left += 0;
-//         //         pncsp->rgrc[0].top += 0;
-//         //         pncsp->rgrc[0].right -= 0;
-//         //         pncsp->rgrc[0].bottom -= 1;
-
-//         //         if (pncsp->rgrc[0].right <= pncsp->rgrc[0].left + 10
-//         //             || pncsp->rgrc[0].bottom <= pncsp->rgrc[0].top + 10) {
-//         //             pncsp->rgrc[0] = rcBefore;
-//         //         }
-//         //     }
-
-//         //     *result = ret;
-//         //     return true;
-//         // }
-//         *result = 0;
-//         return true;
-//     }
-
-//     case WM_NCHITTEST: {
-//         POINT pt;
-//         pt.x = GET_X_LPARAM(msg->lParam);
-//         pt.y = GET_Y_LPARAM(msg->lParam);
-
-//         ScreenToClient(hwnd, &pt);
-
-//         RECT rcClient;
-//         GetClientRect(hwnd, &rcClient);
-
-//         int nX = pt.x;
-//         int nY = pt.y;
-//         int w = rcClient.right;
-//         int h = rcClient.bottom;
-
-//         WINDOWPLACEMENT wp = { sizeof(wp) };
-//         bool isMaximized = GetWindowPlacement(hwnd, &wp) && wp.showCmd == SW_MAXIMIZE;
-
-//         if (isMaximized) {
-//             if (nY >= 0 && nY < titleWidget->height()) {
-//                 int btnRight = w - 10;
-//                 int btnLeft = btnRight - titleWidget->getCloseButtonSize().width()
-//                         - titleWidget->getMaxButtonSize().width()
-//                         - titleWidget->getMinButtonSize().width() - 40;
-//                 if (nX >= btnLeft && nX < btnRight) {
-//                     return QWidget::nativeEvent(eventType, message, result);
+//                 HWND hwnd = reinterpret_cast<HWND>(winId());
+//                 if (hwnd) {
+//                     ReleaseCapture();
+//                     SendMessage(hwnd, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
 //                 }
-//                 *result = HTCAPTION;
-//                 return true;
-//             }
-//             *result = HTCLIENT;
-//             return true;
-//         }
-
-//         const int detectBorder = 4;
-//         const int visualBorder = 1;
-
-//         int btnRight = w - 10;
-//         int btnLeft = btnRight - titleWidget->getCloseButtonSize().width()
-//                 - titleWidget->getMaxButtonSize().width() - titleWidget->getMinButtonSize().width()
-//                 - 40;
-
-//         if (nY >= 0 && nY < titleWidget->height()) {
-//             if (nX >= 0 && nX < detectBorder) {
-//                 *result = HTTOPLEFT;
-//                 return true;
-//             }
-//             if (nX >= w - detectBorder && nX < w) {
-//                 *result = HTTOPRIGHT;
-//                 return true;
-//             }
-//             if (nY < detectBorder && nX >= detectBorder && nX < w - detectBorder) {
-//                 *result = HTTOP;
-//                 return true;
-//             }
-//             if (nX >= btnLeft && nX < btnRight) {
-//                 return QWidget::nativeEvent(eventType, message, result);
-//             }
-//             if (nX >= detectBorder && nX < btnLeft) {
-//                 *result = HTCAPTION;
-//                 return true;
-//             }
-//             *result = HTCAPTION;
-//             return true;
-//         }
-
-//         if (nY >= h - detectBorder && nY < h) {
-//             if (nX >= 0 && nX < detectBorder) {
-//                 *result = HTBOTTOMLEFT;
-//                 return true;
-//             }
-//             if (nX >= w - detectBorder && nX < w) {
-//                 *result = HTBOTTOMRIGHT;
-//                 return true;
-//             }
-//             if (nX >= detectBorder && nX < w - detectBorder) {
-//                 *result = HTBOTTOM;
-//                 return true;
-//             }
-//         }
-
-//         if (nX >= 0 && nX < detectBorder && nY >= detectBorder && nY < h - detectBorder) {
-//             *result = HTLEFT;
-//             return true;
-//         }
-
-//         if (nX >= w - detectBorder && nX < w && nY >= detectBorder && nY < h - detectBorder) {
-//             *result = HTRIGHT;
-//             return true;
-//         }
-
-//         *result = HTCLIENT;
-//         return true;
-//     }
-
-//     case WM_GETMINMAXINFO: {
-//         MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
-//         MONITORINFO mi = { sizeof(mi) };
-//         if (GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
-//             mmi->ptMaxPosition.x = mi.rcWork.left;
-//             mmi->ptMaxPosition.y = mi.rcWork.top;
-//             mmi->ptMaxSize.x = mi.rcWork.right - mi.rcWork.left;
-//             mmi->ptMaxSize.y = mi.rcWork.bottom - mi.rcWork.top;
-//         }
-//         mmi->ptMinTrackSize.x = 1100;
-//         mmi->ptMinTrackSize.y = 795;
-//         *result = 0;
-//         return true;
-//     }
-
-//     case WM_SIZE: {
-//         if (msg->wParam == SIZE_RESTORED || msg->wParam == SIZE_MAXIMIZED) {
-//             QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
-//         }
-//         break;
-//     }
-
-//     case WM_EXITSIZEMOVE: {
-//         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
-//         break;
-//     }
-
-//     default:
-//         break;
-//     }
 // #endif
-//     return QMainWindow::nativeEvent(eventType, message, result);
+//                 return;
+//             }
+//         }
+//     }
+// }
+
+// void MainWindow::mouseDoubleClickEvent(QMouseEvent *event)
+// {
+//     // QMainWindow::mouseDoubleClickEvent(event);
+//     if (event->button() == Qt::LeftButton) {
+//         QPoint pos = event->pos();
+//         // QPoint pos = mapFromGlobal(event->globalPosition().toPoint());
+//         // qDebug() << "MainWindow::mouseDoubleClickEvent" << pos << event->globalPosition().toPoint()
+//         //          << mapFromGlobal(event->globalPosition().toPoint());
+//         int titleHeight = titleWidget->height();
+
+//         if (pos.y() < titleHeight) {
+//             int closeBtnWidth = titleWidget->getCloseButtonSize().width();
+//             int maxBtnWidth = titleWidget->getMaxButtonSize().width();
+//             int minBtnWidth = titleWidget->getMinButtonSize().width();
+//             int btnRight = width();
+//             int btnLeft = btnRight - closeBtnWidth - maxBtnWidth - minBtnWidth;
+
+//             if (btnLeft < 0)
+//                 btnLeft = 0;
+
+//             if (pos.x() < btnLeft) {
+//                 qDebug() << "mouseDoubleClickEvent uiMaximize";
+//                 uiMaximize();
+//                 return;
+//             }
+//         }
+//     }
 // }
 
 // void MainWindow::paintEvent(QPaintEvent *event)
 // {
 //     QMainWindow::paintEvent(event);
 
-//     if (!isMaximize) {
+//     if (!isWindowMaximized()) {
 //         QPainter painter(this);
 //         painter.setRenderHint(QPainter::Antialiasing);
 
@@ -1774,7 +1369,10 @@ void MainWindow::paintEvent(QPaintEvent *event)
 //         painter.setBrush(Qt::NoBrush);
 
 //         QRectF rect = mainWidget->geometry().adjusted(0.5, 0.5, -0.5, -0.5);
-//         painter.drawRoundedRect(rect, 16, 16);
+
+//         if (rect.width() > 0 && rect.height() > 0) {
+//             painter.drawRoundedRect(rect, 16, 16);
+//         }
 //     }
 // }
 
