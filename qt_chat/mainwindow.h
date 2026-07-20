@@ -68,11 +68,11 @@ protected:
     void showEvent(QShowEvent *event) override;
     void changeEvent(QEvent *event) override;
     bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result) override;
-    void paintEvent(QPaintEvent *event) override;
+    // void paintEvent(QPaintEvent *event) override;
     void moveEvent(QMoveEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
-    void mouseDoubleClickEvent(QMouseEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
+    // void mouseDoubleClickEvent(QMouseEvent *event) override;
+    // void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
 

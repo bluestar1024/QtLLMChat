@@ -62,6 +62,18 @@ void TitleWidget::mouseMoveEvent(QMouseEvent *event)
     event->ignore();
 }
 
+// void TitleWidget::mousePressEvent(QMouseEvent *e)
+// {
+//     QWidget::mousePressEvent(e);
+//     e->ignore();
+// }
+
+// void TitleWidget::mouseReleaseEvent(QMouseEvent *e)
+// {
+//     QWidget::mouseReleaseEvent(e);
+//     e->ignore();
+// }
+
 void TitleWidget::initializeUI()
 {
     setupLeftWidget();

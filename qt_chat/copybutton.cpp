@@ -13,6 +13,8 @@ CopyButton::~CopyButton() { }
 
 void CopyButton::mousePressEvent(QMouseEvent *e)
 {
+    qDebug() << "parent:" << parent() << "qobject_cast<MessageWidget *>(parent()):"
+             << qobject_cast<MessageWidget *>(parent());
     QString text;
     if (auto *messageWidget = qobject_cast<MessageWidget *>(parent())) {
         if (messageWidget->hasSelectedText())
@@ -21,9 +23,12 @@ void CopyButton::mousePressEvent(QMouseEvent *e)
             text = messageWidget->getText();
         if (!text.isEmpty())
             QApplication::clipboard()->setText(text);
-        QPushButton::mousePressEvent(e);
-        e->ignore();
+        // QPushButton::mousePressEvent(e);
+        // e->ignore();
     }
+    QPushButton::mousePressEvent(e);
+    e->ignore();
+    qDebug() << "复制文本：" << text;
 }
 
 void CopyButton::mouseReleaseEvent(QMouseEvent *e)

@@ -23,6 +23,7 @@ extern const QColor textEditFullBGTColor;
 extern const QColor textEditFullBTColor;
 extern const QColor textEditFullBColor;
 extern const QString testText1;
+extern const QString testText_simple;
 extern const QString testText;
 extern const QString testText_code;
 extern const QString testText_markdown;
