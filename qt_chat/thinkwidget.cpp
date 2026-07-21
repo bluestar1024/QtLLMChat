@@ -645,14 +645,12 @@ QString ThinkWidget::htmlReplaceText(const QString &text) const
 
 bool ThinkWidget::hasSelectedText() const
 {
-    // return isLabel ? label->hasSelectedText() : webEngineView->hasSelection();
-    return false;
+    return webEngineView->hasSelection();
 }
 
 QString ThinkWidget::getSelectedText() const
 {
-    // return isLabel ? label->selectedText() : webEngineView->selectedText();
-    return "";
+    return webEngineView->selectedText();
 }
 
 // void ThinkWidget::setIsEmitSizeFinish(bool flag)

@@ -14,6 +14,8 @@
 // extern const QString fontFilePath;
 // extern const int buttonFontPointSize;
 
+class MessageWidget;
+
 class CopyButton : public QPushButton
 {
     Q_OBJECT
@@ -28,6 +30,8 @@ protected:
     bool event(QEvent *e) override;
 
 private:
+    MessageWidget *getMessageWidget();
+
     QString tipText;
     QPoint tipStartPos;
 };

@@ -24,9 +24,9 @@ bool WebEngineView::eventFilter(QObject *o, QEvent *e)
         // QCoreApplication::postEvent(focusProxy()->parentWidget(), &newMe);
         QMouseEvent *newMe = new QMouseEvent(me->type(), me->position(), me->globalPosition(),
                                              me->button(), me->buttons(), me->modifiers());
-        // QCoreApplication::postEvent(focusProxy()->parentWidget(), newMe);
-        QCoreApplication::sendEvent(focusProxy()->parentWidget(), newMe);
-        return true;
+        QCoreApplication::postEvent(focusProxy()->parentWidget(), newMe);
+        // QCoreApplication::sendEvent(focusProxy()->parentWidget(), newMe);
+        // return true;
     }
     qDebug() << "WebEngineView eventFilter after:" << e->type();
     return QWebEngineView::eventFilter(o, e);
