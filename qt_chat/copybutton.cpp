@@ -16,7 +16,8 @@ void CopyButton::mousePressEvent(QMouseEvent *e)
     qDebug() << "parent:" << parent() << "qobject_cast<MessageWidget *>(parent()):"
              << qobject_cast<MessageWidget *>(parent());
     QString text;
-    if (auto *messageWidget = qobject_cast<MessageWidget *>(parent())) {
+    // if (auto *messageWidget = qobject_cast<MessageWidget *>(parent())) {
+    if (auto *messageWidget = getMessageWidget()) {
         if (messageWidget->hasSelectedText())
             text = messageWidget->getSelectedText();
         else
@@ -55,4 +56,15 @@ bool CopyButton::event(QEvent *e)
         QToolTip::showText(mapToGlobal(tipStartPos), tipText, this);
     }
     return QPushButton::event(e);
+}
+
+MessageWidget *CopyButton::getMessageWidget()
+{
+    QObject *w = qobject_cast<QObject *>(this);
+    do {
+        w = w->parent();
+        if (!w)
+            break;
+    } while (!qobject_cast<MessageWidget *>(w));
+    return qobject_cast<MessageWidget *>(w);
 }

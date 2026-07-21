@@ -55,7 +55,7 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     qDebug() << "MessageWidget funWidget:" << funWidget;
     funHLayout = new QHBoxLayout(funWidget);
     funHLayout->setContentsMargins(5, 5, 5, 5);
-    copyButton = new CopyButton("复制", 15, 35, this);
+    copyButton = new CopyButton("复制", 15, 35);
     qDebug() << "this:" << this << "qobject_cast<MessageWidget *>(copyButton->parent()):"
              << qobject_cast<MessageWidget *>(copyButton->parent());
     copyButton->setFixedSize(16, 16);
@@ -1141,6 +1141,7 @@ bool MessageWidget::hasSelectedText()
 {
     qDebug() << "MessageWidget::hasSelectedText 1";
     if (isUser) {
+        qDebug() << "textShow->hasSelectedText():" << textShow->hasSelectedText();
         return textShow ? textShow->hasSelectedText() : false;
     }
     qDebug() << "MessageWidget::hasSelectedText 2";
@@ -1167,7 +1168,7 @@ QString MessageWidget::getSelectedText()
 {
     qDebug() << "MessageWidget::getSelectedText 1";
     if (isUser) {
-        return (textShow && textShow->hasSelectedText()) ? textShow->getSelectedText() : "";
+        return textShow ? textShow->getSelectedText() : "";
     }
     qDebug() << "MessageWidget::getSelectedText 2";
     for (auto *thinkWidget : thinkTextShowList)
