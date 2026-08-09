@@ -1,0 +1,77 @@
+{
+    "version": 4,
+    "configurations": [
+        {
+            "name": "Win64",
+            "includePath": [
+                "${workspaceFolder}/qt_chat",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/Qt3DCore",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtWebEngineWidgets",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtPrintSupport",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtWidgets",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtWebEngineCore",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtQuick",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtOpenGL",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtGui",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtConcurrent",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtQmlMeta",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtQmlModels",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtQmlWorkerScript",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtWebChannel",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtQml",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtNetwork",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtQmlIntegration",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtPositioning",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include/QtCore",
+                "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/mkspecs/win32-msvc",
+                "D:/ProgramData/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/winrt",
+                "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/cppwinrt"
+            ],
+            "defines": [
+                "UNICODE",
+                "_UNICODE",
+                "WIN32",
+                "_ENABLE_EXTENDED_ALIGNED_STORAGE",
+                "WIN64",
+                "QT_DEPRECATED_WARNINGS",
+                "NDEBUG",
+                "QT_NO_DEBUG",
+                "QT_3DCORE_LIB",
+                "QT_WEBENGINEWIDGETS_LIB",
+                "QT_PRINTSUPPORT_LIB",
+                "QT_WIDGETS_LIB",
+                "QT_WEBENGINECORE_LIB",
+                "QT_QUICK_LIB",
+                "QT_OPENGL_LIB",
+                "QT_GUI_LIB",
+                "QT_CONCURRENT_LIB",
+                "QT_QMLMETA_LIB",
+                "QT_QMLMODELS_LIB",
+                "QT_QMLWORKERSCRIPT_LIB",
+                "QT_WEBCHANNEL_LIB",
+                "QT_QML_LIB",
+                "QT_NETWORK_LIB",
+                "QT_QMLINTEGRATION_LIB",
+                "QT_POSITIONING_LIB",
+                "QT_CORE_LIB"
+            ],
+            "compilerPath": "D:/ProgramData/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/qt_chat",
+                    "D:/ProgramData/QT/Qt6/6.8.0/msvc2022_64/include",
+                    "D:/ProgramData/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ]
+}
