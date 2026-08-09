@@ -156,6 +156,13 @@ void MessageWidget::buildAiUi()
     thinkBackVLayout->setSpacing(0);
 
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
+        qDebug() << "new ThinkingButton()";
+        thinkButton = new ThinkingButton();
+        thinkButton->setIsShowThinkContent(thinkIsExpand);
+        thinkButton->connectButtonClick(this, &MessageWidget::thinkButtonClicked);
+        thinkButtonHaveCreated = true;
+        textLayout->addWidget(thinkButton);
+
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
         QString thinkTempText = thinkText;
@@ -163,6 +170,7 @@ void MessageWidget::buildAiUi()
         for (const auto &codeBlock : thinkCodeBlocks) {
             int idx = thinkTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
             thinkSplitTextList.append(thinkTempText.left(idx));
+            qDebug() << "codeBlock:" << codeBlock.language << codeBlock.code << codeBlock.endMarker;
             if (!codeBlock.endMarker.isEmpty())
                 thinkTempText =
                         thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
@@ -171,14 +179,20 @@ void MessageWidget::buildAiUi()
                 thinkTempText =
                         thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                           + codeBlock.code.size());
+            qDebug() << "thinkTempText:" << thinkTempText;
             auto *codeShow = new CodeShow(
                     codeBlock.code, codeBlock.language, [this]() { onSizeFinished(); },
                     textMaxWidth - imageLabel->width() - 80, this);
+            qDebug() << "new CodeShow";
             codeShow->hide();
+            qDebug() << "hide CodeShow";
             codeShow->connectCodeCopyButtonClick(copyFun);
+            qDebug() << "connect CodeShow";
             thinkCodeShowList.append(codeShow);
+            qDebug() << "append CodeShow";
         }
         thinkSplitTextList.append(thinkTempText);
+        qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
         for (const auto &splitText : thinkSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
                 thinkTextShowList.append(new ThinkWidget(
@@ -192,11 +206,6 @@ void MessageWidget::buildAiUi()
                 // }
             }
         }
-        thinkButton = new ThinkingButton();
-        thinkButton->setIsShowThinkContent(thinkIsExpand);
-        thinkButton->connectButtonClick(this, &MessageWidget::thinkButtonClicked);
-        thinkButtonHaveCreated = true;
-        textLayout->addWidget(thinkButton);
         int j = 0;
         for (int i = 0; i < thinkCodeShowList.size(); ++i) {
             if (!thinkSplitTextList[i].trimmed().isEmpty()) {
@@ -337,6 +346,7 @@ void MessageWidget::buildAiUi()
     textBoxWidget->setFixedSize(qMax(textWidget->width(), loadingWidget->width()),
                                 textWidget->height() + loadingWidget->height());
     loadingWidgetIsRemove = false;
+    qDebug() << "buildAiUi" << thinkText << resultText;
 }
 
 QList<MessageWidget::CodeBlock> MessageWidget::extractCodeBlocks(const QString &text)
@@ -478,12 +488,16 @@ void MessageWidget::thinkButtonClicked()
 
 void MessageWidget::syncThinkTimeLength()
 {
+    qDebug() << "syncThinkTimeLength before";
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
+        qDebug() << "syncThinkTimeLength before1";
         if (thinkButton->getThinkTimeLength() == 0)
             thinkButton->setThinkTimeLength(thinkTimeLengthList[thinkTimeIndex]);
         else
             thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
+        qDebug() << "syncThinkTimeLength after1";
     }
+    qDebug() << "syncThinkTimeLength after";
 }
 
 void MessageWidget::showFunWidget()
@@ -627,6 +641,16 @@ void MessageWidget::setText(const QString &text)
     parseThinkAndResult(this->text, thinkText, resultText, thinkTextIsRecvEnd);
     qDebug() << "MessageWidget setText ing0" << this;
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
+        if (!thinkButtonHaveCreated) {
+            thinkButton = new ThinkingButton();
+            thinkButton->setIsShowThinkContent(thinkIsExpand);
+            thinkButton->connectButtonClick(this, &MessageWidget::thinkButtonClicked);
+            thinkButtonHaveCreated = true;
+            textLayout->addWidget(thinkButton);
+            textLayout->addWidget(thinkBackWidget);
+            thinkBackWidget->setVisible(thinkIsExpand);
+        }
+
         qDebug() << "MessageWidget setText ing1" << this;
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
@@ -664,15 +688,6 @@ void MessageWidget::setText(const QString &text)
         }
         thinkSplitTextList.append(thinkTempText);
         qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
-        if (!thinkButtonHaveCreated) {
-            thinkButton = new ThinkingButton();
-            thinkButton->setIsShowThinkContent(thinkIsExpand);
-            thinkButton->connectButtonClick(this, &MessageWidget::thinkButtonClicked);
-            thinkButtonHaveCreated = true;
-            textLayout->addWidget(thinkButton);
-            textLayout->addWidget(thinkBackWidget);
-            thinkBackWidget->setVisible(thinkIsExpand);
-        }
         int i = 0;
         int thinkTextShowListLastLen = thinkTextShowList.size() - 1;
         qDebug() << "thinkTextShowListLastLen:" << thinkTextShowListLastLen;
@@ -1128,8 +1143,11 @@ void MessageWidget::onSizeFinished()
         // emit setTexting(false);
         syncThinkTimeLength();
     }
+    qDebug() << "onSizeFinished setSize before";
     setSize();
+    qDebug() << "onSizeFinished resizeFinished before";
     emit resizeFinished(this);
+    qDebug() << "onSizeFinished resizeFinished after";
 }
 
 ListWidget *MessageWidget::getListWidget()

@@ -89,11 +89,11 @@ private:
     void UiDrag(QPoint globalPos);
     void textCopy();
     void messageRenewResponse();
+    void writeToChatRecordFile(bool withholdCurChatFile = false);
     void saveCurChatRecord(bool withholdCurChatFile = false);
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
     void messageWidgetRegenerate();
-    void showChatRecords();
 
     QQuickWindow *qwindow;
 
@@ -158,6 +158,10 @@ private:
     bool messageSendWidgetIsFinished;
     int borderLen;
 
+    int currentScrollValue = 0;
+    int maxScrollValue = 0;
+    QString chatRecordFileName;
+
     MessageWidget *messageSendWidget;
     MessageWidget *messageRecvWidget;
     ItemWidget *itemSendWidget;
@@ -169,6 +173,11 @@ private:
     MessageThread *thread;
     QString message;
 
+    MessageWidget *messageWidget = nullptr;
+    QHBoxLayout *itemHLayout = nullptr;
+    ItemWidget *itemWidget = nullptr;
+    QListWidgetItem *item = nullptr;
+
 private slots:
     void onDpiChanged();
     void uiMinimize();
@@ -177,6 +186,8 @@ private slots:
     void settingButtonClicked();
     void chatRecordsUiAnimationMove(const QVariant &value);
     void chatRecordsUiMoveFinished();
+    void setScrollValue();
+    void showChatRecords();
     void showSearchRecords();
     void clearAllChatRecords();
     void generateChatRecord(QListWidgetItem *item);

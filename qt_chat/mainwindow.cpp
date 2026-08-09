@@ -7,8 +7,9 @@ const QString imagesDir = ":/images";
 const QString fontFilePath = ":/font/msyhl.ttc";
 const QString configFilePath = ":/config/config.txt";
 const QString mathjaxScriptPath = "mathjax/es5/tex-mml-chtml.js";
+const QString chatRecordsDir = "../../chatrecords/";
 QString codeThemeFilePath = ":/config/dark_theme.xml";
-const QString webEngineCacheDir = "webengine_cache";
+const QString webEngineCacheDir = "../../webengine_cache";
 QWebEngineProfile *sharedProfile = nullptr;
 const int windowFontPointSize = 10;
 int windowFontPixelSize = 20;
@@ -1279,6 +1280,11 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
+
+        if (isRegenerate) {
+            isRegenerate = false;
+            messageWidgetRegenerate();
+        }
         break;
     }
 
@@ -2537,9 +2543,102 @@ void MainWindow::textCopy() { }
 
 void MainWindow::messageRenewResponse() { }
 
+void MainWindow::writeToChatRecordFile(bool withholdCurChatFile)
+{
+    chatRecordFileName = "chat_";
+    chatRecordFileName += QDateTime::currentDateTime().toString("yyyy_MM_dd_HH_mm_ss");
+    chatRecordFileName += ".txt";
+
+    QString filePath = QDir(chatRecordsDir).filePath(chatRecordFileName);
+    qDebug() << "writeToChatRecordFile filePath:" << filePath;
+
+    try {
+        QFile file(filePath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append)) {
+            throw std::runtime_error("无法打开文件进行写入");
+        }
+        qDebug() << "writeToChatRecordFile success open file:";
+
+        QTextStream out(&file);
+        out.setEncoding(QStringConverter::Utf8);
+
+        for (int i = 0; i < chatShow->count(); i++) {
+            QString chatRecordStr = messageWidgetList[i]->getText() + '\n'
+                    + QString("消息部件思考时长:%1秒\n").arg(thinkTimeLengthList[i])
+                    + (messageWidgetList[i]->getIsUser() ? "True\n" : "False\n");
+            out << chatRecordStr;
+        }
+
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "发生未知错误：" << e.what();
+    }
+
+    if (!withholdCurChatFile) {
+        curChatFile = chatRecordFileName;
+    }
+}
+
 void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
 {
-    Q_UNUSED(withholdCurChatFile);
+    QString chatRecordStr;
+    int chatStrCount = 0;
+
+    if (messageWidgetList.size() != 0) {
+        if (curChatFile.isEmpty()) {
+            writeToChatRecordFile(withholdCurChatFile);
+        } else {
+            QString filePath = QDir(chatRecordsDir).filePath(curChatFile);
+            if (!QFile::exists(filePath)) {
+                writeToChatRecordFile(withholdCurChatFile);
+            } else {
+                try {
+                    for (int i = 0; i < messageWidgetList.size(); i++) {
+                        chatStrCount += messageWidgetList[i]->getText().count('\n') + 2;
+                    }
+
+                    QStringList lines;
+                    QFile file(filePath);
+                    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                        QTextStream in(&file);
+                        in.setEncoding(QStringConverter::Utf8);
+                        while (!in.atEnd()) {
+                            lines.append(in.readLine() + '\n');
+                        }
+                        file.close();
+                    }
+
+                    if (chatStrCount > lines.size()) {
+                        QFile writeFile(filePath);
+                        if (writeFile.open(QIODevice::WriteOnly | QIODevice::Text
+                                           | QIODevice::Truncate)) {
+                            writeFile.resize(0);
+                            writeFile.close();
+                        }
+
+                        QFile appendFile(filePath);
+                        if (appendFile.open(QIODevice::WriteOnly | QIODevice::Text
+                                            | QIODevice::Append)) {
+                            QTextStream out(&appendFile);
+                            out.setEncoding(QStringConverter::Utf8);
+                            for (int i = 0; i < chatShow->count(); i++) {
+                                chatRecordStr = messageWidgetList[i]->getText() + '\n'
+                                        + QString("消息部件思考时长:%1秒\n")
+                                                  .arg(thinkTimeLengthList[i])
+                                        + (messageWidgetList[i]->getIsUser() ? "True\n"
+                                                                             : "False\n");
+                                out << chatRecordStr;
+                            }
+                            appendFile.close();
+                        }
+                    }
+                } catch (const std::exception &e) {
+                    qDebug() << "发生未知错误：" << e.what();
+                }
+            }
+        }
+    }
 }
 
 void MainWindow::chatRecordsGenerateItem(QString searchText)
@@ -2549,8 +2648,135 @@ void MainWindow::chatRecordsGenerateItem(QString searchText)
 
 void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandList)
 {
-    Q_UNUSED(lastIsToggle);
-    Q_UNUSED(useThinkExpandList);
+    QString text;
+    bool isUser = true;
+    thinkTimeLengthList.clear();
+    int thinkTimeIndex = 0;
+    int expandIndex = 0;
+
+    QStringList lines;
+    QString filePath = QDir(chatRecordsDir).filePath(curChatFile);
+    try {
+        QFile file(filePath);
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&file);
+            in.setEncoding(QStringConverter::Utf8);
+            while (!in.atEnd()) {
+                lines.append(in.readLine() + '\n');
+            }
+            file.close();
+        }
+    } catch (const std::exception &e) {
+        qDebug() << "发生未知错误：" << e.what();
+    }
+
+    for (int i = 0; i < lines.size(); i++) {
+        if (lines[i] == "True\n" || lines[i] == "False\n") {
+            if (lines[i] == "True\n") {
+                isUser = true;
+            } else {
+                isUser = false;
+            }
+
+            int j = messageWidgetList.size() - 1;
+            if (j != -1 && j != 0) {
+                if (!messageWidgetList[j]->getIsUser()) {
+                    messageWidgetList[j]->removeRenewResponseButton();
+                }
+            }
+            if (text.endsWith('\n'))
+                text.chop(1);
+
+            qDebug() << "generateCurChatRecord" << text;
+            if (useThinkExpandList) {
+                if (!isUser) {
+                    messageWidget = new MessageWidget(
+                            text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                            [this](MessageWidget *selfMessageWidget) {
+                                messageWidgetResize(selfMessageWidget);
+                            },
+                            [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
+                            thinkTimeLengthList, thinkTimeIndex, isUser,
+                            thinkExpandedList[expandIndex], chatShow->width() * 3 / 4);
+                } else {
+                    messageWidget = new MessageWidget(
+                            text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                            [this](MessageWidget *selfMessageWidget) {
+                                messageWidgetResize(selfMessageWidget);
+                            },
+                            [this](bool state) { getSetTexting(state); },
+                            [this]() { onExecuteNext(); }, chatShow, thinkTimeLengthList,
+                            thinkTimeIndex, isUser, true, chatShow->width() * 3 / 4);
+                }
+            } else {
+                messageWidget = new MessageWidget(
+                        text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                        [this](MessageWidget *selfMessageWidget) {
+                            messageWidgetResize(selfMessageWidget);
+                        },
+                        [this](bool state) { getSetTexting(state); }, [this]() { onExecuteNext(); },
+                        chatShow, thinkTimeLengthList, thinkTimeIndex, isUser, true,
+                        chatShow->width() * 3 / 4);
+            }
+            // messageWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
+            // messageWidget->connectSetTexting(this, &MainWindow::getSetTexting);
+
+            qDebug() << "generateCurChatRecord" << i;
+            if (!isUser) {
+                if (i == lines.size() - 1) {
+                    if (lastIsToggle) {
+                        messageWidget->removeLoadingWidget();
+                    }
+                } else {
+                    messageWidget->removeLoadingWidget();
+                }
+            }
+
+            messageWidgetList.append(messageWidget);
+
+            itemWidget = new ItemWidget(this);
+            itemHLayout = new QHBoxLayout();
+            itemHLayout->addWidget(messageWidget);
+            itemWidget->setLayout(itemHLayout);
+            itemWidget->setFixedSize(chatShow->width(), messageWidget->height() + 10);
+            if (isUser) {
+                itemHLayout->setContentsMargins(itemWidget->width() - messageWidget->width() - 25,
+                                                5, 25, 5);
+            } else {
+                itemHLayout->setContentsMargins(0, 5, itemWidget->width() - messageWidget->width(),
+                                                5);
+            }
+            item = new QListWidgetItem(chatShow);
+            item->setSizeHint(QSize(chatShow->width(), messageWidget->height() + 10));
+            chatShow->setItemWidget(item, itemWidget);
+
+            if (i == lines.size() - 1) {
+                if (lastIsToggle) {
+                    messageWidget->updateFunWidgetSize(curDpi, initDpi);
+                    // messageWidget->toggleWidget();
+                }
+            } else {
+                messageWidget->updateFunWidgetSize(curDpi, initDpi);
+                // messageWidget->toggleWidget();
+            }
+
+            text.clear();
+
+            thinkTimeIndex++;
+            if (useThinkExpandList && !isUser) {
+                expandIndex++;
+            }
+
+        } else if (lines[i].left(8) == QString("消息部件思考时长")) {
+            QRegularExpression re("\\d+");
+            QRegularExpressionMatch match = re.match(lines[i]);
+            if (match.hasMatch()) {
+                thinkTimeLengthList.append(match.captured(0).toInt());
+            }
+        } else {
+            text += lines[i];
+        }
+    }
 }
 
 void MainWindow::getSetTexting(bool state)
@@ -2558,7 +2784,60 @@ void MainWindow::getSetTexting(bool state)
     isSetTexting = state;
 }
 
-void MainWindow::messageWidgetRegenerate() { }
+void MainWindow::messageWidgetRegenerate()
+{
+    if (messageWidgetList.size() != 0) {
+        thinkExpandedList.clear();
+
+        if (isSetTexting) {
+            isContinueShow = false;
+        }
+
+        if (!isSetTexting) {
+            currentScrollValue = chatShow->verticalScrollBar()->value();
+            maxScrollValue = chatShow->verticalScrollBar()->maximum();
+        }
+
+        saveCurChatRecord();
+        for (int i = 0; i < messageWidgetList.size(); i++) {
+            MessageWidget *messageWidget = messageWidgetList[i];
+            if (!messageWidget->getIsUser()) {
+                thinkExpandedList.append(messageWidget->getThinkIsExpanded());
+            }
+        }
+
+        messageWidgetList.clear();
+        for (int i = 0; i < chatShow->count(); i++) {
+            QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
+            if (itemWidget) {
+                itemWidget->deleteLater();
+            }
+        }
+        chatShow->clear();
+
+        if (!isSetTexting) {
+            generateCurChatRecord(true, true);
+            QTimer::singleShot(5, this, &MainWindow::setScrollValue);
+        } else {
+            generateCurChatRecord(false, true);
+            messageRecvWidget = messageWidget;
+            itemRecvHLayout = itemHLayout;
+            itemRecvWidget = itemWidget;
+            recvItem = item;
+            isContinueShow = true;
+        }
+    }
+}
+
+void MainWindow::setScrollValue()
+{
+    int newMaxScrollValue = chatShow->verticalScrollBar()->maximum();
+    if (maxScrollValue != 0) {
+        int newValue =
+                qRound(static_cast<qreal>(currentScrollValue) / maxScrollValue * newMaxScrollValue);
+        chatShow->verticalScrollBar()->setValue(newValue);
+    }
+}
 
 void MainWindow::showChatRecords() { }
 
