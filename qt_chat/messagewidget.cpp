@@ -1109,6 +1109,7 @@ void MessageWidget::setText(const QString &text)
 
     // setSize();
     // syncThinkTimeLength();
+    emit setTexting(false);
     // emit resizeFinished();
     qDebug() << "MessageWidget setText end";
 }

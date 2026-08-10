@@ -771,8 +771,6 @@ MainWindow::MainWindow(QWidget *parent)
       message(""),
       isShowFirst(true),
       isProcessing(false),
-      isRegenerate(false),
-      isRegenerateFirst(true),
       isSetTexting(false),
       pushButtonIsPress(false),
       screenChanged(false),
@@ -1281,10 +1279,8 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
 
-        if (isRegenerate) {
-            isRegenerate = false;
-            messageWidgetRegenerate();
-        }
+        qDebug() << "WM_EXITSIZEMOVE isRegenerate";
+        messageWidgetRegenerate();
         break;
     }
 
@@ -1741,11 +1737,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             titleFontPixelSize = std::ceil(titleFontPointSize * (curDpi / 72));
             screenChanged = false;
         }
-        if (isRegenerate) {
-            qDebug() << "mouseReleaseEvent isRegenerate";
-            isRegenerate = false;
-            messageWidgetRegenerate();
-        }
     }
     QMainWindow::mouseReleaseEvent(event);
 }
@@ -1846,11 +1837,6 @@ void MainWindow::resizeEvent(QResizeEvent *event)
                          titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     textCopyLabel->move((width() - textCopyLabel->width()) / 2,
                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
-    isRegenerate = true;
-    if (isRegenerateFirst) {
-        isRegenerateFirst = false;
-        isRegenerate = false;
-    }
     if (isDpiChanged) {
         isDpiChanged = false;
         if ((qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi)
@@ -1861,8 +1847,6 @@ void MainWindow::resizeEvent(QResizeEvent *event)
             resize(qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi),
                    qRound(widgetSizeDict["MainWindow"].value<QSize>().height() * curDpi / lastDpi));
         }
-        isRegenerate = false;
-        qDebug() << "resizeEvent isDpiChanged isRegenerate";
         messageWidgetRegenerate();
     }
     widgetSizeDict["MainWindow"] = size();
@@ -2312,7 +2296,7 @@ void MainWindow::onTemperatureSliderValueChanged(int i)
 void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
 {
     qDebug() << "messageWidgetResize start";
-    const int count = chatShow->count();
+    const int count = qMin(chatShow->count(), messageWidgetList.size());
     int i = 0;
     for (; i < count; ++i) {
         if (selfMessageWidget == messageWidgetList.at(i))
@@ -2481,7 +2465,7 @@ void MainWindow::recvMessage(const QString &text)
         message += text;
     }
 
-    if (isContinueShow) {
+    if (isContinueShow && messageRecvWidget) {
         messageRecvWidget->setText(message);
         itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
         itemRecvHLayout->setContentsMargins(
@@ -2510,14 +2494,18 @@ void MainWindow::recvMessage(const QString &text)
 void MainWindow::messageFinish()
 {
     chatInput->setSending(false);
-    messageRecvWidget->removeLoadingWidget();
-    messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
-    // messageRecvWidget->toggleWidget();
+    if (messageRecvWidget) {
+        messageRecvWidget->removeLoadingWidget();
+        messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
+        // messageRecvWidget->toggleWidget();
+    }
 
-    itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
-    itemRecvHLayout->setContentsMargins(0, 5, itemRecvWidget->width() - messageRecvWidget->width(),
-                                        5);
-    recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
+    if (messageRecvWidget && itemRecvWidget && itemRecvHLayout && recvItem) {
+        itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
+        itemRecvHLayout->setContentsMargins(
+                0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+        recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
+    }
 
     if (message.isEmpty()) {
         delete messageWidgetList.takeLast();
@@ -2562,10 +2550,14 @@ void MainWindow::writeToChatRecordFile(bool withholdCurChatFile)
         QTextStream out(&file);
         out.setEncoding(QStringConverter::Utf8);
 
-        for (int i = 0; i < chatShow->count(); i++) {
-            QString chatRecordStr = messageWidgetList[i]->getText() + '\n'
-                    + QString("消息部件思考时长:%1秒\n").arg(thinkTimeLengthList[i])
-                    + (messageWidgetList[i]->getIsUser() ? "True\n" : "False\n");
+        for (int i = 0; i < messageWidgetList.size(); i++) {
+            MessageWidget *messageWidget = messageWidgetList.at(i);
+            if (!messageWidget)
+                continue;
+            QString chatRecordStr = messageWidget->getText() + '\n'
+                    + QString("消息部件思考时长:%1秒\n")
+                              .arg(i < thinkTimeLengthList.size() ? thinkTimeLengthList.at(i) : 0)
+                    + (messageWidget->getIsUser() ? "True\n" : "False\n");
             out << chatRecordStr;
         }
 
@@ -2622,12 +2614,16 @@ void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
                                             | QIODevice::Append)) {
                             QTextStream out(&appendFile);
                             out.setEncoding(QStringConverter::Utf8);
-                            for (int i = 0; i < chatShow->count(); i++) {
-                                chatRecordStr = messageWidgetList[i]->getText() + '\n'
+                            for (int i = 0; i < messageWidgetList.size(); i++) {
+                                MessageWidget *messageWidget = messageWidgetList.at(i);
+                                if (!messageWidget)
+                                    continue;
+                                chatRecordStr = messageWidget->getText() + '\n'
                                         + QString("消息部件思考时长:%1秒\n")
-                                                  .arg(thinkTimeLengthList[i])
-                                        + (messageWidgetList[i]->getIsUser() ? "True\n"
-                                                                             : "False\n");
+                                                  .arg(i < thinkTimeLengthList.size()
+                                                               ? thinkTimeLengthList.at(i)
+                                                               : 0)
+                                        + (messageWidget->getIsUser() ? "True\n" : "False\n");
                                 out << chatRecordStr;
                             }
                             appendFile.close();
@@ -2690,14 +2686,17 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
             qDebug() << "generateCurChatRecord" << text;
             if (useThinkExpandList) {
                 if (!isUser) {
+                    bool thinkExpand = true;
+                    if (expandIndex < thinkExpandedList.size())
+                        thinkExpand = thinkExpandedList[expandIndex];
                     messageWidget = new MessageWidget(
                             text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
                             [this](MessageWidget *selfMessageWidget) {
                                 messageWidgetResize(selfMessageWidget);
                             },
                             [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
-                            thinkTimeLengthList, thinkTimeIndex, isUser,
-                            thinkExpandedList[expandIndex], chatShow->width() * 3 / 4);
+                            thinkTimeLengthList, thinkTimeIndex, isUser, thinkExpand,
+                            chatShow->width() * 3 / 4);
                 } else {
                     messageWidget = new MessageWidget(
                             text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
@@ -2789,11 +2788,11 @@ void MainWindow::messageWidgetRegenerate()
     if (messageWidgetList.size() != 0) {
         thinkExpandedList.clear();
 
-        if (isSetTexting) {
+        if (isSending) {
             isContinueShow = false;
         }
 
-        if (!isSetTexting) {
+        if (!isSending) {
             currentScrollValue = chatShow->verticalScrollBar()->value();
             maxScrollValue = chatShow->verticalScrollBar()->maximum();
         }
@@ -2806,6 +2805,7 @@ void MainWindow::messageWidgetRegenerate()
             }
         }
 
+        messageRecvWidget = nullptr;
         messageWidgetList.clear();
         for (int i = 0; i < chatShow->count(); i++) {
             QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
@@ -2815,7 +2815,7 @@ void MainWindow::messageWidgetRegenerate()
         }
         chatShow->clear();
 
-        if (!isSetTexting) {
+        if (!isSending) {
             generateCurChatRecord(true, true);
             QTimer::singleShot(5, this, &MainWindow::setScrollValue);
         } else {

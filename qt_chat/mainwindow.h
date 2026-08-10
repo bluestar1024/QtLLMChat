@@ -125,8 +125,6 @@ private:
 
     bool isShowFirst;
     bool isProcessing;
-    bool isRegenerate;
-    bool isRegenerateFirst;
     bool isSetTexting;
     bool pushButtonIsPress;
     QScreen *lastScreen;
