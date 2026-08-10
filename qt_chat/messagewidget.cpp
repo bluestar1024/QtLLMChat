@@ -94,6 +94,8 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
 
     checkTimer.setInterval(2);
 
+    // 构造渲染期间置流式状态，使嵌套事件循环内的窗口重建请求延迟执行，防止控件重复创建与悬空访问
+    emit setTexting(true);
     if (isUser)
         buildUserUi();
     else
@@ -123,6 +125,8 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     mainHLayout->addLayout(subVLayout2);
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
                  qMax(imageLabel->height(), textBoxWidget->height()));
+    // 构造渲染完成，若有待执行的重建，将在事件循环空闲时执行
+    emit setTexting(false);
 }
 
 MessageWidget::~MessageWidget() { }

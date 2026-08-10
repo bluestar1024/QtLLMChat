@@ -772,6 +772,8 @@ MainWindow::MainWindow(QWidget *parent)
       isShowFirst(true),
       isProcessing(false),
       isSetTexting(false),
+      isRegenerating(false),
+      isRegeneratePending(false),
       pushButtonIsPress(false),
       screenChanged(false),
       isSending(false),
@@ -2507,7 +2509,7 @@ void MainWindow::messageFinish()
         recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
     }
 
-    if (message.isEmpty()) {
+    if (message.isEmpty() && !messageWidgetList.isEmpty() && chatShow->count() > 0) {
         delete messageWidgetList.takeLast();
         int last = chatShow->count() - 1;
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
@@ -2781,52 +2783,68 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
 void MainWindow::getSetTexting(bool state)
 {
     isSetTexting = state;
+    // 渲染结束后若有待执行的重建，延迟到事件循环空闲时执行，避免在 setText 栈内重建
+    if (!state && isRegeneratePending && !isRegenerating) {
+        QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+    }
 }
 
 void MainWindow::messageWidgetRegenerate()
 {
-    if (messageWidgetList.size() != 0) {
-        thinkExpandedList.clear();
-
-        if (isSending) {
-            isContinueShow = false;
-        }
-
-        if (!isSending) {
-            currentScrollValue = chatShow->verticalScrollBar()->value();
-            maxScrollValue = chatShow->verticalScrollBar()->maximum();
-        }
-
-        saveCurChatRecord();
-        for (int i = 0; i < messageWidgetList.size(); i++) {
-            MessageWidget *messageWidget = messageWidgetList[i];
-            if (!messageWidget->getIsUser()) {
-                thinkExpandedList.append(messageWidget->getThinkIsExpanded());
-            }
-        }
-
-        messageRecvWidget = nullptr;
-        messageWidgetList.clear();
-        for (int i = 0; i < chatShow->count(); i++) {
-            QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
-            if (itemWidget) {
-                itemWidget->deleteLater();
-            }
-        }
-        chatShow->clear();
-
-        if (!isSending) {
-            generateCurChatRecord(true, true);
-            QTimer::singleShot(5, this, &MainWindow::setScrollValue);
-        } else {
-            generateCurChatRecord(false, true);
-            messageRecvWidget = messageWidget;
-            itemRecvHLayout = itemHLayout;
-            itemRecvWidget = itemWidget;
-            recvItem = item;
-            isContinueShow = true;
-        }
+    // 重入保护：正在重建或 AI 消息渲染中（嵌套事件循环内 WM_EXITSIZEMOVE 会被再次分发）
+    // 再次触发时仅标记待重建，避免半成品控件重复创建与悬空指针访问
+    if (isRegenerating || isSending) {
+        isRegeneratePending = true;
+        return;
     }
+    isRegenerating = true;
+    do {
+        isRegeneratePending = false;
+        if (messageWidgetList.size() != 0) {
+            thinkExpandedList.clear();
+
+            if (isSending) {
+                isContinueShow = false;
+            }
+
+            if (!isSending) {
+                currentScrollValue = chatShow->verticalScrollBar()->value();
+                maxScrollValue = chatShow->verticalScrollBar()->maximum();
+            }
+
+            saveCurChatRecord();
+            for (int i = 0; i < messageWidgetList.size(); i++) {
+                MessageWidget *messageWidget = messageWidgetList[i];
+                if (!messageWidget->getIsUser()) {
+                    thinkExpandedList.append(messageWidget->getThinkIsExpanded());
+                }
+            }
+
+            // 重建期间置空接收指针，防止嵌套事件循环中消息回调访问旧控件
+            messageRecvWidget = nullptr;
+            messageWidgetList.clear();
+            for (int i = 0; i < chatShow->count(); i++) {
+                QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
+                if (itemWidget) {
+                    itemWidget->deleteLater();
+                }
+            }
+            chatShow->clear();
+
+            if (!isSending) {
+                generateCurChatRecord(true, true);
+                QTimer::singleShot(5, this, &MainWindow::setScrollValue);
+            } else {
+                generateCurChatRecord(false, true);
+                messageRecvWidget = messageWidget;
+                itemRecvHLayout = itemHLayout;
+                itemRecvWidget = itemWidget;
+                recvItem = item;
+                isContinueShow = true;
+            }
+        }
+    } while (isRegeneratePending);
+    isRegenerating = false;
 }
 
 void MainWindow::setScrollValue()
