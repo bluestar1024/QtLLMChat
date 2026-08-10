@@ -2700,23 +2700,25 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             thinkTimeLengthList, thinkTimeIndex, isUser, thinkExpand,
                             chatShow->width() * 3 / 4);
                 } else {
+                    // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
                     messageWidget = new MessageWidget(
                             text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
                             [this](MessageWidget *selfMessageWidget) {
                                 messageWidgetResize(selfMessageWidget);
                             },
-                            [this](bool state) { getSetTexting(state); },
-                            [this]() { onExecuteNext(); }, chatShow, thinkTimeLengthList,
-                            thinkTimeIndex, isUser, true, chatShow->width() * 3 / 4);
+                            [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
+                            thinkTimeLengthList, thinkTimeIndex, isUser, true,
+                            chatShow->width() * 3 / 4);
                 }
             } else {
+                // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
                 messageWidget = new MessageWidget(
                         text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
                         [this](MessageWidget *selfMessageWidget) {
                             messageWidgetResize(selfMessageWidget);
                         },
-                        [this](bool state) { getSetTexting(state); }, [this]() { onExecuteNext(); },
-                        chatShow, thinkTimeLengthList, thinkTimeIndex, isUser, true,
+                        [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
+                        thinkTimeLengthList, thinkTimeIndex, isUser, true,
                         chatShow->width() * 3 / 4);
             }
             // messageWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
