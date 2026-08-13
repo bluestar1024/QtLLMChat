@@ -2,6 +2,7 @@
 #include "globalvariables.h"
 
 #include <QtCore/QMutexLocker>
+#include <QtCore/QPointer>
 
 MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
                              std::function<void()> renewResponseFun,
@@ -133,9 +134,16 @@ MessageWidget::~MessageWidget() { }
 
 void MessageWidget::buildUserUi()
 {
+    // sizeFinishFun 捕获裸 this：控件销毁链（如 chatShow->clear()）中子控件析构可能
+    // 触发信号回调到这里，用 QPointer 保护，对象已销毁时安全跳过
+    QPointer<MessageWidget> self(this);
     textShow = new TextShow(
-            text, [this]() { onSizeFinished(); }, executeNextFun,
-            textMaxWidth - imageLabel->width() - 15);
+            text,
+            [self]() {
+                if (self)
+                    self->onSizeFinished();
+            },
+            executeNextFun, textMaxWidth - imageLabel->width() - 15);
     // connect(textShow, &TextShow::executeNext, this->executeNextFun);
     // connect(textShow, &ThinkWidget::setSizeFinished, this, &MessageWidget::onSizeFinished);
     // if (textShow->getIsEmitSizeFinish()) {
@@ -184,8 +192,13 @@ void MessageWidget::buildAiUi()
                         thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                           + codeBlock.code.size());
             qDebug() << "thinkTempText:" << thinkTempText;
+            QPointer<MessageWidget> thinkCodeSelf(this);
             auto *codeShow = new CodeShow(
-                    codeBlock.code, codeBlock.language, [this]() { onSizeFinished(); },
+                    codeBlock.code, codeBlock.language,
+                    [thinkCodeSelf]() {
+                        if (thinkCodeSelf)
+                            thinkCodeSelf->onSizeFinished();
+                    },
                     textMaxWidth - imageLabel->width() - 80, this);
             qDebug() << "new CodeShow";
             codeShow->hide();
@@ -199,8 +212,13 @@ void MessageWidget::buildAiUi()
         qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
         for (const auto &splitText : thinkSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
+                QPointer<MessageWidget> thinkTextSelf(this);
                 thinkTextShowList.append(new ThinkWidget(
-                        splitText, [this]() { onSizeFinished(); },
+                        splitText,
+                        [thinkTextSelf]() {
+                            if (thinkTextSelf)
+                                thinkTextSelf->onSizeFinished();
+                        },
                         textMaxWidth - imageLabel->width() - 80, this));
                 // connect(thinkTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                 //         &MessageWidget::onSizeFinished);
@@ -277,8 +295,13 @@ void MessageWidget::buildAiUi()
                 resultTempText =
                         resultTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
                                            + codeBlock.code.size());
+            QPointer<MessageWidget> resultCodeSelf(this);
             auto *codeShow = new CodeShow(
-                    codeBlock.code, codeBlock.language, [this]() { onSizeFinished(); },
+                    codeBlock.code, codeBlock.language,
+                    [resultCodeSelf]() {
+                        if (resultCodeSelf)
+                            resultCodeSelf->onSizeFinished();
+                    },
                     textMaxWidth - imageLabel->width() - 35, this);
             codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
@@ -287,9 +310,14 @@ void MessageWidget::buildAiUi()
         resultSplitTextList.append(resultTempText);
         for (const auto &splitText : resultSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
+                QPointer<MessageWidget> resultTextSelf(this);
                 resultTextShowList.append(new TextShow(
-                        splitText, [this]() { onSizeFinished(); }, nullptr,
-                        textMaxWidth - imageLabel->width() - 35, this));
+                        splitText,
+                        [resultTextSelf]() {
+                            if (resultTextSelf)
+                                resultTextSelf->onSizeFinished();
+                        },
+                        nullptr, textMaxWidth - imageLabel->width() - 35, this));
                 // connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                 //         &MessageWidget::onSizeFinished);
                 // if (resultTextShowList.last()->getIsEmitSizeFinish()) {
@@ -426,9 +454,11 @@ void MessageWidget::setSize()
 void MessageWidget::adjustAiTextWidgetSize()
 {
     int thinkBackWidth = 0, thinkBackHeight = 0;
-    for (auto *textShow : thinkTextShowList) {
-        thinkBackWidth = qMax(thinkBackWidth, textShow->width());
-        thinkBackHeight += textShow->height();
+    // for (auto *textShow : thinkTextShowList) {
+    for (auto *thinkWidget :
+         thinkBackWidget->findChildren<ThinkWidget *>(Qt::FindDirectChildrenOnly)) {
+        thinkBackWidth = qMax(thinkBackWidth, thinkWidget->width());
+        thinkBackHeight += thinkWidget->height();
         qDebug() << "thinkTextShowList:" << thinkBackWidth << thinkBackHeight;
     }
     // for (auto *codeShow : thinkCodeShowList) {
@@ -457,7 +487,8 @@ void MessageWidget::adjustAiTextWidgetSize()
         qDebug() << "hasThink:" << thinkWidth << thinkHeight;
     }
     if (!resultText.isEmpty()) {
-        for (auto *textShow : resultTextShowList) {
+        // for (auto *textShow : resultTextShowList) {
+        for (auto *textShow : textWidget->findChildren<TextShow *>(Qt::FindDirectChildrenOnly)) {
             resultWidth = qMax(resultWidth, textShow->width());
             resultHeight += textShow->height();
             qDebug() << "resultTextShowList:" << resultWidth << resultHeight;
@@ -495,6 +526,12 @@ void MessageWidget::syncThinkTimeLength()
     qDebug() << "syncThinkTimeLength before";
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
         qDebug() << "syncThinkTimeLength before1";
+        // 窗口重建后本控件可能持有过期的 thinkTimeIndex，列表越界时忽略同步
+        if (thinkTimeIndex < 0 || thinkTimeIndex >= thinkTimeLengthList.size()) {
+            qDebug() << "syncThinkTimeLength index out of range" << thinkTimeIndex
+                     << thinkTimeLengthList.size();
+            return;
+        }
         if (thinkButton->getThinkTimeLength() == 0)
             thinkButton->setThinkTimeLength(thinkTimeLengthList[thinkTimeIndex]);
         else
@@ -611,7 +648,9 @@ void MessageWidget::breakHandle()
 {
     if (!thinkTextIsRecvEnd) {
         thinkButton->setThinkEnd();
-        thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
+        // 窗口重建后本控件可能持有过期的 thinkTimeIndex，列表越界时忽略同步
+        if (thinkTimeIndex >= 0 && thinkTimeIndex < thinkTimeLengthList.size())
+            thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
     }
 }
 
@@ -674,10 +713,14 @@ void MessageWidget::setText(const QString &text)
                         + thinkCodeBlocks[i].code.size());
             }
             if (thinkCodeShowListLastLen < i) {
+                QPointer<MessageWidget> thinkCodeSelf(this);
                 auto *codeShow = new CodeShow(
                         thinkCodeBlocks[i].code, thinkCodeBlocks[i].language,
-                        [this]() { onSizeFinished(); }, textMaxWidth - imageLabel->width() - 80,
-                        this);
+                        [thinkCodeSelf]() {
+                            if (thinkCodeSelf)
+                                thinkCodeSelf->onSizeFinished();
+                        },
+                        textMaxWidth - imageLabel->width() - 80, this);
                 codeShow->hide();
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 // codeShow->setVisible(thinkIsExpand);
@@ -698,8 +741,13 @@ void MessageWidget::setText(const QString &text)
         for (const auto &splitText : thinkSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
                 if (thinkTextShowListLastLen < i) {
+                    QPointer<MessageWidget> thinkTextSelf(this);
                     ThinkWidget *thinkWidget = new ThinkWidget(
-                            splitText, [this]() { onSizeFinished(); },
+                            splitText,
+                            [thinkTextSelf]() {
+                                if (thinkTextSelf)
+                                    thinkTextSelf->onSizeFinished();
+                            },
                             textMaxWidth - imageLabel->width() - 80, this);
                     // thinkWidget->setVisible(thinkIsExpand);
                     thinkTextShowList.append(thinkWidget);
@@ -916,10 +964,14 @@ void MessageWidget::setText(const QString &text)
                     + resultCodeBlocks[i].code.size() + 3);
             if (resultCodeShowListLastLen < i) {
                 qDebug() << "MessageWidget setText ing3" << this;
+                QPointer<MessageWidget> resultCodeSelf(this);
                 auto *codeShow = new CodeShow(
                         resultCodeBlocks[i].code, resultCodeBlocks[i].language,
-                        [this]() { onSizeFinished(); }, textMaxWidth - imageLabel->width() - 35,
-                        this);
+                        [resultCodeSelf]() {
+                            if (resultCodeSelf)
+                                resultCodeSelf->onSizeFinished();
+                        },
+                        textMaxWidth - imageLabel->width() - 35, this);
                 codeShow->hide();
                 qDebug() << "MessageWidget setText ing4" << this;
                 codeShow->connectCodeCopyButtonClick(copyFun);
@@ -937,9 +989,14 @@ void MessageWidget::setText(const QString &text)
             if (!splitText.trimmed().isEmpty()) {
                 if (resultTextShowListLastLen < i) {
                     qDebug() << "messageWidget splitText:" << splitText;
+                    QPointer<MessageWidget> resultTextSelf(this);
                     resultTextShowList.append(new TextShow(
-                            splitText, [this]() { onSizeFinished(); }, nullptr,
-                            textMaxWidth - imageLabel->width() - 35, this));
+                            splitText,
+                            [resultTextSelf]() {
+                                if (resultTextSelf)
+                                    resultTextSelf->onSizeFinished();
+                            },
+                            nullptr, textMaxWidth - imageLabel->width() - 35, this));
                     // connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                     //         &MessageWidget::onSizeFinished);
                     // if (resultTextShowList.last()->getIsEmitSizeFinish()) {
@@ -1114,7 +1171,7 @@ void MessageWidget::setText(const QString &text)
     // setSize();
     // syncThinkTimeLength();
     emit setTexting(false);
-    // emit resizeFinished();
+    // emit resizeFinished(this);
     qDebug() << "MessageWidget setText end";
 }
 
@@ -1145,6 +1202,45 @@ void MessageWidget::onSizeFinished()
     //     emit resizeFinished();
 
     if (!isUser) {
+        // bool isContinue = false;
+        // if (CodeShow *codeShow = qobject_cast<CodeShow *>(sender())) {
+        //     for (auto *oneCodeShow :
+        //          thinkBackWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
+        //         if (codeShow == oneCodeShow) {
+        //             isContinue = true;
+        //             break;
+        //         }
+        //     }
+        //     if (!isContinue) {
+        //         for (auto *oneCodeShow :
+        //              textWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
+        //             if (codeShow == oneCodeShow) {
+        //                 isContinue = true;
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // } else if (ThinkWidget *thinkWidget = qobject_cast<ThinkWidget *>(sender())) {
+        //     for (auto *oneThinkWidget :
+        //          thinkBackWidget->findChildren<ThinkWidget *>(Qt::FindDirectChildrenOnly)) {
+        //         if (thinkWidget == oneThinkWidget) {
+        //             isContinue = true;
+        //             break;
+        //         }
+        //     }
+        //     if (!isContinue) {
+        //         for (auto *oneTextShow :
+        //              textWidget->findChildren<TextShow *>(Qt::FindDirectChildrenOnly)) {
+        //             if (thinkWidget == qobject_cast<ThinkWidget *>(oneTextShow)) {
+        //                 isContinue = true;
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
+        // if (!isContinue)
+        //     return;
+
         // emit setTexting(false);
         syncThinkTimeLength();
     }

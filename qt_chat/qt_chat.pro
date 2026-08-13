@@ -28,6 +28,8 @@ win32 {
     # LIBS += -ldwmapi
     # LIBS += -luser32 -lgdi32
     DEFINES += UNICODE _UNICODE
+    # 生成 MAP 映射文件，配合 crash.log 的模块偏移反查崩溃函数
+    # QMAKE_LFLAGS += /MAP
 }
 
 # The following define makes your compiler emit warnings if you use

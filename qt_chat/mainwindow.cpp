@@ -2,6 +2,7 @@
 
 #include <QQuickWindow>
 #include <QDebug>
+#include <QPointer>
 
 const QString imagesDir = ":/images";
 const QString fontFilePath = ":/font/msyhl.ttc";
@@ -2795,7 +2796,7 @@ void MainWindow::messageWidgetRegenerate()
 {
     // 重入保护：正在重建或 AI 消息渲染中（嵌套事件循环内 WM_EXITSIZEMOVE 会被再次分发）
     // 再次触发时仅标记待重建，避免半成品控件重复创建与悬空指针访问
-    if (isRegenerating || isSending) {
+    if (isRegenerating || isSetTexting) {
         isRegeneratePending = true;
         return;
     }
@@ -2825,11 +2826,11 @@ void MainWindow::messageWidgetRegenerate()
             // 重建期间置空接收指针，防止嵌套事件循环中消息回调访问旧控件
             messageRecvWidget = nullptr;
             messageWidgetList.clear();
+
             for (int i = 0; i < chatShow->count(); i++) {
                 QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
-                if (itemWidget) {
+                if (itemWidget)
                     itemWidget->deleteLater();
-                }
             }
             chatShow->clear();
 
@@ -2880,9 +2881,11 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
     }
     saveCurChatRecord();
     messageWidgetList.clear();
+
     for (int i = 0; i < chatShow->count(); ++i) {
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
-        itemWidget->deleteLater();
+        if (itemWidget)
+            itemWidget->deleteLater();
     }
     chatShow->clear();
     curChatFile = chatRecordsWidget->listItemToString(item);

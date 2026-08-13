@@ -8,7 +8,7 @@
 #include <QtGui/QAbstractTextDocumentLayout>
 
 CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
-    : QTextEdit(parent), text(""), lexerName(""), isResetText(false)
+    : QTextEdit(parent), text(""), lexerName(""), isResetText(false), isDestroying(false)
 {
     // qDebug() << "CodeEditor start" << this;
     setFixedWidth(maxWidth);
@@ -45,6 +45,10 @@ CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
 
 CodeEditor::~CodeEditor()
 {
+    // 析构期间先断开自身连接：高亮器等子对象析构可能触发 textChanged →
+    // adjustHeight → emit setSizeFinished，向已销毁的外层控件传播回调导致悬空访问
+    disconnect(this, &QTextEdit::textChanged, this, &CodeEditor::adjustHeight);
+    isDestroying = true;
     qDeleteAll(highlighters);
 }
 
@@ -128,6 +132,8 @@ void CodeEditor::updateLineNumberAreaWidth()
 
 void CodeEditor::adjustHeight()
 {
+    if (isDestroying)
+        return;
     qDebug() << "CodeEditor adjustHeight start" << this;
     int h = int(document()->size().height()) + 15;
     setFixedHeight(h);
@@ -141,6 +147,8 @@ void CodeEditor::resizeEvent(QResizeEvent *e)
 {
     qDebug() << "CodeEditor resizeEvent start" << this;
     QTextEdit::resizeEvent(e);
+    if (isDestroying)
+        return;
     if (height() != int(document()->size().height()) + 15)
         adjustHeight();
     qDebug() << "CodeEditor resizeEvent end" << this;

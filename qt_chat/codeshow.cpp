@@ -1,6 +1,7 @@
 #include "codeshow.h"
 #include "globalvariables.h"
 
+#include <QtCore/QPointer>
 #include <QtGui/QIcon>
 #include <QtGui/QPalette>
 #include <QtGui/QTextOption>
@@ -104,9 +105,16 @@ void CodeShow::setupUI()
     qDebug() << "CodeShow setupUI ing6" << this;
     codeEdit = new CodeEditor(maxWidth);
     qDebug() << "CodeShow setupUI ing9" << this;
-    connect(codeEdit, &CodeEditor::setSizeFinished, [this]() {
-        setFixedSize(maxWidth + 2, codeEdit->height() + topWidget->height() + 2);
-        emit setSizeFinished();
+    // lambda 捕获 QPointer 而非裸 this：CodeEditor 析构链中可能仍触发此连接
+    // （CodeShow 的 disconnectAll 尚未执行），对象已销毁时必须安全跳过，
+    // 否则会回调到已销毁的 MessageWidget（sizeFinishFun 捕获裸 this）导致悬空访问
+    QPointer<CodeShow> self(this);
+    connect(codeEdit, &CodeEditor::setSizeFinished, [self]() {
+        if (!self)
+            return;
+        self->setFixedSize(self->maxWidth + 2,
+                           self->codeEdit->height() + self->topWidget->height() + 2);
+        emit self->setSizeFinished();
     });
     qDebug() << "CodeShow setupUI ing91" << this;
     codeEdit->highlightCode(codeText, lexerName);

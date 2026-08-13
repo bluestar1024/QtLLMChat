@@ -1,5 +1,7 @@
 #include "textshow.h"
 
+#include <QPointer>
+
 TextShow::TextShow(const QString &text, std::function<void()> sizeFinishFun, std::function<void()> executeNextFun, int maxWidth, QWidget *parent)
     : ThinkWidget(text, sizeFinishFun, maxWidth, parent), executeNextFun(executeNextFun), firstExecuteNextEmit(true)
 {
@@ -21,9 +23,13 @@ function getPageSize(){
 getPageSize();
 )";
     static int textShowFuni = 0;
-    webEngineView->page()->runJavaScript(js, [this](const QVariant &res) {
+    // 用 QPointer 持有自身，防止控件在重建中被销毁后异步回调访问悬空指针
+    QPointer<TextShow> self = this;
+    webEngineView->page()->runJavaScript(js, [self](const QVariant &res) {
+        if (!self)
+            return;
         if (res.isNull()) {
-            updateSizeTimer->start(10);
+            self->updateSizeTimer->start(10);
             return;
         }
         QList<QVariant> list = res.toList();
@@ -31,42 +37,42 @@ getPageSize();
             return;
         int w = list[0].toInt();
         int h = list[1].toInt();
-        qDebug() << "WebEngineView get size:" << w << h << this;
+        qDebug() << "WebEngineView get size:" << w << h << self.data();
         if (w <= 0 || h <= 0) {
-            updateSizeTimer->start(10);
+            self->updateSizeTimer->start(10);
             return;
         }
-        if (webEngineSize == QSize(w, h)) {
-            if (isSetTextEnd) {
-                isSetTextEnd = false;
-                isSizeFinish = true;
+        if (self->webEngineSize == QSize(w, h)) {
+            if (self->isSetTextEnd) {
+                self->isSetTextEnd = false;
+                self->isSizeFinish = true;
             }
             return;
         }
-        webEngineSize = QSize(w, h);
+        self->webEngineSize = QSize(w, h);
         textShowFuni += 1;
-        qDebug() << "textShowFuni:" << textShowFuni << this;
-        webEngineView->setFixedSize(w, h);
+        qDebug() << "textShowFuni:" << textShowFuni << self.data();
+        self->webEngineView->setFixedSize(w, h);
         // mainHLayout->addWidget(webEngineView);
         // if (webEngineView->isHidden()) {
         //     qDebug() << "isHidden:" << webEngineView->isHidden();
         //     webEngineView->show();
         // }
-        setFixedSize(w + 10, h);
-        emit setSizeFinished();
+        self->setFixedSize(w + 10, h);
+        emit self->setSizeFinished();
         // isEmitSizeFinish = true;
-        if (isSetTextEnd) {
-            isSetTextEnd = false;
-            isSizeFinish = true;
+        if (self->isSetTextEnd) {
+            self->isSetTextEnd = false;
+            self->isSizeFinish = true;
         }
-        if (firstExecuteNextEmit) {
-            firstExecuteNextEmit = false;
-            if (this->executeNextFun) {
-                connect(this, &TextShow::executeNext, this->executeNextFun);
-                QTimer::singleShot(0, this, [this]() { emit executeNext(); });
-                qDebug() << "textShow executeNext emit" << this;
+        if (self->firstExecuteNextEmit) {
+            self->firstExecuteNextEmit = false;
+            if (self->executeNextFun) {
+                connect(self.data(), &TextShow::executeNext, self->executeNextFun);
+                QTimer::singleShot(0, self.data(), [self]() { emit self->executeNext(); });
+                qDebug() << "textShow executeNext emit" << self.data();
             }
         }
-        qDebug() << "textShow onUpdateSize end" << this;
+        qDebug() << "textShow onUpdateSize end" << self.data();
     });
 }
