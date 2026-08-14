@@ -2577,9 +2577,6 @@ void MainWindow::writeToChatRecordFile(bool withholdCurChatFile)
 
 void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
 {
-    QString chatRecordStr;
-    int chatStrCount = 0;
-
     if (messageWidgetList.size() != 0) {
         if (curChatFile.isEmpty()) {
             writeToChatRecordFile(withholdCurChatFile);
@@ -2589,22 +2586,33 @@ void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
                 writeToChatRecordFile(withholdCurChatFile);
             } else {
                 try {
+                    // 生成当前应写入的完整内容
+                    QString newContent;
                     for (int i = 0; i < messageWidgetList.size(); i++) {
-                        chatStrCount += messageWidgetList[i]->getText().count('\n') + 2;
+                        MessageWidget *messageWidget = messageWidgetList.at(i);
+                        if (!messageWidget)
+                            continue;
+                        newContent += messageWidget->getText() + '\n'
+                                + QString("消息部件思考时长:%1秒\n")
+                                          .arg(i < thinkTimeLengthList.size()
+                                                       ? thinkTimeLengthList.at(i)
+                                                       : 0)
+                                + (messageWidget->getIsUser() ? "True\n" : "False\n");
                     }
 
-                    QStringList lines;
-                    QFile file(filePath);
-                    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                        QTextStream in(&file);
+                    // 读取现有文件内容（Text 模式读自动归一化换行）用于比较
+                    QString oldContent;
+                    QFile readFile(filePath);
+                    if (readFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                        QTextStream in(&readFile);
                         in.setEncoding(QStringConverter::Utf8);
-                        while (!in.atEnd()) {
-                            lines.append(in.readLine() + '\n');
-                        }
-                        file.close();
+                        oldContent = in.readAll();
+                        readFile.close();
                     }
 
-                    if (chatStrCount > lines.size()) {
+                    // 按完整内容比较而非行数：流式追加常为行内增长（换行数不变），
+                    // 仅按行数判断会漏写文件，重建后消息将缺少最后追加的文本
+                    if (oldContent != newContent) {
                         QFile writeFile(filePath);
                         if (writeFile.open(QIODevice::WriteOnly | QIODevice::Text
                                            | QIODevice::Truncate)) {
@@ -2617,18 +2625,7 @@ void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
                                             | QIODevice::Append)) {
                             QTextStream out(&appendFile);
                             out.setEncoding(QStringConverter::Utf8);
-                            for (int i = 0; i < messageWidgetList.size(); i++) {
-                                MessageWidget *messageWidget = messageWidgetList.at(i);
-                                if (!messageWidget)
-                                    continue;
-                                chatRecordStr = messageWidget->getText() + '\n'
-                                        + QString("消息部件思考时长:%1秒\n")
-                                                  .arg(i < thinkTimeLengthList.size()
-                                                               ? thinkTimeLengthList.at(i)
-                                                               : 0)
-                                        + (messageWidget->getIsUser() ? "True\n" : "False\n");
-                                out << chatRecordStr;
-                            }
+                            out << newContent;
                             appendFile.close();
                         }
                     }
@@ -2844,6 +2841,20 @@ void MainWindow::messageWidgetRegenerate()
                 itemRecvWidget = itemWidget;
                 recvItem = item;
                 isContinueShow = true;
+                // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染），
+                // 若重建后接收随即结束（messageFinish 不再 setText），新控件会缺少最后追加的文本；
+                // 空闲时用内存最新文本全量刷新一次，保证新控件显示与 message 一致
+                QTimer::singleShot(0, this, [this]() {
+                    if (messageRecvWidget && isContinueShow) {
+                        if (messageRecvWidget->getText() != message)
+                            messageRecvWidget->setText(message);
+                        if (!(messageRecvWidget->getIsRemoveloadingWidget())) {
+                            messageRecvWidget->removeLoadingWidget();
+                            messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
+                            // messageRecvWidget->toggleWidget();
+                        }
+                    }
+                });
             }
         }
     } while (isRegeneratePending);

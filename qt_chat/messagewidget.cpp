@@ -126,6 +126,7 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     mainHLayout->addLayout(subVLayout2);
     setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
                  qMax(imageLabel->height(), textBoxWidget->height()));
+    // emit resizeFinished(this);
     // 构造渲染完成，若有待执行的重建，将在事件循环空闲时执行
     emit setTexting(false);
 }
@@ -454,15 +455,15 @@ void MessageWidget::setSize()
 void MessageWidget::adjustAiTextWidgetSize()
 {
     int thinkBackWidth = 0, thinkBackHeight = 0;
-    // for (auto *textShow : thinkTextShowList) {
-    for (auto *thinkWidget :
-         thinkBackWidget->findChildren<ThinkWidget *>(Qt::FindDirectChildrenOnly)) {
+    for (auto *thinkWidget : thinkTextShowList) {
+        // for (auto *thinkWidget :
+        //      thinkBackWidget->findChildren<ThinkWidget *>(Qt::FindDirectChildrenOnly)) {
         thinkBackWidth = qMax(thinkBackWidth, thinkWidget->width());
         thinkBackHeight += thinkWidget->height();
         qDebug() << "thinkTextShowList:" << thinkBackWidth << thinkBackHeight;
     }
-    // for (auto *codeShow : thinkCodeShowList) {
-    for (auto *codeShow : thinkBackWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
+    for (auto *codeShow : thinkCodeShowList) {
+        // for (auto *codeShow : thinkBackWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
         thinkBackWidth = qMax(thinkBackWidth, codeShow->width());
         thinkBackHeight += codeShow->height();
         qDebug() << "thinkCodeShowList:" << thinkBackWidth << thinkBackHeight;
@@ -487,14 +488,14 @@ void MessageWidget::adjustAiTextWidgetSize()
         qDebug() << "hasThink:" << thinkWidth << thinkHeight;
     }
     if (!resultText.isEmpty()) {
-        // for (auto *textShow : resultTextShowList) {
-        for (auto *textShow : textWidget->findChildren<TextShow *>(Qt::FindDirectChildrenOnly)) {
+        for (auto *textShow : resultTextShowList) {
+            // for (auto *textShow : textWidget->findChildren<TextShow *>(Qt::FindDirectChildrenOnly)) {
             resultWidth = qMax(resultWidth, textShow->width());
             resultHeight += textShow->height();
             qDebug() << "resultTextShowList:" << resultWidth << resultHeight;
         }
-        // for (auto *codeShow : resultCodeShowList) {
-        for (auto *codeShow : textWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
+        for (auto *codeShow : resultCodeShowList) {
+            // for (auto *codeShow : textWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
             resultWidth = qMax(resultWidth, codeShow->width());
             resultHeight += codeShow->height();
             qDebug() << "resultCodeShowList:" << resultWidth << resultHeight;
@@ -593,6 +594,11 @@ TextBoxWidget *MessageWidget::getTextBoxWidget()
     return textBoxWidget;
 }
 
+bool MessageWidget::getIsRemoveloadingWidget()
+{
+    return loadingWidgetIsRemove;
+}
+
 void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
 {
     if (initDpi <= 0)
@@ -675,7 +681,7 @@ void MessageWidget::setText(const QString &text)
     if (isUser) {
         if (textShow)
             textShow->setText(this->text);
-        setSize();
+        // setSize();
         return;
     }
 
@@ -1168,10 +1174,10 @@ void MessageWidget::setText(const QString &text)
         }
     }
 
-    // setSize();
     // syncThinkTimeLength();
-    emit setTexting(false);
+    // setSize();
     // emit resizeFinished(this);
+    emit setTexting(false);
     qDebug() << "MessageWidget setText end";
 }
 
@@ -1241,7 +1247,6 @@ void MessageWidget::onSizeFinished()
         // if (!isContinue)
         //     return;
 
-        // emit setTexting(false);
         syncThinkTimeLength();
     }
     qDebug() << "onSizeFinished setSize before";
