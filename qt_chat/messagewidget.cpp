@@ -232,22 +232,28 @@ void MessageWidget::buildAiUi()
         int j = 0;
         for (int i = 0; i < thinkCodeShowList.size(); ++i) {
             if (!thinkSplitTextList[i].trimmed().isEmpty()) {
-                QMetaObject::Connection eventLoopQuitConnect =
-                        QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                            if (thinkTextShowList[i - j]->getIsSizeFinish()) {
-                                thinkTextShowList[i - j]->setIsSizeFinish(false);
-                                bool ok = QObject::disconnect(eventLoopQuitConnect);
-                                qDebug() << "connect-1" << ok;
-                                checkTimer.stop();
-                                loop.quit();
-                                qDebug() << "loop quit-1";
-                            }
-                        });
                 thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
-                checkTimer.start();
-                qDebug() << "checkTimer start-1";
-                loop.exec();
-                qDebug() << "loop exec-1";
+                // 防重入：流式追加期间（重建后的全量刷新等）嵌套事件循环会递归进入本等待块，
+                // 同一 QEventLoop 实例重复 exec() 打印警告并立即返回 -1，且 [&] 捕获的
+                // eventLoopQuitConnect 悬空导致崩溃；重入时跳过等待，渲染完成由
+                // sizeFinishFun -> onSizeFinished 兜底触发布局更新
+                if (!loop.isRunning()) {
+                    QMetaObject::Connection eventLoopQuitConnect =
+                            QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                                if (thinkTextShowList[i - j]->getIsSizeFinish()) {
+                                    thinkTextShowList[i - j]->setIsSizeFinish(false);
+                                    bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                    qDebug() << "connect-1" << ok;
+                                    checkTimer.stop();
+                                    loop.quit();
+                                    qDebug() << "loop quit-1";
+                                }
+                            });
+                    checkTimer.start();
+                    qDebug() << "checkTimer start-1";
+                    loop.exec();
+                    qDebug() << "loop exec-1";
+                }
             } else
                 j += 1;
             thinkBackVLayout->addWidget(thinkCodeShowList[i]);
@@ -255,22 +261,25 @@ void MessageWidget::buildAiUi()
             onSizeFinished();
         }
         if (!thinkSplitTextList.last().isEmpty()) {
-            QMetaObject::Connection eventLoopQuitConnect =
-                    QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                        if (thinkTextShowList.last()->getIsSizeFinish()) {
-                            thinkTextShowList.last()->setIsSizeFinish(false);
-                            bool ok = QObject::disconnect(eventLoopQuitConnect);
-                            qDebug() << "disconnect0" << ok;
-                            checkTimer.stop();
-                            loop.quit();
-                            qDebug() << "loop quit0";
-                        }
-                    });
             thinkBackVLayout->addWidget(thinkTextShowList.last());
-            checkTimer.start();
-            qDebug() << "checkTimer start0";
-            loop.exec();
-            qDebug() << "loop exec0";
+            // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+            if (!loop.isRunning()) {
+                QMetaObject::Connection eventLoopQuitConnect =
+                        QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                            if (thinkTextShowList.last()->getIsSizeFinish()) {
+                                thinkTextShowList.last()->setIsSizeFinish(false);
+                                bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                qDebug() << "disconnect0" << ok;
+                                checkTimer.stop();
+                                loop.quit();
+                                qDebug() << "loop quit0";
+                            }
+                        });
+                checkTimer.start();
+                qDebug() << "checkTimer start0";
+                loop.exec();
+                qDebug() << "loop exec0";
+            }
         }
         textLayout->addWidget(thinkBackWidget);
         thinkBackWidget->setVisible(thinkIsExpand);
@@ -330,22 +339,25 @@ void MessageWidget::buildAiUi()
         int j = 0;
         for (int i = 0; i < resultCodeShowList.size(); ++i) {
             if (!resultSplitTextList[i].trimmed().isEmpty()) {
-                QMetaObject::Connection eventLoopQuitConnect =
-                        QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                            if (resultTextShowList[i - j]->getIsSizeFinish()) {
-                                resultTextShowList[i - j]->setIsSizeFinish(false);
-                                bool ok = QObject::disconnect(eventLoopQuitConnect);
-                                qDebug() << "disconnect-1" << ok;
-                                checkTimer.stop();
-                                loop.quit();
-                                qDebug() << "loop quit-1";
-                            }
-                        });
                 textLayout->addWidget(resultTextShowList[i - j]);
-                checkTimer.start();
-                qDebug() << "checkTimer start-1";
-                loop.exec();
-                qDebug() << "loop exec-1";
+                // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+                if (!loop.isRunning()) {
+                    QMetaObject::Connection eventLoopQuitConnect =
+                            QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                                if (resultTextShowList[i - j]->getIsSizeFinish()) {
+                                    resultTextShowList[i - j]->setIsSizeFinish(false);
+                                    bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                    qDebug() << "disconnect-1" << ok;
+                                    checkTimer.stop();
+                                    loop.quit();
+                                    qDebug() << "loop quit-1";
+                                }
+                            });
+                    checkTimer.start();
+                    qDebug() << "checkTimer start-1";
+                    loop.exec();
+                    qDebug() << "loop exec-1";
+                }
             } else
                 j += 1;
             textLayout->addWidget(resultCodeShowList[i]);
@@ -353,22 +365,25 @@ void MessageWidget::buildAiUi()
             onSizeFinished();
         }
         if (!resultSplitTextList.last().isEmpty()) {
-            QMetaObject::Connection eventLoopQuitConnect =
-                    QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                        if (resultTextShowList.last()->getIsSizeFinish()) {
-                            resultTextShowList.last()->setIsSizeFinish(false);
-                            bool ok = QObject::disconnect(eventLoopQuitConnect);
-                            qDebug() << "disconnect0" << ok;
-                            checkTimer.stop();
-                            loop.quit();
-                            qDebug() << "loop quit0";
-                        }
-                    });
             textLayout->addWidget(resultTextShowList.last());
-            checkTimer.start();
-            qDebug() << "checkTimer start0";
-            loop.exec();
-            qDebug() << "loop exec0";
+            // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+            if (!loop.isRunning()) {
+                QMetaObject::Connection eventLoopQuitConnect =
+                        QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                            if (resultTextShowList.last()->getIsSizeFinish()) {
+                                resultTextShowList.last()->setIsSizeFinish(false);
+                                bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                qDebug() << "disconnect0" << ok;
+                                checkTimer.stop();
+                                loop.quit();
+                                qDebug() << "loop quit0";
+                            }
+                        });
+                checkTimer.start();
+                qDebug() << "checkTimer start0";
+                loop.exec();
+                qDebug() << "loop exec0";
+            }
         }
     }
 
@@ -776,37 +791,40 @@ void MessageWidget::setText(const QString &text)
                         //                 bool ok = QObject::disconnect(processConnection);
                         //                 qDebug() << "disconnect2 processConnection" << ok;
                         //                 processTimer.stop();
-                        QMetaObject::Connection eventLoopQuitConnect =
-                                QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                                    if (thinkTextShowList[i]->getIsSizeFinish()) {
-                                        qDebug() << "getIsSizeFinish before:"
-                                                 << thinkTextShowList[i]->getIsSizeFinish()
-                                                 << thinkTextShowList[i];
-                                        thinkTextShowList[i]->setIsSizeFinish(false);
-                                        qDebug() << "getIsSizeFinish after:"
-                                                 << thinkTextShowList[i]->getIsSizeFinish()
-                                                 << thinkTextShowList[i];
-                                        bool ok = QObject::disconnect(eventLoopQuitConnect);
-                                        qDebug() << "disconnect2" << ok;
-                                        checkTimer.stop();
-                                        // qDebug()
-                                        //         << "internalLoop:" << &internalLoop
-                                        //         << "externalLoop:" << &externalLoop
-                                        //         << "checkTimer:" << &checkTimer
-                                        //         << "processTimer:" << &processTimer;
-                                        loop.quit();
-                                        qDebug() << "loop quit2";
-                                    }
-                                });
                         thinkTextShowList[i]->setText(splitText);
                         // qDebug() << "internalLoop:" << &internalLoop
                         //          << "externalLoop:" << &externalLoop
                         //          << "checkTimer:" << &checkTimer
                         //          << "processTimer:" << &processTimer;
-                        checkTimer.start();
-                        qDebug() << "checkTimer start2";
-                        loop.exec();
-                        qDebug() << "loop exec2";
+                        // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+                        if (!loop.isRunning()) {
+                            QMetaObject::Connection eventLoopQuitConnect =
+                                    QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                                        if (thinkTextShowList[i]->getIsSizeFinish()) {
+                                            qDebug() << "getIsSizeFinish before:"
+                                                     << thinkTextShowList[i]->getIsSizeFinish()
+                                                     << thinkTextShowList[i];
+                                            thinkTextShowList[i]->setIsSizeFinish(false);
+                                            qDebug() << "getIsSizeFinish after:"
+                                                     << thinkTextShowList[i]->getIsSizeFinish()
+                                                     << thinkTextShowList[i];
+                                            bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                            qDebug() << "disconnect2" << ok;
+                                            checkTimer.stop();
+                                            // qDebug()
+                                            //         << "internalLoop:" << &internalLoop
+                                            //         << "externalLoop:" << &externalLoop
+                                            //         << "checkTimer:" << &checkTimer
+                                            //         << "processTimer:" << &processTimer;
+                                            loop.quit();
+                                            qDebug() << "loop quit2";
+                                        }
+                                    });
+                            checkTimer.start();
+                            qDebug() << "checkTimer start2";
+                            loop.exec();
+                            qDebug() << "loop exec2";
+                        }
                         // externalLoop.quit();
                         // qDebug() << "externalLoop quit";
                         //             }
@@ -839,36 +857,39 @@ void MessageWidget::setText(const QString &text)
                     //                 bool ok = QObject::disconnect(processConnection);
                     //                 qDebug() << "disconnect processConnection" << ok;
                     //                 processTimer.stop();
-                    QMetaObject::Connection eventLoopQuitConnect =
-                            QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                                if (thinkTextShowList[i - j]->getIsSizeFinish()) {
-                                    qDebug() << "getIsSizeFinish before:"
-                                             << thinkTextShowList[i - j]->getIsSizeFinish()
-                                             << thinkTextShowList[i - j];
-                                    thinkTextShowList[i - j]->setIsSizeFinish(false);
-                                    qDebug() << "getIsSizeFinish after:"
-                                             << thinkTextShowList[i - j]->getIsSizeFinish()
-                                             << thinkTextShowList[i - j];
-                                    bool ok = QObject::disconnect(eventLoopQuitConnect);
-                                    qDebug() << "disconnect" << ok;
-                                    checkTimer.stop();
-                                    // qDebug() << "internalLoop:" << &internalLoop
-                                    //          << "externalLoop:" << &externalLoop
-                                    //          << "checkTimer:" << &checkTimer
-                                    //          << "processTimer:" << &processTimer;
-                                    loop.quit();
-                                    qDebug() << "loop quit";
-                                }
-                            });
                     thinkBackVLayout->addWidget(thinkTextShowList[i - j]);
                     // qDebug() << "internalLoop:" << &internalLoop
                     //          << "externalLoop:" << &externalLoop
                     //          << "checkTimer:" << &checkTimer
                     //          << "processTimer:" << &processTimer;
-                    checkTimer.start();
-                    qDebug() << "checkTimer start";
-                    loop.exec();
-                    qDebug() << "loop exec";
+                    // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+                    if (!loop.isRunning()) {
+                        QMetaObject::Connection eventLoopQuitConnect =
+                                QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                                    if (thinkTextShowList[i - j]->getIsSizeFinish()) {
+                                        qDebug() << "getIsSizeFinish before:"
+                                                 << thinkTextShowList[i - j]->getIsSizeFinish()
+                                                 << thinkTextShowList[i - j];
+                                        thinkTextShowList[i - j]->setIsSizeFinish(false);
+                                        qDebug() << "getIsSizeFinish after:"
+                                                 << thinkTextShowList[i - j]->getIsSizeFinish()
+                                                 << thinkTextShowList[i - j];
+                                        bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                        qDebug() << "disconnect" << ok;
+                                        checkTimer.stop();
+                                        // qDebug() << "internalLoop:" << &internalLoop
+                                        //          << "externalLoop:" << &externalLoop
+                                        //          << "checkTimer:" << &checkTimer
+                                        //          << "processTimer:" << &processTimer;
+                                        loop.quit();
+                                        qDebug() << "loop quit";
+                                    }
+                                });
+                        checkTimer.start();
+                        qDebug() << "checkTimer start";
+                        loop.exec();
+                        qDebug() << "loop exec";
+                    }
                     // externalLoop.quit();
                     // qDebug() << "externalLoop quit";
                     //             }
@@ -906,36 +927,39 @@ void MessageWidget::setText(const QString &text)
             //                 bool ok = QObject::disconnect(processConnection);
             //                 qDebug() << "disconnect1 processConnection" << ok;
             //                 processTimer.stop();
-            QMetaObject::Connection eventLoopQuitConnect =
-                    QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                        if (thinkTextShowList.last()->getIsSizeFinish()) {
-                            qDebug() << "getIsSizeFinish before:"
-                                     << thinkTextShowList.last()->getIsSizeFinish()
-                                     << thinkTextShowList.last();
-                            thinkTextShowList.last()->setIsSizeFinish(false);
-                            qDebug() << "getIsSizeFinish after:"
-                                     << thinkTextShowList.last()->getIsSizeFinish()
-                                     << thinkTextShowList.last();
-                            bool ok = QObject::disconnect(eventLoopQuitConnect);
-                            qDebug() << "disconnect1" << ok;
-                            checkTimer.stop();
-                            // qDebug() << "internalLoop:" << &internalLoop
-                            //          << "externalLoop:" << &externalLoop
-                            //          << "checkTimer:" << &checkTimer
-                            //          << "processTimer:" << &processTimer;
-                            loop.quit();
-                            qDebug() << "loop quit1";
-                        }
-                    });
             thinkBackVLayout->addWidget(thinkTextShowList.last());
             // qDebug() << "internalLoop:" << &internalLoop
             //          << "externalLoop:" << &externalLoop
             //          << "checkTimer:" << &checkTimer
             //          << "processTimer:" << &processTimer;
-            checkTimer.start();
-            qDebug() << "checkTimer start1";
-            loop.exec();
-            qDebug() << "loop exec1";
+            // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+            if (!loop.isRunning()) {
+                QMetaObject::Connection eventLoopQuitConnect =
+                        QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                            if (thinkTextShowList.last()->getIsSizeFinish()) {
+                                qDebug() << "getIsSizeFinish before:"
+                                         << thinkTextShowList.last()->getIsSizeFinish()
+                                         << thinkTextShowList.last();
+                                thinkTextShowList.last()->setIsSizeFinish(false);
+                                qDebug() << "getIsSizeFinish after:"
+                                         << thinkTextShowList.last()->getIsSizeFinish()
+                                         << thinkTextShowList.last();
+                                bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                qDebug() << "disconnect1" << ok;
+                                checkTimer.stop();
+                                // qDebug() << "internalLoop:" << &internalLoop
+                                //          << "externalLoop:" << &externalLoop
+                                //          << "checkTimer:" << &checkTimer
+                                //          << "processTimer:" << &processTimer;
+                                loop.quit();
+                                qDebug() << "loop quit1";
+                            }
+                        });
+                checkTimer.start();
+                qDebug() << "checkTimer start1";
+                loop.exec();
+                qDebug() << "loop exec1";
+            }
             // externalLoop.quit();
             // qDebug() << "externalLoop quit1";
             //             }
@@ -1022,31 +1046,34 @@ void MessageWidget::setText(const QString &text)
                         //                 bool ok = QObject::disconnect(processConnection);
                         //                 qDebug() << "disconnect2 processConnection" << ok;
                         //                 processTimer.stop();
-                        QMetaObject::Connection eventLoopQuitConnect =
-                                QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                                    if (resultTextShowList[i]->getIsSizeFinish()) {
-                                        resultTextShowList[i]->setIsSizeFinish(false);
-                                        bool ok = QObject::disconnect(eventLoopQuitConnect);
-                                        qDebug() << "disconnect2" << ok;
-                                        checkTimer.stop();
-                                        // qDebug()
-                                        //         << "internalLoop:" << &internalLoop
-                                        //         << "externalLoop:" << &externalLoop
-                                        //         << "checkTimer:" << &checkTimer
-                                        //         << "processTimer:" << &processTimer;
-                                        loop.quit();
-                                        qDebug() << "loop quit2";
-                                    }
-                                });
                         resultTextShowList[i]->setText(splitText);
                         // qDebug() << "internalLoop:" << &internalLoop
                         //          << "externalLoop:" << &externalLoop
                         //          << "checkTimer:" << &checkTimer
                         //          << "processTimer:" << &processTimer;
-                        checkTimer.start();
-                        qDebug() << "checkTimer start2";
-                        loop.exec();
-                        qDebug() << "loop exec2";
+                        // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+                        if (!loop.isRunning()) {
+                            QMetaObject::Connection eventLoopQuitConnect =
+                                    QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                                        if (resultTextShowList[i]->getIsSizeFinish()) {
+                                            resultTextShowList[i]->setIsSizeFinish(false);
+                                            bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                            qDebug() << "disconnect2" << ok;
+                                            checkTimer.stop();
+                                            // qDebug()
+                                            //         << "internalLoop:" << &internalLoop
+                                            //         << "externalLoop:" << &externalLoop
+                                            //         << "checkTimer:" << &checkTimer
+                                            //         << "processTimer:" << &processTimer;
+                                            loop.quit();
+                                            qDebug() << "loop quit2";
+                                        }
+                                    });
+                            checkTimer.start();
+                            qDebug() << "checkTimer start2";
+                            loop.exec();
+                            qDebug() << "loop exec2";
+                        }
                         // externalLoop.quit();
                         // qDebug() << "externalLoop quit2";
                         //             }
@@ -1079,30 +1106,33 @@ void MessageWidget::setText(const QString &text)
                     //                 bool ok = QObject::disconnect(processConnection);
                     //                 qDebug() << "disconnect processConnection" << ok;
                     //                 processTimer.stop();
-                    QMetaObject::Connection eventLoopQuitConnect =
-                            QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                                if (resultTextShowList[i - j]->getIsSizeFinish()) {
-                                    resultTextShowList[i - j]->setIsSizeFinish(false);
-                                    bool ok = QObject::disconnect(eventLoopQuitConnect);
-                                    qDebug() << "disconnect" << ok;
-                                    checkTimer.stop();
-                                    // qDebug() << "internalLoop:" << &internalLoop
-                                    //          << "externalLoop:" << &externalLoop
-                                    //          << "checkTimer:" << &checkTimer
-                                    //          << "processTimer:" << &processTimer;
-                                    loop.quit();
-                                    qDebug() << "loop quit";
-                                }
-                            });
                     textLayout->addWidget(resultTextShowList[i - j]);
                     // qDebug() << "internalLoop:" << &internalLoop
                     //          << "externalLoop:" << &externalLoop
                     //          << "checkTimer:" << &checkTimer
                     //          << "processTimer:" << &processTimer;
-                    checkTimer.start();
-                    qDebug() << "checkTimer start";
-                    loop.exec();
-                    qDebug() << "loop exec";
+                    // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+                    if (!loop.isRunning()) {
+                        QMetaObject::Connection eventLoopQuitConnect =
+                                QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                                    if (resultTextShowList[i - j]->getIsSizeFinish()) {
+                                        resultTextShowList[i - j]->setIsSizeFinish(false);
+                                        bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                        qDebug() << "disconnect" << ok;
+                                        checkTimer.stop();
+                                        // qDebug() << "internalLoop:" << &internalLoop
+                                        //          << "externalLoop:" << &externalLoop
+                                        //          << "checkTimer:" << &checkTimer
+                                        //          << "processTimer:" << &processTimer;
+                                        loop.quit();
+                                        qDebug() << "loop quit";
+                                    }
+                                });
+                        checkTimer.start();
+                        qDebug() << "checkTimer start";
+                        loop.exec();
+                        qDebug() << "loop exec";
+                    }
                     // externalLoop.quit();
                     // qDebug() << "externalLoop quit";
                     //             }
@@ -1136,30 +1166,33 @@ void MessageWidget::setText(const QString &text)
             //                 bool ok = QObject::disconnect(processConnection);
             //                 qDebug() << "disconnect1 processConnection" << ok;
             //                 processTimer.stop();
-            QMetaObject::Connection eventLoopQuitConnect =
-                    QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
-                        if (resultTextShowList.last()->getIsSizeFinish()) {
-                            resultTextShowList.last()->setIsSizeFinish(false);
-                            bool ok = QObject::disconnect(eventLoopQuitConnect);
-                            qDebug() << "disconnect1" << ok;
-                            checkTimer.stop();
-                            // qDebug() << "internalLoop:" << &internalLoop
-                            //          << "externalLoop:" << &externalLoop
-                            //          << "checkTimer:" << &checkTimer
-                            //          << "processTimer:" << &processTimer;
-                            loop.quit();
-                            qDebug() << "loop quit1";
-                        }
-                    });
             textLayout->addWidget(resultTextShowList.last());
             // qDebug() << "internalLoop:" << &internalLoop
             //          << "externalLoop:" << &externalLoop
             //          << "checkTimer:" << &checkTimer
             //          << "processTimer:" << &processTimer;
-            checkTimer.start();
-            qDebug() << "checkTimer start1";
-            loop.exec();
-            qDebug() << "loop exec1";
+            // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
+            if (!loop.isRunning()) {
+                QMetaObject::Connection eventLoopQuitConnect =
+                        QObject::connect(&checkTimer, &QTimer::timeout, [&]() {
+                            if (resultTextShowList.last()->getIsSizeFinish()) {
+                                resultTextShowList.last()->setIsSizeFinish(false);
+                                bool ok = QObject::disconnect(eventLoopQuitConnect);
+                                qDebug() << "disconnect1" << ok;
+                                checkTimer.stop();
+                                // qDebug() << "internalLoop:" << &internalLoop
+                                //          << "externalLoop:" << &externalLoop
+                                //          << "checkTimer:" << &checkTimer
+                                //          << "processTimer:" << &processTimer;
+                                loop.quit();
+                                qDebug() << "loop quit1";
+                            }
+                        });
+                checkTimer.start();
+                qDebug() << "checkTimer start1";
+                loop.exec();
+                qDebug() << "loop exec1";
+            }
             // externalLoop.quit();
             // qDebug() << "externalLoop quit1";
             //             }

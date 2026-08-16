@@ -2496,7 +2496,6 @@ void MainWindow::recvMessage(const QString &text)
 
 void MainWindow::messageFinish()
 {
-    chatInput->setSending(false);
     if (messageRecvWidget) {
         messageRecvWidget->removeLoadingWidget();
         messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
@@ -2520,6 +2519,7 @@ void MainWindow::messageFinish()
         delete lastItem;
         messageRenewResponse();
     }
+    chatInput->setSending(false);
     isSending = false;
 
     qDebug() << "chatShow item count:" << chatShow->count();
@@ -2844,14 +2844,54 @@ void MainWindow::messageWidgetRegenerate()
                 // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染），
                 // 若重建后接收随即结束（messageFinish 不再 setText），新控件会缺少最后追加的文本；
                 // 空闲时用内存最新文本全量刷新一次，保证新控件显示与 message 一致
+
+                // QTimer *messageFinishTimer = new QTimer();
+                // connect(messageFinishTimer, &QTimer::timeout, [this, messageFinishTimer]() {
+                //     if (messageRecvWidget && isContinueShow && (!isSending)) {
+                //         if (messageRecvWidget->getText() != message) {
+                //             messageRecvWidget->setText(message);
+                //             itemRecvWidget->setFixedSize(chatShow->width(),
+                //                                          messageRecvWidget->height() + 10);
+                //             itemRecvHLayout->setContentsMargins(
+                //                     0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+                //             recvItem->setSizeHint(
+                //                     QSize(chatShow->width(), messageRecvWidget->height() + 10));
+
+                //             HWND hwnd = reinterpret_cast<HWND>(winId());
+                //             DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+                //             SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+                //             SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                //                          SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+                //                                  | SWP_NOOWNERZORDER);
+                //         }
+                //         if (!(messageRecvWidget->getIsRemoveloadingWidget())) {
+                //             messageFinish();
+                //         }
+                //         messageFinishTimer->stop();
+                //     }
+                // });
+                // messageFinishTimer->start(1);
+
                 QTimer::singleShot(0, this, [this]() {
                     if (messageRecvWidget && isContinueShow) {
-                        if (messageRecvWidget->getText() != message)
+                        if (messageRecvWidget->getText() != message) {
                             messageRecvWidget->setText(message);
+                            itemRecvWidget->setFixedSize(chatShow->width(),
+                                                         messageRecvWidget->height() + 10);
+                            itemRecvHLayout->setContentsMargins(
+                                    0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+                            recvItem->setSizeHint(
+                                    QSize(chatShow->width(), messageRecvWidget->height() + 10));
+
+                            HWND hwnd = reinterpret_cast<HWND>(winId());
+                            DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+                            SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+                            SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                                         SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+                                                 | SWP_NOOWNERZORDER);
+                        }
                         if (!(messageRecvWidget->getIsRemoveloadingWidget())) {
-                            messageRecvWidget->removeLoadingWidget();
-                            messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
-                            // messageRecvWidget->toggleWidget();
+                            messageFinish();
                         }
                     }
                 });

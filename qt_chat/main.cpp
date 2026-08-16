@@ -45,9 +45,9 @@ static LONG NTAPI CrashHandler(PEXCEPTION_POINTERS ep)
                 static_cast<unsigned long long>(ep->ContextRecord->Rbp));
 
         // 从崩溃 CONTEXT 手动解栈（RtlVirtualUnwind），穿过异常分发器拿到完整调用链
-        typedef PRUNTIME_FUNCTION(NTAPI *LookupFn)(DWORD64, PDWORD64, PUNWIND_HISTORY_TABLE);
-        typedef NTSTATUS(NTAPI *UnwindFn)(ULONG, DWORD64, DWORD64, PRUNTIME_FUNCTION, PCONTEXT,
-                                          PVOID *, PDWORD64, PKNONVOLATILE_CONTEXT_POINTERS);
+        typedef PRUNTIME_FUNCTION(NTAPI * LookupFn)(DWORD64, PDWORD64, PUNWIND_HISTORY_TABLE);
+        typedef NTSTATUS(NTAPI * UnwindFn)(ULONG, DWORD64, DWORD64, PRUNTIME_FUNCTION, PCONTEXT,
+                                           PVOID *, PDWORD64, PKNONVOLATILE_CONTEXT_POINTERS);
         HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
         auto pLookup = reinterpret_cast<LookupFn>(GetProcAddress(ntdll, "RtlLookupFunctionEntry"));
         auto pUnwind = reinterpret_cast<UnwindFn>(GetProcAddress(ntdll, "RtlVirtualUnwind"));
@@ -72,8 +72,8 @@ static LONG NTAPI CrashHandler(PEXCEPTION_POINTERS ep)
                 NTSTATUS st = pUnwind(UNW_FLAG_NHANDLER, imageBase, c.Rip, fn, &c, &handlerData,
                                       &establisher, &ctxPtrs);
                 if (st != 0) {
-                    fprintf(f, "  [unwind failed: 0x%lX at #%d]\n",
-                            static_cast<unsigned long>(st), i + 1);
+                    fprintf(f, "  [unwind failed: 0x%lX at #%d]\n", static_cast<unsigned long>(st),
+                            i + 1);
                     break;
                 }
             }
@@ -122,8 +122,8 @@ static LONG NTAPI CrashHandler(PEXCEPTION_POINTERS ep)
                 SIZE_T r1 = 0, r2 = 0;
                 ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<LPCVOID>(rbp), &next,
                                   sizeof(next), &r1);
-                ReadProcessMemory(GetCurrentProcess(),
-                                  reinterpret_cast<LPCVOID>(rbp + 8), &ret, sizeof(ret), &r2);
+                ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<LPCVOID>(rbp + 8), &ret,
+                                  sizeof(ret), &r2);
                 if (r1 != sizeof(next) || r2 != sizeof(ret))
                     break;
                 fprintf(f, "  RBP#%d ", i);
