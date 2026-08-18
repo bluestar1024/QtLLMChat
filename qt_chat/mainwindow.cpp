@@ -2496,6 +2496,24 @@ void MainWindow::recvMessage(const QString &text)
 
 void MainWindow::messageFinish()
 {
+    // 接收真正结束（本函数由线程 finished 信号触发，是补全缺失文本的合适时机）：
+    // 重建期间到达的追加文本只累积在 message 未渲染，重建完成后控件会缺少尾部文本，
+    // 此处统一补全；此时接收已停止，不会与增量 setText 交错
+    if (messageRecvWidget && isContinueShow && messageRecvWidget->getText() != message) {
+        messageRecvWidget->setText(message);
+        if (itemRecvWidget && itemRecvHLayout && recvItem) {
+            itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
+            itemRecvHLayout->setContentsMargins(
+                    0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+            recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
+        }
+        HWND hwnd = reinterpret_cast<HWND>(winId());
+        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+        SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+
     if (messageRecvWidget) {
         messageRecvWidget->removeLoadingWidget();
         messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
@@ -2843,55 +2861,17 @@ void MainWindow::messageWidgetRegenerate()
                 isContinueShow = true;
                 // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染），
                 // 若重建后接收随即结束（messageFinish 不再 setText），新控件会缺少最后追加的文本；
-                // 空闲时用内存最新文本全量刷新一次，保证新控件显示与 message 一致
-
-                // QTimer *messageFinishTimer = new QTimer();
-                // connect(messageFinishTimer, &QTimer::timeout, [this, messageFinishTimer]() {
-                //     if (messageRecvWidget && isContinueShow && (!isSending)) {
-                //         if (messageRecvWidget->getText() != message) {
-                //             messageRecvWidget->setText(message);
-                //             itemRecvWidget->setFixedSize(chatShow->width(),
-                //                                          messageRecvWidget->height() + 10);
-                //             itemRecvHLayout->setContentsMargins(
-                //                     0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
-                //             recvItem->setSizeHint(
-                //                     QSize(chatShow->width(), messageRecvWidget->height() + 10));
-
-                //             HWND hwnd = reinterpret_cast<HWND>(winId());
-                //             DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-                //             SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-                //             SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                //                          SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-                //                                  | SWP_NOOWNERZORDER);
-                //         }
-                //         if (!(messageRecvWidget->getIsRemoveloadingWidget())) {
-                //             messageFinish();
-                //         }
-                //         messageFinishTimer->stop();
-                //     }
-                // });
-                // messageFinishTimer->start(1);
-
+                // 该补全统一放在 messageFinish（线程 finished 信号）入口执行：接收已停止，
+                // 不会与增量 setText 交错，也不依赖定时器轮询和 isSending 判断
                 QTimer::singleShot(0, this, [this]() {
+                    // 重建后仅移除加载动画并刷新功能按钮尺寸；此处不能调用 messageFinish()，
+                    // 否则 isSending 会被提前置 false（线程仍在发送），下一次拉伸重建将走
+                    // !isSending 分支而不恢复 messageRecvWidget，重建后到达的追加文本
+                    // 将全部不再渲染（表现为文本截断终止）
                     if (messageRecvWidget && isContinueShow) {
-                        if (messageRecvWidget->getText() != message) {
-                            messageRecvWidget->setText(message);
-                            itemRecvWidget->setFixedSize(chatShow->width(),
-                                                         messageRecvWidget->height() + 10);
-                            itemRecvHLayout->setContentsMargins(
-                                    0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
-                            recvItem->setSizeHint(
-                                    QSize(chatShow->width(), messageRecvWidget->height() + 10));
-
-                            HWND hwnd = reinterpret_cast<HWND>(winId());
-                            DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-                            SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-                            SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                                         SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-                                                 | SWP_NOOWNERZORDER);
-                        }
                         if (!(messageRecvWidget->getIsRemoveloadingWidget())) {
-                            messageFinish();
+                            messageRecvWidget->removeLoadingWidget();
+                            messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
                         }
                     }
                 });
