@@ -139,6 +139,8 @@ private:
     bool isScreenMax;
     bool isScreenHalf;
     QRect lastNormalGeometry;
+    int dragStartWidth;
+    int dragStartHeight;
     bool isChangeRectFirst;
     QList<QScreen *> screens;
     RegionEnum regionDir;

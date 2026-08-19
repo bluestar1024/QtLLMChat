@@ -782,6 +782,8 @@ MainWindow::MainWindow(QWidget *parent)
       isScreenMax(false),
       isScreenHalf(false),
       isChangeRectFirst(false),
+      dragStartWidth(-1),
+      dragStartHeight(-1),
       isDpiChanged(false),
       avoidRepeatSelfFun(false),
       borderLen(3)
@@ -1279,11 +1281,30 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         break;
     }
 
+    case WM_ENTERSIZEMOVE: {
+        // 拖动标题栏移动或调整大小开始：记录窗口尺寸，供 WM_EXITSIZEMOVE
+        // 区分“仅移动”与“调整大小”（仅移动不应触发聊天记录重建）
+        RECT rect;
+        GetWindowRect(hwnd, &rect);
+        dragStartWidth = rect.right - rect.left;
+        dragStartHeight = rect.bottom - rect.top;
+        break;
+    }
+
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
 
-        qDebug() << "WM_EXITSIZEMOVE isRegenerate";
-        messageWidgetRegenerate();
+        // 仅当窗口尺寸发生变化（调整大小/Aero Snap）才重建聊天记录；
+        // 拖动标题栏仅移动窗口位置时尺寸不变，无需重建
+        RECT rect;
+        GetWindowRect(hwnd, &rect);
+        if (rect.right - rect.left != dragStartWidth
+            || rect.bottom - rect.top != dragStartHeight) {
+            qDebug() << "WM_EXITSIZEMOVE isRegenerate";
+            messageWidgetRegenerate();
+        } else {
+            qDebug() << "WM_EXITSIZEMOVE move only, skip regenerate";
+        }
         break;
     }
 
