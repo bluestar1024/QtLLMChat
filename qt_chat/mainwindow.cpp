@@ -2859,22 +2859,56 @@ void MainWindow::messageWidgetRegenerate()
                 itemRecvWidget = itemWidget;
                 recvItem = item;
                 isContinueShow = true;
-                // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染），
-                // 若重建后接收随即结束（messageFinish 不再 setText），新控件会缺少最后追加的文本；
-                // 该补全统一放在 messageFinish（线程 finished 信号）入口执行：接收已停止，
-                // 不会与增量 setText 交错，也不依赖定时器轮询和 isSending 判断
-                QTimer::singleShot(0, this, [this]() {
-                    // 重建后仅移除加载动画并刷新功能按钮尺寸；此处不能调用 messageFinish()，
-                    // 否则 isSending 会被提前置 false（线程仍在发送），下一次拉伸重建将走
-                    // !isSending 分支而不恢复 messageRecvWidget，重建后到达的追加文本
-                    // 将全部不再渲染（表现为文本截断终止）
-                    if (messageRecvWidget && isContinueShow) {
-                        if (!(messageRecvWidget->getIsRemoveloadingWidget())) {
-                            messageRecvWidget->removeLoadingWidget();
-                            messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
+                // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染）。
+                // 若接收恰在重建期间结束（generateCurChatRecord 创建最后一条控件时，控件构造
+                // 内部渲染会进入嵌套事件循环，期间 thread finished → messageFinish 会被提前执行，
+                // 但其文本补全与 loading 移除因 messageRecvWidget 为 nullptr 均未生效），
+                // 新控件将缺少尾部追加文本且 loading 永不移除；此处重建已完成、接收指针已恢复，
+                // 若接收已结束（isSending=false）则补做收尾；若接收仍在进行（isSending=true），
+                // loading 保留、文本由 recvMessage 增量渲染，最后由 messageFinish（线程结束时）
+                // 统一收尾，此处不干预（也不做全量刷新，避免与增量 setText 交错）
+                if (!isSending && messageRecvWidget) {
+                    if (messageRecvWidget->getText() != message) {
+                        messageRecvWidget->setText(message);
+                        if (itemRecvWidget && itemRecvHLayout && recvItem) {
+                            itemRecvWidget->setFixedSize(chatShow->width(),
+                                                         messageRecvWidget->height() + 10);
+                            itemRecvHLayout->setContentsMargins(
+                                    0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+                            recvItem->setSizeHint(
+                                    QSize(chatShow->width(), messageRecvWidget->height() + 10));
                         }
+                        HWND hwnd = reinterpret_cast<HWND>(winId());
+                        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+                        SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+                        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+                                             | SWP_NOOWNERZORDER);
                     }
-                });
+                    if (!messageRecvWidget->getIsRemoveloadingWidget()) {
+                        messageRecvWidget->removeLoadingWidget();
+                        messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
+                    }
+                    if (messageRecvWidget && itemRecvWidget && itemRecvHLayout && recvItem) {
+                        itemRecvWidget->setFixedSize(chatShow->width(),
+                                                     messageRecvWidget->height() + 10);
+                        itemRecvHLayout->setContentsMargins(
+                                0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+                        recvItem->setSizeHint(
+                                QSize(chatShow->width(), messageRecvWidget->height() + 10));
+                    }
+                    if (message.isEmpty() && !messageWidgetList.isEmpty()
+                        && chatShow->count() > 0) {
+                        delete messageWidgetList.takeLast();
+                        int last = chatShow->count() - 1;
+                        QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
+                        if (itemWidget)
+                            itemWidget->deleteLater();
+                        QListWidgetItem *lastItem = chatShow->takeItem(last);
+                        delete lastItem;
+                        messageRenewResponse();
+                    }
+                }
             }
         }
     } while (isRegeneratePending);
