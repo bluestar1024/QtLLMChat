@@ -141,6 +141,11 @@ private:
     QRect lastNormalGeometry;
     int dragStartWidth;
     int dragStartHeight;
+    bool isSizeMoveDrag;
+    bool dragRegenerateDone;
+    bool pendingRegenerateAfterResize;
+    int lastRegenerateWidth;
+    int lastRegenerateHeight;
     bool isChangeRectFirst;
     QList<QScreen *> screens;
     RegionEnum regionDir;

@@ -784,6 +784,11 @@ MainWindow::MainWindow(QWidget *parent)
       isChangeRectFirst(false),
       dragStartWidth(-1),
       dragStartHeight(-1),
+      isSizeMoveDrag(false),
+      dragRegenerateDone(false),
+      pendingRegenerateAfterResize(false),
+      lastRegenerateWidth(-1),
+      lastRegenerateHeight(-1),
       isDpiChanged(false),
       avoidRepeatSelfFun(false),
       borderLen(3)
@@ -1081,6 +1086,8 @@ void MainWindow::applyDWMShadow()
 void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
+    // 首次显示完成后，WM_SIZE 才允许触发聊天记录重建（避免启动阶段误触发）
+    isShowFirst = false;
 
 #ifdef Q_OS_WIN
     // static bool firstShow = true;
@@ -1277,13 +1284,33 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     case WM_SIZE: {
         if (msg->wParam == SIZE_RESTORED || msg->wParam == SIZE_MAXIMIZED) {
             QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
+            // 双击标题栏/单击最大化按钮等非拖拽方式的最大化/还原：
+            // 不经过 WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE，只能在这里触发重建；
+            // 与上次重建尺寸相同（如 Snap 后延迟到达的 WM_SIZE）则跳过
+            if (!isShowFirst && !isSizeMoveDrag) {
+                RECT rect;
+                GetWindowRect(hwnd, &rect);
+                int w = rect.right - rect.left;
+                int h = rect.bottom - rect.top;
+                if (w != lastRegenerateWidth || h != lastRegenerateHeight) {
+                    lastRegenerateWidth = w;
+                    lastRegenerateHeight = h;
+                    qDebug() << "WM_SIZE isRegenerate" << w << h;
+                    // 延迟到 Qt resizeEvent 执行后再重建，保证 chatShow 宽度已更新
+                    QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+                } else {
+                    qDebug() << "WM_SIZE skip regenerate same size" << w << h;
+                }
+            }
         }
         break;
     }
 
     case WM_ENTERSIZEMOVE: {
-        // 拖动标题栏移动或调整大小开始：记录窗口尺寸，供 WM_EXITSIZEMOVE
+        // 拖动标题栏移动或调整大小开始：记录窗口尺寸，供 WM_MOVING/WM_EXITSIZEMOVE
         // 区分“仅移动”与“调整大小”（仅移动不应触发聊天记录重建）
+        isSizeMoveDrag = true;
+        dragRegenerateDone = false;
         RECT rect;
         GetWindowRect(hwnd, &rect);
         dragStartWidth = rect.right - rect.left;
@@ -1291,20 +1318,64 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         break;
     }
 
+    case WM_MOVING: {
+        // 拖动标题栏移动/拖动还原过程中：lParam 为拖动目标矩形。
+        // 目标尺寸发生变化（最大化/半屏还原、Aero Snap）时仅标记待重建，
+        // 不在这里直接重建：系统拖拽模态循环中执行耗时重建会阻塞拖拽造成卡顿，
+        // 且 Snap 时 Qt resizeEvent 尚未执行（chatShow 宽度未同步），重建会读旧宽度
+        if (dragRegenerateDone)
+            break;
+        RECT *rc = reinterpret_cast<RECT *>(msg->lParam);
+        int w = rc->right - rc->left;
+        int h = rc->bottom - rc->top;
+        if (w != dragStartWidth || h != dragStartHeight) {
+            dragRegenerateDone = true;
+            pendingRegenerateAfterResize = true;
+            qDebug() << "WM_MOVING size changed, pending regenerate" << w << h;
+        }
+        break;
+    }
+
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
+        isSizeMoveDrag = false;
 
-        // 仅当窗口尺寸发生变化（调整大小/Aero Snap）才重建聊天记录；
-        // 拖动标题栏仅移动窗口位置时尺寸不变，无需重建
         RECT rect;
         GetWindowRect(hwnd, &rect);
-        if (rect.right - rect.left != dragStartWidth
-            || rect.bottom - rect.top != dragStartHeight) {
-            qDebug() << "WM_EXITSIZEMOVE isRegenerate";
-            messageWidgetRegenerate();
+        int w = rect.right - rect.left;
+        int h = rect.bottom - rect.top;
+        if (pendingRegenerateAfterResize) {
+            pendingRegenerateAfterResize = false;
+            if (w != dragStartWidth || h != dragStartHeight) {
+                // 拖拽结束、事件循环恢复后执行：此时 Qt resizeEvent 已同步新宽度，
+                // 重建宽度正确且不阻塞拖拽过程（重建不在模态循环中执行）
+                lastRegenerateWidth = w;
+                lastRegenerateHeight = h;
+                qDebug() << "WM_EXITSIZEMOVE regenerate pending" << w << h;
+                QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+            } else {
+                qDebug() << "WM_EXITSIZEMOVE pending canceled, size back to start";
+            }
+        } else if (dragRegenerateDone) {
+            // 拖动过程中已重建过；若最终尺寸与重建时不同（继续拉伸）则补一次
+            if (w != lastRegenerateWidth || h != lastRegenerateHeight) {
+                lastRegenerateWidth = w;
+                lastRegenerateHeight = h;
+                qDebug() << "WM_EXITSIZEMOVE size still changed, regenerate" << w << h;
+                QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+            } else {
+                qDebug() << "WM_EXITSIZEMOVE already regenerated, skip";
+            }
+        } else if (w != dragStartWidth || h != dragStartHeight) {
+            // 拖动中未触发（如 Snap 尺寸变化发生在最后时刻）：现在重建
+            lastRegenerateWidth = w;
+            lastRegenerateHeight = h;
+            qDebug() << "WM_EXITSIZEMOVE size changed, regenerate" << w << h;
+            QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
         } else {
             qDebug() << "WM_EXITSIZEMOVE move only, skip regenerate";
         }
+        dragRegenerateDone = false;
         break;
     }
 
