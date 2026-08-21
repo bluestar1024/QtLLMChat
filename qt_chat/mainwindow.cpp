@@ -778,6 +778,7 @@ MainWindow::MainWindow(QWidget *parent)
       pushButtonIsPress(false),
       screenChanged(false),
       isSending(false),
+      isThreadFinished(false),
       isContinueShow(true),
       isScreenMax(false),
       isScreenHalf(false),
@@ -2465,6 +2466,7 @@ void MainWindow::sendMessage()
             chatInput->clearText();
             chatInput->setSending(true);
             isSending = true;
+            isThreadFinished = false;
             qDebug() << "sendMessage:" << text;
         } else {
             //         emptyTextLabel->printStart();
@@ -2473,6 +2475,8 @@ void MainWindow::sendMessage()
         if (thread)
             thread->stop();
         isSending = false;
+        // 主动停止线程：放弃本轮收尾，防止积压队列清空时误触发 messageFinish
+        isThreadFinished = false;
         if (messageRecvWidget)
             messageRecvWidget->breakHandle();
     }
@@ -2489,7 +2493,9 @@ void MainWindow::startThread()
 {
     connect(thread, &QThread::started, this, &MainWindow::messageStart);
     connect(thread, &MessageThread::newMessage, this, &MainWindow::queueMessage);
-    connect(thread, &QThread::finished, this, &MainWindow::messageFinish);
+    // 线程完成信号不能作为触发收尾的唯一条件：此时 messageQueue 可能仍有积压
+    // （渲染滞后或重建期间队列冻结），需等队列清空（所有文本已渲染）后才触发
+    connect(thread, &QThread::finished, this, &MainWindow::onThreadFinished);
     thread->start();
     qDebug() << "startThread";
 }
@@ -2592,6 +2598,22 @@ void MainWindow::recvMessage(const QString &text)
     } else {
         isProcessing = false;
         qDebug() << "recvMessage: isProcessing false";
+        // 队列已清空：若线程已完成信号也已到达，此时才满足收尾触发条件
+        // （两者缺一不可），补全文本并移除 loading
+        if (isThreadFinished) {
+            messageFinish();
+        }
+    }
+}
+
+void MainWindow::onThreadFinished()
+{
+    // 线程完成信号到来后不能立即收尾：messageQueue 可能仍有未渲染的文本
+    // （AI 输出速度大于渲染速度，或重建期间队列冻结）。仅标记线程已完成，
+    // 待 recvMessage 处理完最后一条（队列为空）时再触发 messageFinish
+    isThreadFinished = true;
+    if (messageQueue.isEmpty()) {
+        messageFinish();
     }
 }
 
@@ -2974,13 +2996,11 @@ void MainWindow::messageWidgetRegenerate()
                 recvItem = item;
                 isContinueShow = true;
                 // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染）。
-                // 若接收恰在重建期间结束（generateCurChatRecord 创建最后一条控件时，控件构造
-                // 内部渲染会进入嵌套事件循环，期间 thread finished → messageFinish 会被提前执行，
-                // 但其文本补全与 loading 移除因 messageRecvWidget 为 nullptr 均未生效），
-                // 新控件将缺少尾部追加文本且 loading 永不移除；此处重建已完成、接收指针已恢复，
-                // 若接收已结束（isSending=false）则补做收尾；若接收仍在进行（isSending=true），
-                // loading 保留、文本由 recvMessage 增量渲染，最后由 messageFinish（线程结束时）
-                // 统一收尾，此处不干预（也不做全量刷新，避免与增量 setText 交错）
+                // 线程完成信号到达时（onThreadFinished）messageFinish 不会提前执行：队列冻结
+                // 期间 messageQueue 必然非空（或重建前已清空），故重建期间 isSending 保持 true，
+                // 此处正常恢复接收指针；重建完成后队列恢复处理，待队列清空时由 recvMessage
+                // 触发 messageFinish 统一收尾（补全尾部文本、移除 loading）。下方 !isSending
+                // 分支为防御性兜底（若未来触发机制变化，重建期间接收已结束则补做收尾）
                 if (!isSending && messageRecvWidget) {
                     if (messageRecvWidget->getText() != message) {
                         messageRecvWidget->setText(message);
@@ -3064,6 +3084,8 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
     if (isSending) {
         thread->stop();
         isSending = false;
+        // 主动停止线程：放弃本轮收尾，防止积压队列清空时误触发 messageFinish
+        isThreadFinished = false;
         if (messageRecvWidget)
             messageRecvWidget->breakHandle();
     }

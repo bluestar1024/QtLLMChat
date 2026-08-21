@@ -87,6 +87,7 @@ private:
     void regionDivision();
     void UiStretch();
     void UiDrag(QPoint globalPos);
+    void messageFinish();
     void textCopy();
     void messageRenewResponse();
     void writeToChatRecordFile(bool withholdCurChatFile = false);
@@ -135,6 +136,7 @@ private:
     bool screenChanged;
     QList<bool> thinkExpandedList;
     bool isSending;
+    bool isThreadFinished;
     bool isContinueShow;
     bool isScreenMax;
     bool isScreenHalf;
@@ -214,7 +216,7 @@ private slots:
     void messageStart();
     void queueMessage(const QString &text);
     void recvMessage(const QString &text);
-    void messageFinish();
+    void onThreadFinished();
     void getSetTexting(bool);
     void newChat();
 };
