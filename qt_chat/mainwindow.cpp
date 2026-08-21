@@ -2953,8 +2953,19 @@ void MainWindow::messageWidgetRegenerate()
             if (!isSending) {
                 generateCurChatRecord(true, true);
                 QTimer::singleShot(5, this, &MainWindow::setScrollValue);
-                // 接收已结束：全量刷新 setText() 已用完整消息一次性渲染，
-                // 无流式增量 setText()，不需要恢复 messageRecvWidget 指针
+                // 接收已结束（AI 输出完毕）：全量刷新 setText() 已用保存的完整消息渲染。
+                // 但重建前队列可能仍有积压（AI 输出速度大于渲染速度，thread 结束后未处理
+                // 的文本仍在队列中）：重建完成后队列恢复的 recvMessage 仍需增量渲染补全，
+                // 因此队列非空时恢复最后一条 AI 消息控件的接收指针（否则积压文本只累积
+                // 到 message 不显示，最终消息缺尾部）
+                if (!messageQueue.isEmpty() && !messageWidgetList.isEmpty()
+                    && !messageWidgetList.last()->getIsUser()) {
+                    messageRecvWidget = messageWidget;
+                    itemRecvHLayout = itemHLayout;
+                    itemRecvWidget = itemWidget;
+                    recvItem = item;
+                    isContinueShow = true;
+                }
             } else {
                 generateCurChatRecord(false, true);
                 messageRecvWidget = messageWidget;
@@ -3017,9 +3028,10 @@ void MainWindow::messageWidgetRegenerate()
     } while (isRegeneratePending);
     isRegenerating = false;
     // 重建完成：恢复队列处理（重建期间 queueMessage 只入队、recvMessage 暂停，
-    // 文本保留在队列中）。延迟到重建栈退出后执行：接收仍在进行（isSending）时
-    // 逐条增量渲染，避免与重建收尾的全量刷新 setText 交错；接收已结束时
-    // 仅累积到 message（无接收控件，等待下次重建统一显示）
+    // 文本保留在队列中）。延迟到重建栈退出后执行：接收仍在进行（isSending）或
+    // 接收已结束但队列仍有积压（AI 输出完毕时未渲染的尾部文本）时，逐条增量渲染
+    // 补全到接收控件（!isSending 分支已在重建时恢复接收指针），避免与重建收尾的
+    // 全量刷新 setText 交错；队列为空时无处理需求
     if (!isProcessing && !messageQueue.isEmpty()) {
         isProcessing = true;
         QTimer::singleShot(0, this, [this]() { recvMessage(messageQueue.head()); });
