@@ -2539,7 +2539,9 @@ void MainWindow::messageStart()
 void MainWindow::queueMessage(const QString &text)
 {
     messageQueue.enqueue(text);
-    if (!isProcessing) {
+    // 重建期间只入队不启动处理：待重建完成（全量刷新 setText 结束）后
+    // 由 messageWidgetRegenerate 统一恢复队列，避免流式增量 setText 与全量刷新竞争
+    if (!isProcessing && !isRegenerating) {
         isProcessing = true;
         recvMessage(text);
     }
@@ -2547,6 +2549,13 @@ void MainWindow::queueMessage(const QString &text)
 
 void MainWindow::recvMessage(const QString &text)
 {
+    // 重建期间暂停队列处理：文本保留在队列中（不累积、不 dequeue），
+    // 重建完成后由 messageWidgetRegenerate 统一恢复，避免流式增量 setText
+    // 与全量刷新 setText 交错竞争
+    if (isRegenerating) {
+        isProcessing = false;
+        return;
+    }
     qDebug() << "recvMessage:" << text;
     // QSignalBlocker blocker(thread);
     // isProcessing = true;
@@ -2944,6 +2953,8 @@ void MainWindow::messageWidgetRegenerate()
             if (!isSending) {
                 generateCurChatRecord(true, true);
                 QTimer::singleShot(5, this, &MainWindow::setScrollValue);
+                // 接收已结束：全量刷新 setText() 已用完整消息一次性渲染，
+                // 无流式增量 setText()，不需要恢复 messageRecvWidget 指针
             } else {
                 generateCurChatRecord(false, true);
                 messageRecvWidget = messageWidget;
@@ -3005,6 +3016,14 @@ void MainWindow::messageWidgetRegenerate()
         }
     } while (isRegeneratePending);
     isRegenerating = false;
+    // 重建完成：恢复队列处理（重建期间 queueMessage 只入队、recvMessage 暂停，
+    // 文本保留在队列中）。延迟到重建栈退出后执行：接收仍在进行（isSending）时
+    // 逐条增量渲染，避免与重建收尾的全量刷新 setText 交错；接收已结束时
+    // 仅累积到 message（无接收控件，等待下次重建统一显示）
+    if (!isProcessing && !messageQueue.isEmpty()) {
+        isProcessing = true;
+        QTimer::singleShot(0, this, [this]() { recvMessage(messageQueue.head()); });
+    }
 }
 
 void MainWindow::setScrollValue()
