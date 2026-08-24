@@ -2549,7 +2549,12 @@ void MainWindow::queueMessage(const QString &text)
     // 由 messageWidgetRegenerate 统一恢复队列，避免流式增量 setText 与全量刷新竞争
     if (!isProcessing && !isRegenerating) {
         isProcessing = true;
-        recvMessage(text);
+        // 启动时处理队列头（最旧的积压文本）而非新入队的 text：重建完成瞬间
+        // （isRegenerating=false 后、恢复逻辑置 isProcessing=true 前）若线程信号
+        // 先触发本函数，直接渲染新文本会跳过积压文本，导致新文本先累积到 message、
+        // 积压文本后处理，渲染顺序错乱；处理队列头保证 FIFO 顺序，积压文本先渲染、
+        // 新文本最后渲染
+        recvMessage(messageQueue.head());
     }
 }
 
@@ -3054,7 +3059,20 @@ void MainWindow::messageWidgetRegenerate()
     // 全量刷新 setText 交错；队列为空时无处理需求
     if (!isProcessing && !messageQueue.isEmpty()) {
         isProcessing = true;
-        QTimer::singleShot(0, this, [this]() { recvMessage(messageQueue.head()); });
+        QTimer::singleShot(0, this, [this]() {
+            // messageQueue.head() 在此延迟回调执行时才求值：重建完成置 isProcessing 后、
+            // 本回调执行前，线程可能已触发 queueMessage 并经其同步处理链（2557 行）
+            // 把积压文本全部消费完（dequeue 至队列空）。此时 head() 返回空值，
+            // 不能将空文本传给 recvMessage；队列为空则还原处理标志，避免空渲染，
+            // 也避免 isProcessing 残留为 true 导致后续队列处理链无法启动。
+            // （队列收尾触发 messageFinish 已由实际处理最后一条文本的 recvMessage 分支负责，
+            // 此处无需重复）
+            if (!messageQueue.isEmpty()) {
+                recvMessage(messageQueue.head());
+            } else {
+                isProcessing = false;
+            }
+        });
     }
 }
 
