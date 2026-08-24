@@ -8,7 +8,7 @@
 #include <QtGui/QAbstractTextDocumentLayout>
 
 CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
-    : QTextEdit(parent), text(""), lexerName(""), isResetText(false)
+    : QTextEdit(parent), text(""), lexerName(""), isResetText(false), isDestroying(false)
 {
     // qDebug() << "CodeEditor start" << this;
     setFixedWidth(maxWidth);
@@ -45,6 +45,10 @@ CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
 
 CodeEditor::~CodeEditor()
 {
+    // 析构期间先断开自身连接：高亮器等子对象析构可能触发 textChanged →
+    // adjustHeight → emit setSizeFinished，向已销毁的外层控件传播回调导致悬空访问
+    disconnect(this, &QTextEdit::textChanged, this, &CodeEditor::adjustHeight);
+    isDestroying = true;
     qDeleteAll(highlighters);
 }
 
@@ -128,27 +132,31 @@ void CodeEditor::updateLineNumberAreaWidth()
 
 void CodeEditor::adjustHeight()
 {
-    // qDebug() << "CodeEditor adjustHeight start" << this;
+    if (isDestroying)
+        return;
+    qDebug() << "CodeEditor adjustHeight start" << this;
     int h = int(document()->size().height()) + 15;
     setFixedHeight(h);
     updateLineNumberAreaWidth();
     lineNumberArea->update();
     emit setSizeFinished();
-    // qDebug() << "CodeEditor adjustHeight end" << this;
+    qDebug() << "CodeEditor adjustHeight end" << this;
 }
 
 void CodeEditor::resizeEvent(QResizeEvent *e)
 {
-    // qDebug() << "CodeEditor resizeEvent start" << this;
+    qDebug() << "CodeEditor resizeEvent start" << this;
     QTextEdit::resizeEvent(e);
+    if (isDestroying)
+        return;
     if (height() != int(document()->size().height()) + 15)
         adjustHeight();
-    // qDebug() << "CodeEditor resizeEvent end" << this;
+    qDebug() << "CodeEditor resizeEvent end" << this;
 }
 
 void CodeEditor::highlightCode(const QString &text, const QString &lexer)
 {
-    // qDebug() << "CodeEditor highlightCode start" << this;
+    qDebug() << "CodeEditor highlightCode start" << this;
     QString appendText = text;
     if (!this->text.isEmpty() && text.contains(this->text))
         appendText = text.mid(this->text.length());
@@ -157,7 +165,7 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
     this->text = text;
     lexerName = lexer;
 
-    // qDebug() << "CodeEditor highlightCode ing0" << this;
+    qDebug() << "CodeEditor highlightCode ing0" << this;
     StyleSyntaxHighlighter *next = nullptr;
     if (lexer == "cpp")
         next = highlighters["C++"];
@@ -171,33 +179,33 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
         next = highlighters["C++"];
     setHighlighter(next);
 
-    // qDebug() << "CodeEditor highlightCode ing1" << this;
-    // qDebug() << "text:" << text << this;
-    // qDebug() << "lexer:" << lexer << this;
-    // qDebug() << "isResetText:" << isResetText << this;
+    qDebug() << "CodeEditor highlightCode ing1" << this;
+    qDebug() << "text:" << text << this;
+    qDebug() << "lexer:" << lexer << this;
+    qDebug() << "isResetText:" << isResetText << this;
     if (!isResetText) {
-        // qDebug() << "CodeEditor highlightCode ing2" << this;
+        qDebug() << "CodeEditor highlightCode ing2" << this;
         setUpdatesEnabled(false);
-        // qDebug() << "CodeEditor highlightCode ing6" << this;
+        qDebug() << "CodeEditor highlightCode ing6" << this;
         QTextCursor c(document());
-        // qDebug() << "CodeEditor highlightCode ing7" << this;
+        qDebug() << "CodeEditor highlightCode ing7" << this;
         c.movePosition(QTextCursor::End);
         c.beginEditBlock();
         c.insertText(appendText);
-        // qDebug() << "CodeEditor highlightCode ing8" << this;
+        qDebug() << "CodeEditor highlightCode ing8" << this;
         c.endEditBlock();
-        // qDebug() << "CodeEditor highlightCode ing9" << this;
+        qDebug() << "CodeEditor highlightCode ing9" << this;
         setUpdatesEnabled(true);
-        // qDebug() << "CodeEditor highlightCode ing3" << this;
+        qDebug() << "CodeEditor highlightCode ing3" << this;
     } else {
-        // qDebug() << "CodeEditor highlightCode ing4" << this;
+        qDebug() << "CodeEditor highlightCode ing4" << this;
         setUpdatesEnabled(false);
         setPlainText(this->text);
         setUpdatesEnabled(true);
         isResetText = false;
-        // qDebug() << "CodeEditor highlightCode ing5" << this;
+        qDebug() << "CodeEditor highlightCode ing5" << this;
     }
-    // qDebug() << "CodeEditor highlightCode end" << this;
+    qDebug() << "CodeEditor highlightCode end" << this;
 }
 
 void CodeEditor::setHighlighter(StyleSyntaxHighlighter *high)

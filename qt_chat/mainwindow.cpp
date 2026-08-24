@@ -2,13 +2,15 @@
 
 #include <QQuickWindow>
 #include <QDebug>
+#include <QPointer>
 
 const QString imagesDir = ":/images";
 const QString fontFilePath = ":/font/msyhl.ttc";
 const QString configFilePath = ":/config/config.txt";
 const QString mathjaxScriptPath = "mathjax/es5/tex-mml-chtml.js";
+const QString chatRecordsDir = "../../chatrecords/";
 QString codeThemeFilePath = ":/config/dark_theme.xml";
-const QString webEngineCacheDir = "webengine_cache";
+const QString webEngineCacheDir = "../../webengine_cache";
 QWebEngineProfile *sharedProfile = nullptr;
 const int windowFontPointSize = 10;
 int windowFontPixelSize = 20;
@@ -770,16 +772,24 @@ MainWindow::MainWindow(QWidget *parent)
       message(""),
       isShowFirst(true),
       isProcessing(false),
-      isRegenerate(false),
-      isRegenerateFirst(true),
       isSetTexting(false),
+      isRegenerating(false),
+      isRegeneratePending(false),
       pushButtonIsPress(false),
       screenChanged(false),
       isSending(false),
+      isThreadFinished(false),
       isContinueShow(true),
       isScreenMax(false),
       isScreenHalf(false),
       isChangeRectFirst(false),
+      dragStartWidth(-1),
+      dragStartHeight(-1),
+      isSizeMoveDrag(false),
+      dragRegenerateDone(false),
+      pendingRegenerateAfterResize(false),
+      lastRegenerateWidth(-1),
+      lastRegenerateHeight(-1),
       isDpiChanged(false),
       avoidRepeatSelfFun(false),
       borderLen(3)
@@ -1077,6 +1087,8 @@ void MainWindow::applyDWMShadow()
 void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
+    // 首次显示完成后，WM_SIZE 才允许触发聊天记录重建（避免启动阶段误触发）
+    isShowFirst = false;
 
 #ifdef Q_OS_WIN
     // static bool firstShow = true;
@@ -1273,12 +1285,98 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     case WM_SIZE: {
         if (msg->wParam == SIZE_RESTORED || msg->wParam == SIZE_MAXIMIZED) {
             QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
+            // 双击标题栏/单击最大化按钮等非拖拽方式的最大化/还原：
+            // 不经过 WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE，只能在这里触发重建；
+            // 与上次重建尺寸相同（如 Snap 后延迟到达的 WM_SIZE）则跳过
+            if (!isShowFirst && !isSizeMoveDrag) {
+                RECT rect;
+                GetWindowRect(hwnd, &rect);
+                int w = rect.right - rect.left;
+                int h = rect.bottom - rect.top;
+                if (w != lastRegenerateWidth || h != lastRegenerateHeight) {
+                    lastRegenerateWidth = w;
+                    lastRegenerateHeight = h;
+                    qDebug() << "WM_SIZE isRegenerate" << w << h;
+                    // 延迟到 Qt resizeEvent 执行后再重建，保证 chatShow 宽度已更新
+                    QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+                } else {
+                    qDebug() << "WM_SIZE skip regenerate same size" << w << h;
+                }
+            }
+        }
+        break;
+    }
+
+    case WM_ENTERSIZEMOVE: {
+        // 拖动标题栏移动或调整大小开始：记录窗口尺寸，供 WM_MOVING/WM_EXITSIZEMOVE
+        // 区分“仅移动”与“调整大小”（仅移动不应触发聊天记录重建）
+        isSizeMoveDrag = true;
+        dragRegenerateDone = false;
+        RECT rect;
+        GetWindowRect(hwnd, &rect);
+        dragStartWidth = rect.right - rect.left;
+        dragStartHeight = rect.bottom - rect.top;
+        break;
+    }
+
+    case WM_MOVING: {
+        // 拖动标题栏移动/拖动还原过程中：lParam 为拖动目标矩形。
+        // 目标尺寸发生变化（最大化/半屏还原、Aero Snap）时仅标记待重建，
+        // 不在这里直接重建：系统拖拽模态循环中执行耗时重建会阻塞拖拽造成卡顿，
+        // 且 Snap 时 Qt resizeEvent 尚未执行（chatShow 宽度未同步），重建会读旧宽度
+        if (dragRegenerateDone)
+            break;
+        RECT *rc = reinterpret_cast<RECT *>(msg->lParam);
+        int w = rc->right - rc->left;
+        int h = rc->bottom - rc->top;
+        if (w != dragStartWidth || h != dragStartHeight) {
+            dragRegenerateDone = true;
+            pendingRegenerateAfterResize = true;
+            qDebug() << "WM_MOVING size changed, pending regenerate" << w << h;
         }
         break;
     }
 
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
+        isSizeMoveDrag = false;
+
+        RECT rect;
+        GetWindowRect(hwnd, &rect);
+        int w = rect.right - rect.left;
+        int h = rect.bottom - rect.top;
+        if (pendingRegenerateAfterResize) {
+            pendingRegenerateAfterResize = false;
+            if (w != dragStartWidth || h != dragStartHeight) {
+                // 拖拽结束、事件循环恢复后执行：此时 Qt resizeEvent 已同步新宽度，
+                // 重建宽度正确且不阻塞拖拽过程（重建不在模态循环中执行）
+                lastRegenerateWidth = w;
+                lastRegenerateHeight = h;
+                qDebug() << "WM_EXITSIZEMOVE regenerate pending" << w << h;
+                QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+            } else {
+                qDebug() << "WM_EXITSIZEMOVE pending canceled, size back to start";
+            }
+        } else if (dragRegenerateDone) {
+            // 拖动过程中已重建过；若最终尺寸与重建时不同（继续拉伸）则补一次
+            if (w != lastRegenerateWidth || h != lastRegenerateHeight) {
+                lastRegenerateWidth = w;
+                lastRegenerateHeight = h;
+                qDebug() << "WM_EXITSIZEMOVE size still changed, regenerate" << w << h;
+                QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+            } else {
+                qDebug() << "WM_EXITSIZEMOVE already regenerated, skip";
+            }
+        } else if (w != dragStartWidth || h != dragStartHeight) {
+            // 拖动中未触发（如 Snap 尺寸变化发生在最后时刻）：现在重建
+            lastRegenerateWidth = w;
+            lastRegenerateHeight = h;
+            qDebug() << "WM_EXITSIZEMOVE size changed, regenerate" << w << h;
+            QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+        } else {
+            qDebug() << "WM_EXITSIZEMOVE move only, skip regenerate";
+        }
+        dragRegenerateDone = false;
         break;
     }
 
@@ -1735,11 +1833,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             titleFontPixelSize = std::ceil(titleFontPointSize * (curDpi / 72));
             screenChanged = false;
         }
-        if (isRegenerate) {
-            qDebug() << "mouseReleaseEvent isRegenerate";
-            isRegenerate = false;
-            messageWidgetRegenerate();
-        }
     }
     QMainWindow::mouseReleaseEvent(event);
 }
@@ -1840,11 +1933,6 @@ void MainWindow::resizeEvent(QResizeEvent *event)
                          titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     textCopyLabel->move((width() - textCopyLabel->width()) / 2,
                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
-    isRegenerate = true;
-    if (isRegenerateFirst) {
-        isRegenerateFirst = false;
-        isRegenerate = false;
-    }
     if (isDpiChanged) {
         isDpiChanged = false;
         if ((qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi)
@@ -1855,8 +1943,6 @@ void MainWindow::resizeEvent(QResizeEvent *event)
             resize(qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi),
                    qRound(widgetSizeDict["MainWindow"].value<QSize>().height() * curDpi / lastDpi));
         }
-        isRegenerate = false;
-        qDebug() << "resizeEvent isDpiChanged isRegenerate";
         messageWidgetRegenerate();
     }
     widgetSizeDict["MainWindow"] = size();
@@ -2306,7 +2392,7 @@ void MainWindow::onTemperatureSliderValueChanged(int i)
 void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
 {
     qDebug() << "messageWidgetResize start";
-    const int count = chatShow->count();
+    const int count = qMin(chatShow->count(), messageWidgetList.size());
     int i = 0;
     for (; i < count; ++i) {
         if (selfMessageWidget == messageWidgetList.at(i))
@@ -2380,6 +2466,7 @@ void MainWindow::sendMessage()
             chatInput->clearText();
             chatInput->setSending(true);
             isSending = true;
+            isThreadFinished = false;
             qDebug() << "sendMessage:" << text;
         } else {
             //         emptyTextLabel->printStart();
@@ -2388,6 +2475,8 @@ void MainWindow::sendMessage()
         if (thread)
             thread->stop();
         isSending = false;
+        // 主动停止线程：放弃本轮收尾，防止积压队列清空时误触发 messageFinish
+        isThreadFinished = false;
         if (messageRecvWidget)
             messageRecvWidget->breakHandle();
     }
@@ -2404,7 +2493,9 @@ void MainWindow::startThread()
 {
     connect(thread, &QThread::started, this, &MainWindow::messageStart);
     connect(thread, &MessageThread::newMessage, this, &MainWindow::queueMessage);
-    connect(thread, &QThread::finished, this, &MainWindow::messageFinish);
+    // 线程完成信号不能作为触发收尾的唯一条件：此时 messageQueue 可能仍有积压
+    // （渲染滞后或重建期间队列冻结），需等队列清空（所有文本已渲染）后才触发
+    connect(thread, &QThread::finished, this, &MainWindow::onThreadFinished);
     thread->start();
     qDebug() << "startThread";
 }
@@ -2454,14 +2545,28 @@ void MainWindow::messageStart()
 void MainWindow::queueMessage(const QString &text)
 {
     messageQueue.enqueue(text);
-    if (!isProcessing) {
+    // 重建期间只入队不启动处理：待重建完成（全量刷新 setText 结束）后
+    // 由 messageWidgetRegenerate 统一恢复队列，避免流式增量 setText 与全量刷新竞争
+    if (!isProcessing && !isRegenerating) {
         isProcessing = true;
-        recvMessage(text);
+        // 启动时处理队列头（最旧的积压文本）而非新入队的 text：重建完成瞬间
+        // （isRegenerating=false 后、恢复逻辑置 isProcessing=true 前）若线程信号
+        // 先触发本函数，直接渲染新文本会跳过积压文本，导致新文本先累积到 message、
+        // 积压文本后处理，渲染顺序错乱；处理队列头保证 FIFO 顺序，积压文本先渲染、
+        // 新文本最后渲染
+        recvMessage(messageQueue.head());
     }
 }
 
 void MainWindow::recvMessage(const QString &text)
 {
+    // 重建期间暂停队列处理：文本保留在队列中（不累积、不 dequeue），
+    // 重建完成后由 messageWidgetRegenerate 统一恢复，避免流式增量 setText
+    // 与全量刷新 setText 交错竞争
+    if (isRegenerating) {
+        isProcessing = false;
+        return;
+    }
     qDebug() << "recvMessage:" << text;
     // QSignalBlocker blocker(thread);
     // isProcessing = true;
@@ -2475,7 +2580,7 @@ void MainWindow::recvMessage(const QString &text)
         message += text;
     }
 
-    if (isContinueShow) {
+    if (isContinueShow && messageRecvWidget) {
         messageRecvWidget->setText(message);
         itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
         itemRecvHLayout->setContentsMargins(
@@ -2498,22 +2603,59 @@ void MainWindow::recvMessage(const QString &text)
     } else {
         isProcessing = false;
         qDebug() << "recvMessage: isProcessing false";
+        // 队列已清空：若线程已完成信号也已到达，此时才满足收尾触发条件
+        // （两者缺一不可），补全文本并移除 loading
+        if (isThreadFinished) {
+            messageFinish();
+        }
+    }
+}
+
+void MainWindow::onThreadFinished()
+{
+    // 线程完成信号到来后不能立即收尾：messageQueue 可能仍有未渲染的文本
+    // （AI 输出速度大于渲染速度，或重建期间队列冻结）。仅标记线程已完成，
+    // 待 recvMessage 处理完最后一条（队列为空）时再触发 messageFinish
+    isThreadFinished = true;
+    if (messageQueue.isEmpty()) {
+        messageFinish();
     }
 }
 
 void MainWindow::messageFinish()
 {
-    chatInput->setSending(false);
-    messageRecvWidget->removeLoadingWidget();
-    messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
-    // messageRecvWidget->toggleWidget();
+    // 接收真正结束（本函数由线程 finished 信号触发，是补全缺失文本的合适时机）：
+    // 重建期间到达的追加文本只累积在 message 未渲染，重建完成后控件会缺少尾部文本，
+    // 此处统一补全；此时接收已停止，不会与增量 setText 交错
+    if (messageRecvWidget && isContinueShow && messageRecvWidget->getText() != message) {
+        messageRecvWidget->setText(message);
+        if (itemRecvWidget && itemRecvHLayout && recvItem) {
+            itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
+            itemRecvHLayout->setContentsMargins(
+                    0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+            recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
+        }
+        HWND hwnd = reinterpret_cast<HWND>(winId());
+        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+        SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
 
-    itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
-    itemRecvHLayout->setContentsMargins(0, 5, itemRecvWidget->width() - messageRecvWidget->width(),
-                                        5);
-    recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
+    if (messageRecvWidget) {
+        messageRecvWidget->removeLoadingWidget();
+        messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
+        // messageRecvWidget->toggleWidget();
+    }
 
-    if (message.isEmpty()) {
+    if (messageRecvWidget && itemRecvWidget && itemRecvHLayout && recvItem) {
+        itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
+        itemRecvHLayout->setContentsMargins(
+                0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+        recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
+    }
+
+    if (message.isEmpty() && !messageWidgetList.isEmpty() && chatShow->count() > 0) {
         delete messageWidgetList.takeLast();
         int last = chatShow->count() - 1;
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
@@ -2523,6 +2665,7 @@ void MainWindow::messageFinish()
         delete lastItem;
         messageRenewResponse();
     }
+    chatInput->setSending(false);
     isSending = false;
 
     qDebug() << "chatShow item count:" << chatShow->count();
@@ -2537,9 +2680,107 @@ void MainWindow::textCopy() { }
 
 void MainWindow::messageRenewResponse() { }
 
+void MainWindow::writeToChatRecordFile(bool withholdCurChatFile)
+{
+    chatRecordFileName = "chat_";
+    chatRecordFileName += QDateTime::currentDateTime().toString("yyyy_MM_dd_HH_mm_ss");
+    chatRecordFileName += ".txt";
+
+    QString filePath = QDir(chatRecordsDir).filePath(chatRecordFileName);
+    qDebug() << "writeToChatRecordFile filePath:" << filePath;
+
+    try {
+        QFile file(filePath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append)) {
+            throw std::runtime_error("无法打开文件进行写入");
+        }
+        qDebug() << "writeToChatRecordFile success open file:";
+
+        QTextStream out(&file);
+        out.setEncoding(QStringConverter::Utf8);
+
+        for (int i = 0; i < messageWidgetList.size(); i++) {
+            MessageWidget *messageWidget = messageWidgetList.at(i);
+            if (!messageWidget)
+                continue;
+            QString chatRecordStr = messageWidget->getText() + '\n'
+                    + QString("消息部件思考时长:%1秒\n")
+                              .arg(i < thinkTimeLengthList.size() ? thinkTimeLengthList.at(i) : 0)
+                    + (messageWidget->getIsUser() ? "True\n" : "False\n");
+            out << chatRecordStr;
+        }
+
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "发生未知错误：" << e.what();
+    }
+
+    if (!withholdCurChatFile) {
+        curChatFile = chatRecordFileName;
+    }
+}
+
 void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
 {
-    Q_UNUSED(withholdCurChatFile);
+    if (messageWidgetList.size() != 0) {
+        if (curChatFile.isEmpty()) {
+            writeToChatRecordFile(withholdCurChatFile);
+        } else {
+            QString filePath = QDir(chatRecordsDir).filePath(curChatFile);
+            if (!QFile::exists(filePath)) {
+                writeToChatRecordFile(withholdCurChatFile);
+            } else {
+                try {
+                    // 生成当前应写入的完整内容
+                    QString newContent;
+                    for (int i = 0; i < messageWidgetList.size(); i++) {
+                        MessageWidget *messageWidget = messageWidgetList.at(i);
+                        if (!messageWidget)
+                            continue;
+                        newContent += messageWidget->getText() + '\n'
+                                + QString("消息部件思考时长:%1秒\n")
+                                          .arg(i < thinkTimeLengthList.size()
+                                                       ? thinkTimeLengthList.at(i)
+                                                       : 0)
+                                + (messageWidget->getIsUser() ? "True\n" : "False\n");
+                    }
+
+                    // 读取现有文件内容（Text 模式读自动归一化换行）用于比较
+                    QString oldContent;
+                    QFile readFile(filePath);
+                    if (readFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                        QTextStream in(&readFile);
+                        in.setEncoding(QStringConverter::Utf8);
+                        oldContent = in.readAll();
+                        readFile.close();
+                    }
+
+                    // 按完整内容比较而非行数：流式追加常为行内增长（换行数不变），
+                    // 仅按行数判断会漏写文件，重建后消息将缺少最后追加的文本
+                    if (oldContent != newContent) {
+                        QFile writeFile(filePath);
+                        if (writeFile.open(QIODevice::WriteOnly | QIODevice::Text
+                                           | QIODevice::Truncate)) {
+                            writeFile.resize(0);
+                            writeFile.close();
+                        }
+
+                        QFile appendFile(filePath);
+                        if (appendFile.open(QIODevice::WriteOnly | QIODevice::Text
+                                            | QIODevice::Append)) {
+                            QTextStream out(&appendFile);
+                            out.setEncoding(QStringConverter::Utf8);
+                            out << newContent;
+                            appendFile.close();
+                        }
+                    }
+                } catch (const std::exception &e) {
+                    qDebug() << "发生未知错误：" << e.what();
+                }
+            }
+        }
+    }
 }
 
 void MainWindow::chatRecordsGenerateItem(QString searchText)
@@ -2549,16 +2790,301 @@ void MainWindow::chatRecordsGenerateItem(QString searchText)
 
 void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandList)
 {
-    Q_UNUSED(lastIsToggle);
-    Q_UNUSED(useThinkExpandList);
+    QString text;
+    bool isUser = true;
+    thinkTimeLengthList.clear();
+    int thinkTimeIndex = 0;
+    int expandIndex = 0;
+
+    QStringList lines;
+    QString filePath = QDir(chatRecordsDir).filePath(curChatFile);
+    try {
+        QFile file(filePath);
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&file);
+            in.setEncoding(QStringConverter::Utf8);
+            while (!in.atEnd()) {
+                lines.append(in.readLine() + '\n');
+            }
+            file.close();
+        }
+    } catch (const std::exception &e) {
+        qDebug() << "发生未知错误：" << e.what();
+    }
+
+    for (int i = 0; i < lines.size(); i++) {
+        if (lines[i] == "True\n" || lines[i] == "False\n") {
+            if (lines[i] == "True\n") {
+                isUser = true;
+            } else {
+                isUser = false;
+            }
+
+            int j = messageWidgetList.size() - 1;
+            if (j != -1 && j != 0) {
+                if (!messageWidgetList[j]->getIsUser()) {
+                    messageWidgetList[j]->removeRenewResponseButton();
+                }
+            }
+            if (text.endsWith('\n'))
+                text.chop(1);
+
+            qDebug() << "generateCurChatRecord" << text;
+            if (useThinkExpandList) {
+                if (!isUser) {
+                    bool thinkExpand = true;
+                    if (expandIndex < thinkExpandedList.size())
+                        thinkExpand = thinkExpandedList[expandIndex];
+                    messageWidget = new MessageWidget(
+                            text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                            [this](MessageWidget *selfMessageWidget) {
+                                messageWidgetResize(selfMessageWidget);
+                            },
+                            [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
+                            thinkTimeLengthList, thinkTimeIndex, isUser, thinkExpand,
+                            chatShow->width() * 3 / 4);
+                } else {
+                    // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
+                    messageWidget = new MessageWidget(
+                            text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                            [this](MessageWidget *selfMessageWidget) {
+                                messageWidgetResize(selfMessageWidget);
+                            },
+                            [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
+                            thinkTimeLengthList, thinkTimeIndex, isUser, true,
+                            chatShow->width() * 3 / 4);
+                }
+            } else {
+                // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
+                messageWidget = new MessageWidget(
+                        text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                        [this](MessageWidget *selfMessageWidget) {
+                            messageWidgetResize(selfMessageWidget);
+                        },
+                        [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
+                        thinkTimeLengthList, thinkTimeIndex, isUser, true,
+                        chatShow->width() * 3 / 4);
+            }
+            // messageWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
+            // messageWidget->connectSetTexting(this, &MainWindow::getSetTexting);
+
+            qDebug() << "generateCurChatRecord" << i;
+            if (!isUser) {
+                if (i == lines.size() - 1) {
+                    if (lastIsToggle) {
+                        messageWidget->removeLoadingWidget();
+                    }
+                } else {
+                    messageWidget->removeLoadingWidget();
+                }
+            }
+
+            messageWidgetList.append(messageWidget);
+
+            itemWidget = new ItemWidget(this);
+            itemHLayout = new QHBoxLayout();
+            itemHLayout->addWidget(messageWidget);
+            itemWidget->setLayout(itemHLayout);
+            itemWidget->setFixedSize(chatShow->width(), messageWidget->height() + 10);
+            if (isUser) {
+                itemHLayout->setContentsMargins(itemWidget->width() - messageWidget->width() - 25,
+                                                5, 25, 5);
+            } else {
+                itemHLayout->setContentsMargins(0, 5, itemWidget->width() - messageWidget->width(),
+                                                5);
+            }
+            item = new QListWidgetItem(chatShow);
+            item->setSizeHint(QSize(chatShow->width(), messageWidget->height() + 10));
+            chatShow->setItemWidget(item, itemWidget);
+
+            if (i == lines.size() - 1) {
+                if (lastIsToggle) {
+                    messageWidget->updateFunWidgetSize(curDpi, initDpi);
+                    // messageWidget->toggleWidget();
+                }
+            } else {
+                messageWidget->updateFunWidgetSize(curDpi, initDpi);
+                // messageWidget->toggleWidget();
+            }
+
+            text.clear();
+
+            thinkTimeIndex++;
+            if (useThinkExpandList && !isUser) {
+                expandIndex++;
+            }
+
+        } else if (lines[i].left(8) == QString("消息部件思考时长")) {
+            QRegularExpression re("\\d+");
+            QRegularExpressionMatch match = re.match(lines[i]);
+            if (match.hasMatch()) {
+                thinkTimeLengthList.append(match.captured(0).toInt());
+            }
+        } else {
+            text += lines[i];
+        }
+    }
 }
 
 void MainWindow::getSetTexting(bool state)
 {
     isSetTexting = state;
+    // 渲染结束后若有待执行的重建，延迟到事件循环空闲时执行，避免在 setText 栈内重建
+    if (!state && isRegeneratePending && !isRegenerating) {
+        QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+    }
 }
 
-void MainWindow::messageWidgetRegenerate() { }
+void MainWindow::messageWidgetRegenerate()
+{
+    // 重入保护：正在重建或 AI 消息渲染中（嵌套事件循环内 WM_EXITSIZEMOVE 会被再次分发）
+    // 再次触发时仅标记待重建，避免半成品控件重复创建与悬空指针访问
+    if (isRegenerating || isSetTexting) {
+        isRegeneratePending = true;
+        return;
+    }
+    isRegenerating = true;
+    do {
+        isRegeneratePending = false;
+        if (messageWidgetList.size() != 0) {
+            thinkExpandedList.clear();
+
+            if (isSending) {
+                isContinueShow = false;
+            }
+
+            if (!isSending) {
+                currentScrollValue = chatShow->verticalScrollBar()->value();
+                maxScrollValue = chatShow->verticalScrollBar()->maximum();
+            }
+
+            saveCurChatRecord();
+            for (int i = 0; i < messageWidgetList.size(); i++) {
+                MessageWidget *messageWidget = messageWidgetList[i];
+                if (!messageWidget->getIsUser()) {
+                    thinkExpandedList.append(messageWidget->getThinkIsExpanded());
+                }
+            }
+
+            // 重建期间置空接收指针，防止嵌套事件循环中消息回调访问旧控件
+            messageRecvWidget = nullptr;
+            messageWidgetList.clear();
+
+            for (int i = 0; i < chatShow->count(); i++) {
+                QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
+                if (itemWidget)
+                    itemWidget->deleteLater();
+            }
+            chatShow->clear();
+
+            if (!isSending) {
+                generateCurChatRecord(true, true);
+                QTimer::singleShot(5, this, &MainWindow::setScrollValue);
+                // 接收已结束（AI 输出完毕）：全量刷新 setText() 已用保存的完整消息渲染。
+                // 但重建前队列可能仍有积压（AI 输出速度大于渲染速度，thread 结束后未处理
+                // 的文本仍在队列中）：重建完成后队列恢复的 recvMessage 仍需增量渲染补全，
+                // 因此队列非空时恢复最后一条 AI 消息控件的接收指针（否则积压文本只累积
+                // 到 message 不显示，最终消息缺尾部）
+                if (!messageQueue.isEmpty() && !messageWidgetList.isEmpty()
+                    && !messageWidgetList.last()->getIsUser()) {
+                    messageRecvWidget = messageWidget;
+                    itemRecvHLayout = itemHLayout;
+                    itemRecvWidget = itemWidget;
+                    recvItem = item;
+                    isContinueShow = true;
+                }
+            } else {
+                generateCurChatRecord(false, true);
+                messageRecvWidget = messageWidget;
+                itemRecvHLayout = itemHLayout;
+                itemRecvWidget = itemWidget;
+                recvItem = item;
+                isContinueShow = true;
+                // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染）。
+                // 线程完成信号到达时（onThreadFinished）messageFinish 不会提前执行：队列冻结
+                // 期间 messageQueue 必然非空（或重建前已清空），故重建期间 isSending 保持 true，
+                // 此处正常恢复接收指针；重建完成后队列恢复处理，待队列清空时由 recvMessage
+                // 触发 messageFinish 统一收尾（补全尾部文本、移除 loading）。下方 !isSending
+                // 分支为防御性兜底（若未来触发机制变化，重建期间接收已结束则补做收尾）
+                if (!isSending && messageRecvWidget) {
+                    if (messageRecvWidget->getText() != message) {
+                        messageRecvWidget->setText(message);
+                        if (itemRecvWidget && itemRecvHLayout && recvItem) {
+                            itemRecvWidget->setFixedSize(chatShow->width(),
+                                                         messageRecvWidget->height() + 10);
+                            itemRecvHLayout->setContentsMargins(
+                                    0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+                            recvItem->setSizeHint(
+                                    QSize(chatShow->width(), messageRecvWidget->height() + 10));
+                        }
+                        HWND hwnd = reinterpret_cast<HWND>(winId());
+                        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
+                        SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+                        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
+                                             | SWP_NOOWNERZORDER);
+                    }
+                    if (!messageRecvWidget->getIsRemoveloadingWidget()) {
+                        messageRecvWidget->removeLoadingWidget();
+                        messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
+                    }
+                    if (messageRecvWidget && itemRecvWidget && itemRecvHLayout && recvItem) {
+                        itemRecvWidget->setFixedSize(chatShow->width(),
+                                                     messageRecvWidget->height() + 10);
+                        itemRecvHLayout->setContentsMargins(
+                                0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
+                        recvItem->setSizeHint(
+                                QSize(chatShow->width(), messageRecvWidget->height() + 10));
+                    }
+                    if (message.isEmpty() && !messageWidgetList.isEmpty()
+                        && chatShow->count() > 0) {
+                        delete messageWidgetList.takeLast();
+                        int last = chatShow->count() - 1;
+                        QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
+                        if (itemWidget)
+                            itemWidget->deleteLater();
+                        QListWidgetItem *lastItem = chatShow->takeItem(last);
+                        delete lastItem;
+                        messageRenewResponse();
+                    }
+                }
+            }
+        }
+    } while (isRegeneratePending);
+    isRegenerating = false;
+    // 重建完成：恢复队列处理（重建期间 queueMessage 只入队、recvMessage 暂停，
+    // 文本保留在队列中）。延迟到重建栈退出后执行：接收仍在进行（isSending）或
+    // 接收已结束但队列仍有积压（AI 输出完毕时未渲染的尾部文本）时，逐条增量渲染
+    // 补全到接收控件（!isSending 分支已在重建时恢复接收指针），避免与重建收尾的
+    // 全量刷新 setText 交错；队列为空时无处理需求
+    if (!isProcessing && !messageQueue.isEmpty()) {
+        isProcessing = true;
+        QTimer::singleShot(0, this, [this]() {
+            // messageQueue.head() 在此延迟回调执行时才求值：重建完成置 isProcessing 后、
+            // 本回调执行前，线程可能已触发 queueMessage 并经其同步处理链（2557 行）
+            // 把积压文本全部消费完（dequeue 至队列空）。此时 head() 返回空值，
+            // 不能将空文本传给 recvMessage；队列为空则还原处理标志，避免空渲染，
+            // 也避免 isProcessing 残留为 true 导致后续队列处理链无法启动。
+            // （队列收尾触发 messageFinish 已由实际处理最后一条文本的 recvMessage 分支负责，
+            // 此处无需重复）
+            if (!messageQueue.isEmpty()) {
+                recvMessage(messageQueue.head());
+            } else {
+                isProcessing = false;
+            }
+        });
+    }
+}
+
+void MainWindow::setScrollValue()
+{
+    int newMaxScrollValue = chatShow->verticalScrollBar()->maximum();
+    if (maxScrollValue != 0) {
+        int newValue =
+                qRound(static_cast<qreal>(currentScrollValue) / maxScrollValue * newMaxScrollValue);
+        chatShow->verticalScrollBar()->setValue(newValue);
+    }
+}
 
 void MainWindow::showChatRecords() { }
 
@@ -2576,14 +3102,18 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
     if (isSending) {
         thread->stop();
         isSending = false;
+        // 主动停止线程：放弃本轮收尾，防止积压队列清空时误触发 messageFinish
+        isThreadFinished = false;
         if (messageRecvWidget)
             messageRecvWidget->breakHandle();
     }
     saveCurChatRecord();
     messageWidgetList.clear();
+
     for (int i = 0; i < chatShow->count(); ++i) {
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
-        itemWidget->deleteLater();
+        if (itemWidget)
+            itemWidget->deleteLater();
     }
     chatShow->clear();
     curChatFile = chatRecordsWidget->listItemToString(item);

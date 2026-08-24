@@ -31,18 +31,13 @@ class MessageWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit MessageWidget(const QString &text,
-                           std::function<void()> copyFun,
+    explicit MessageWidget(const QString &text, std::function<void()> copyFun,
                            std::function<void()> renewResponseFun,
                            std::function<void(MessageWidget *)> widgetResizeFun,
                            std::function<void(bool)> getSetTextingFun,
-                           std::function<void()> executeNextFun,
-                           ListWidget *listWidget,
-                           QList<int> &thinkTimeLengthList,
-                           int thinkTimeIndex,
-                           bool isUser = true,
-                           bool thinkIsExpand = true,
-                           int textMaxWidth = 877,
+                           std::function<void()> executeNextFun, ListWidget *listWidget,
+                           QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser = true,
+                           bool thinkIsExpand = true, int textMaxWidth = 877,
                            QWidget *parent = nullptr);
     ~MessageWidget();
 
@@ -67,6 +62,7 @@ public:
     bool getIsUser();
     TextWidget *getTextWidget();
     TextBoxWidget *getTextBoxWidget();
+    bool getIsRemoveloadingWidget();
     void syncThinkTimeLength();
     ListWidget *getListWidget();
     bool hasSelectedText();

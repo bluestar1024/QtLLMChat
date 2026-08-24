@@ -49,6 +49,9 @@ private:
     QString text;
     QString lexerName;
     bool isResetText;
+    // 析构期间置位：子对象（高亮器）析构可能触发 textChanged 等回调
+    // 重入 adjustHeight，向已销毁的外层控件传播 setSizeFinished 信号
+    bool isDestroying;
 };
 
 #endif // CODEEDITOR_H

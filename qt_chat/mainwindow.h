@@ -87,13 +87,14 @@ private:
     void regionDivision();
     void UiStretch();
     void UiDrag(QPoint globalPos);
+    void messageFinish();
     void textCopy();
     void messageRenewResponse();
+    void writeToChatRecordFile(bool withholdCurChatFile = false);
     void saveCurChatRecord(bool withholdCurChatFile = false);
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
     void messageWidgetRegenerate();
-    void showChatRecords();
 
     QQuickWindow *qwindow;
 
@@ -125,9 +126,9 @@ private:
 
     bool isShowFirst;
     bool isProcessing;
-    bool isRegenerate;
-    bool isRegenerateFirst;
     bool isSetTexting;
+    bool isRegenerating;
+    bool isRegeneratePending;
     bool pushButtonIsPress;
     QScreen *lastScreen;
     QScreen *curScreen;
@@ -135,10 +136,18 @@ private:
     bool screenChanged;
     QList<bool> thinkExpandedList;
     bool isSending;
+    bool isThreadFinished;
     bool isContinueShow;
     bool isScreenMax;
     bool isScreenHalf;
     QRect lastNormalGeometry;
+    int dragStartWidth;
+    int dragStartHeight;
+    bool isSizeMoveDrag;
+    bool dragRegenerateDone;
+    bool pendingRegenerateAfterResize;
+    int lastRegenerateWidth;
+    int lastRegenerateHeight;
     bool isChangeRectFirst;
     QList<QScreen *> screens;
     RegionEnum regionDir;
@@ -158,6 +167,10 @@ private:
     bool messageSendWidgetIsFinished;
     int borderLen;
 
+    int currentScrollValue = 0;
+    int maxScrollValue = 0;
+    QString chatRecordFileName;
+
     MessageWidget *messageSendWidget;
     MessageWidget *messageRecvWidget;
     ItemWidget *itemSendWidget;
@@ -169,6 +182,11 @@ private:
     MessageThread *thread;
     QString message;
 
+    MessageWidget *messageWidget = nullptr;
+    QHBoxLayout *itemHLayout = nullptr;
+    ItemWidget *itemWidget = nullptr;
+    QListWidgetItem *item = nullptr;
+
 private slots:
     void onDpiChanged();
     void uiMinimize();
@@ -177,6 +195,8 @@ private slots:
     void settingButtonClicked();
     void chatRecordsUiAnimationMove(const QVariant &value);
     void chatRecordsUiMoveFinished();
+    void setScrollValue();
+    void showChatRecords();
     void showSearchRecords();
     void clearAllChatRecords();
     void generateChatRecord(QListWidgetItem *item);
@@ -196,7 +216,7 @@ private slots:
     void messageStart();
     void queueMessage(const QString &text);
     void recvMessage(const QString &text);
-    void messageFinish();
+    void onThreadFinished();
     void getSetTexting(bool);
     void newChat();
 };

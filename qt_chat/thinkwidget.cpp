@@ -2,6 +2,7 @@
 #include "globalvariables.h"
 
 #include <QDebug>
+#include <QPointer>
 
 #include <cmath>
 
@@ -531,9 +532,13 @@ function getPageSize(){
 getPageSize();
 )";
     static int funi = 0;
-    webEngineView->page()->runJavaScript(js, [this](const QVariant &res) {
+    // 用 QPointer 持有自身，防止控件在重建中被销毁后异步回调访问悬空指针
+    QPointer<ThinkWidget> self = this;
+    webEngineView->page()->runJavaScript(js, [self](const QVariant &res) {
+        if (!self)
+            return;
         if (res.isNull()) {
-            updateSizeTimer->start(10);
+            self->updateSizeTimer->start(10);
             return;
         }
         QList<QVariant> list = res.toList();
@@ -541,35 +546,35 @@ getPageSize();
             return;
         int w = list[0].toInt();
         int h = list[1].toInt();
-        qDebug() << "WebEngineView get size:" << w << h << this;
+        qDebug() << "WebEngineView get size:" << w << h << self.data();
         if (w <= 0 || h <= 0) {
-            updateSizeTimer->start(10);
+            self->updateSizeTimer->start(10);
             return;
         }
-        if (webEngineSize == QSize(w, h)) {
-            if (isSetTextEnd) {
-                isSetTextEnd = false;
-                isSizeFinish = true;
+        if (self->webEngineSize == QSize(w, h)) {
+            if (self->isSetTextEnd) {
+                self->isSetTextEnd = false;
+                self->isSizeFinish = true;
             }
             return;
         }
-        webEngineSize = QSize(w, h);
+        self->webEngineSize = QSize(w, h);
         funi += 1;
-        qDebug() << "funi:" << funi << this;
-        webEngineView->setFixedSize(w, h);
+        qDebug() << "funi:" << funi << self.data();
+        self->webEngineView->setFixedSize(w, h);
         // mainHLayout->addWidget(webEngineView);
         // if (webEngineView->isHidden()) {
         //     qDebug() << "isHidden:" << webEngineView->isHidden();
         //     webEngineView->show();
         // }
-        setFixedSize(w + 10, h);
-        emit setSizeFinished();
+        self->setFixedSize(w + 10, h);
+        emit self->setSizeFinished();
         // isEmitSizeFinish = true;
-        if (isSetTextEnd) {
-            isSetTextEnd = false;
-            isSizeFinish = true;
+        if (self->isSetTextEnd) {
+            self->isSetTextEnd = false;
+            self->isSizeFinish = true;
         }
-        qDebug() << "ThinkWidget onUpdateSize end" << this;
+        qDebug() << "ThinkWidget onUpdateSize end" << self.data();
     });
 }
 

@@ -1,11 +1,13 @@
 #include "codeshow.h"
 #include "globalvariables.h"
 
+#include <QtCore/QPointer>
 #include <QtGui/QIcon>
 #include <QtGui/QPalette>
 #include <QtGui/QTextOption>
 
-CodeShow::CodeShow(const QString &codeText, const QString &lexerName, std::function<void()> sizeFinishFun, int maxWidth, QWidget *parent)
+CodeShow::CodeShow(const QString &codeText, const QString &lexerName,
+                   std::function<void()> sizeFinishFun, int maxWidth, QWidget *parent)
     : QWidget(parent),
       codeText(codeText),
       lexerName(lexerName),
@@ -16,6 +18,7 @@ CodeShow::CodeShow(const QString &codeText, const QString &lexerName, std::funct
 {
     resize(this->maxWidth + 2, 40);
     connect(this, &CodeShow::setSizeFinished, this->sizeFinishFun);
+    qDebug() << "connect CodeShow";
     setupUI();
 }
 
@@ -23,12 +26,12 @@ CodeShow::~CodeShow() { }
 
 void CodeShow::setupUI()
 {
-    // qDebug() << "CodeShow setupUI start" << this;
+    qDebug() << "CodeShow setupUI start" << this;
     topWidget = new QWidget();
     topSubLeftWidget = new QWidget();
     topSubRightWidget = new QWidget();
 
-    // qDebug() << "CodeShow setupUI ing0" << this;
+    qDebug() << "CodeShow setupUI ing0" << this;
     label = new QLabel(lexerName);
     int fontId = QFontDatabase::addApplicationFont(fontFilePath);
     if (fontId != -1) {
@@ -41,13 +44,13 @@ void CodeShow::setupUI()
     label->setPalette(pal);
     label->adjustSize();
 
-    // qDebug() << "CodeShow setupUI ing1" << this;
+    qDebug() << "CodeShow setupUI ing1" << this;
     int topHeight = qMax(label->height(), 24);
     topWidget->setFixedHeight(topHeight);
     topSubLeftWidget->setFixedHeight(topHeight);
     topSubRightWidget->setFixedHeight(topHeight);
 
-    // qDebug() << "CodeShow setupUI ing2" << this;
+    qDebug() << "CodeShow setupUI ing2" << this;
     toggleThemeButton = new PushButton("日间主题", 15, 35);
     toggleThemeButton->setFixedSize(topHeight - 10, topHeight - 10);
     lightThemeImagesPath = imagesDir + "/light_theme.png";
@@ -57,7 +60,7 @@ void CodeShow::setupUI()
     toggleThemeButton->setStyleSheet("border: none; background: transparent;");
     connect(toggleThemeButton, &QPushButton::clicked, this, &CodeShow::toggleThemeStyle);
 
-    // qDebug() << "CodeShow setupUI ing3" << this;
+    qDebug() << "CodeShow setupUI ing3" << this;
     wordWrapButton = new PushButton("折叠成单行", 15, 35);
     wordWrapButton->setFixedSize(topHeight - 10, topHeight - 10);
     lightWordWrapImagesPath = imagesDir + "/light_word_wrap.png";
@@ -69,7 +72,7 @@ void CodeShow::setupUI()
     wordWrapButton->setStyleSheet("border: none; background: transparent;");
     connect(wordWrapButton, &QPushButton::clicked, this, &CodeShow::setLineWordWrapMode);
 
-    // qDebug() << "CodeShow setupUI ing4" << this;
+    qDebug() << "CodeShow setupUI ing4" << this;
     codeCopyButton = new PushButton("复制代码", 15, 35);
     codeCopyButton->setFixedSize(topHeight - 10, topHeight - 10);
     lightCodeCopyImagesPath = imagesDir + "/light_code_copy.png";
@@ -79,7 +82,7 @@ void CodeShow::setupUI()
     codeCopyButton->setStyleSheet("border: none; background: transparent;");
     connect(codeCopyButton, &QPushButton::clicked, this, &CodeShow::copyCode);
 
-    // qDebug() << "CodeShow setupUI ing5" << this;
+    qDebug() << "CodeShow setupUI ing5" << this;
     QHBoxLayout *topSubLeftHLayout = new QHBoxLayout(topSubLeftWidget);
     topSubLeftHLayout->setAlignment(Qt::AlignLeft);
     topSubLeftHLayout->setContentsMargins(0, (topHeight - label->height()) / 2, 0,
@@ -99,26 +102,33 @@ void CodeShow::setupUI()
     topHLayout->addWidget(topSubRightWidget, 0, Qt::AlignRight);
     topHLayout->setContentsMargins(10, 0, 10, 0);
 
-    // qDebug() << "CodeShow setupUI ing6" << this;
+    qDebug() << "CodeShow setupUI ing6" << this;
     codeEdit = new CodeEditor(maxWidth);
-    // qDebug() << "CodeShow setupUI ing9" << this;
-    connect(codeEdit, &CodeEditor::setSizeFinished,
-            [this]() {
-                setFixedSize(maxWidth + 2, codeEdit->height() + topWidget->height() + 2);
-                emit setSizeFinished();
-            });
+    qDebug() << "CodeShow setupUI ing9" << this;
+    // lambda 捕获 QPointer 而非裸 this：CodeEditor 析构链中可能仍触发此连接
+    // （CodeShow 的 disconnectAll 尚未执行），对象已销毁时必须安全跳过，
+    // 否则会回调到已销毁的 MessageWidget（sizeFinishFun 捕获裸 this）导致悬空访问
+    QPointer<CodeShow> self(this);
+    connect(codeEdit, &CodeEditor::setSizeFinished, [self]() {
+        if (!self)
+            return;
+        self->setFixedSize(self->maxWidth + 2,
+                           self->codeEdit->height() + self->topWidget->height() + 2);
+        emit self->setSizeFinished();
+    });
+    qDebug() << "CodeShow setupUI ing91" << this;
     codeEdit->highlightCode(codeText, lexerName);
 
-    // qDebug() << "CodeShow setupUI ing7" << this;
+    qDebug() << "CodeShow setupUI ing7" << this;
     QVBoxLayout *mainVLayout = new QVBoxLayout(this);
     mainVLayout->addWidget(topWidget);
     mainVLayout->addWidget(codeEdit);
     mainVLayout->setContentsMargins(1, 1, 1, 1);
     mainVLayout->setSpacing(0);
 
-    // qDebug() << "CodeShow setupUI ing8" << this;
+    qDebug() << "CodeShow setupUI ing8" << this;
     applyDarkStyle();
-    // qDebug() << "CodeShow setupUI end" << this;
+    qDebug() << "CodeShow setupUI end" << this;
 }
 
 void CodeShow::paintEvent(QPaintEvent *event)

@@ -10,6 +10,7 @@ extern const QString imagesDir;
 extern const QString fontFilePath;
 extern const QString configFilePath;
 extern const QString mathjaxScriptPath;
+extern const QString chatRecordsDir;
 extern QString codeThemeFilePath;
 extern const QString webEngineCacheDir;
 extern QWebEngineProfile *sharedProfile;

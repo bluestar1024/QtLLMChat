@@ -2,3 +2,5 @@ qt_chat/.qtcreator/
 qt_chat/build/
 test/
 /qt_chat/qt_chat.pro.user
+qt_chat/chatrecords/
+vcrt_disasm.txt
