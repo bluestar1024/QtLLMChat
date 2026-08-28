@@ -1,20 +1,21 @@
 #include "printlabel.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-PrintLabel::PrintLabel(const QString &text, QWidget *parent)
+PrintLabel::PrintLabel(const QString &text, AppContext *appContext, QWidget *parent)
     : QWidget(parent),
+      appContext(appContext),
       text(text.trimmed()),
       label(new QLabel()),
       fontMetrics(nullptr),
       mainHLayout(new QHBoxLayout()),
       printTimer(new QTimer(this))
 {
-    int fontId = QFontDatabase::addApplicationFont(fontFilePath);
+    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
     if (fontId != -1) {
         QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
         if (!fontFamilies.isEmpty()) {
             QString fontFamily = fontFamilies.at(0);
-            font = QFont(fontFamily, windowFontPointSize);
+            font = QFont(fontFamily, this->appContext->windowFontPointSize());
             font.setBold(true);
             label->setFont(font);
             fontMetrics = new QFontMetrics(font);

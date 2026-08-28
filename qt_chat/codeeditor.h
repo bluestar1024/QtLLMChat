@@ -19,11 +19,13 @@
 // extern const int windowFontPointSize;
 // extern QString codeThemeFilePath;
 
+class AppContext;
+
 class CodeEditor : public QTextEdit
 {
     Q_OBJECT
 public:
-    explicit CodeEditor(int maxWidth = 810, QWidget *parent = nullptr);
+    explicit CodeEditor(AppContext *appContext, int maxWidth = 810, QWidget *parent = nullptr);
     ~CodeEditor();
 
     void setThemeStyle(bool light = false);
@@ -42,6 +44,8 @@ protected:
 private:
     void updateLineNumberAreaWidth();
     void setHighlighter(StyleSyntaxHighlighter *high);
+
+    AppContext *appContext;
 
     LineNumberArea *lineNumberArea;
     QHash<QString, StyleSyntaxHighlighter *> highlighters;

@@ -5,11 +5,13 @@
 #include <QtWidgets/QSpinBox>
 #include <QtGui/QMouseEvent>
 
+class AppContext;
+
 class SpinBox : public QSpinBox
 {
     Q_OBJECT
 public:
-    explicit SpinBox(QWidget *parent = nullptr);
+    explicit SpinBox(AppContext *appContext, QWidget *parent = nullptr);
     ~SpinBox();
 
     void setSize(int width, int height);
@@ -19,6 +21,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
+    AppContext *appContext;
     QString upArrowImagePath;
     QString downArrowImagePath;
 };

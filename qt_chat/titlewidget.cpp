@@ -1,8 +1,9 @@
 #include "titlewidget.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-TitleWidget::TitleWidget(QWidget *parent)
+TitleWidget::TitleWidget(AppContext *appContext, QWidget *parent)
     : QWidget(parent),
+      appContext(appContext),
       // isRound(true),
       titleIconLabel(nullptr),
       minButton(nullptr),
@@ -87,7 +88,7 @@ void TitleWidget::setupLeftWidget()
     titleIconLabel->setFixedSize(40, 30);
     titleIconLabel->setScaledContents(true);
 
-    QString aiAssistantImagePath = imagesDir + "/ai_assistant.png";
+    QString aiAssistantImagePath = appContext->imagesDir() + "/ai_assistant.png";
     titleIconLabel->setPixmap(QPixmap(aiAssistantImagePath));
 
     titleLeftSubWidget = new Widget();
@@ -102,28 +103,28 @@ void TitleWidget::setupLeftWidget()
 
 void TitleWidget::setupRightWidget()
 {
-    minButton = new TitleButton("最小化", 10, 35);
+    minButton = new TitleButton(appContext, "最小化", 10, 35);
     minButton->setFixedSize(50, 40);
-    QString minImagePath = imagesDir + "/min.png";
+    QString minImagePath = appContext->imagesDir() + "/min.png";
     minButton->setIcon(QIcon(minImagePath));
     minButton->setIconSize(QSize(20, 20));
     minButton->setStyleSheet("QPushButton { border: none; }"
                              "QPushButton:hover { background: #808080; }");
     connect(minButton, &QPushButton::clicked, this, &TitleWidget::minimizeClicked);
 
-    maxButton = new TitleButton("最大化", 10, 35);
+    maxButton = new TitleButton(appContext, "最大化", 10, 35);
     maxButton->setFixedSize(50, 40);
-    maxImagePath = imagesDir + "/max.png";
-    normalImagePath = imagesDir + "/normal.png";
+    maxImagePath = appContext->imagesDir() + "/max.png";
+    normalImagePath = appContext->imagesDir() + "/normal.png";
     maxButton->setIcon(QIcon(maxImagePath));
     maxButton->setIconSize(QSize(20, 20));
     maxButton->setStyleSheet("QPushButton { border: none; }"
                              "QPushButton:hover { background: #808080; }");
     connect(maxButton, &QPushButton::clicked, this, &TitleWidget::maximizeClicked);
 
-    closeButton = new TitleButton("关闭", 5, 35);
+    closeButton = new TitleButton(appContext, "关闭", 5, 35);
     closeButton->setFixedSize(50, 40);
-    QString closeImagePath = imagesDir + "/close.png";
+    QString closeImagePath = appContext->imagesDir() + "/close.png";
     closeButton->setIcon(QIcon(closeImagePath));
     closeButton->setIconSize(QSize(20, 20));
     closeButton->setStyleSheet("QPushButton { border: none; }"

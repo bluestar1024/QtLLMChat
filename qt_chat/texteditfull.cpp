@@ -1,11 +1,12 @@
 #include "texteditfull.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-TextEditFull::TextEditFull(QWidget *parent) : QWidget(parent), backgroundColorIsLight(false)
+TextEditFull::TextEditFull(AppContext *appContext, QWidget *parent)
+    : QWidget(parent), appContext(appContext), backgroundColorIsLight(false)
 {
     setMinimumHeight(80);
 
-    textEdit = new TextEdit();
+    textEdit = new TextEdit(this->appContext);
     mainHLayout = new QHBoxLayout(this);
     mainHLayout->addWidget(textEdit);
     mainHLayout->setContentsMargins(15, 15, 15, 15);
@@ -13,8 +14,8 @@ TextEditFull::TextEditFull(QWidget *parent) : QWidget(parent), backgroundColorIs
     resize(textEdit->width() + 30, textEdit->height() + 30);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
-    bgColor = textEditFullBGColor;
-    bColor = textEditFullBTColor;
+    bgColor = appContext->textEditFullBGColor();
+    bColor = appContext->textEditFullBTColor();
 
     animationBackgroundColor = new QPropertyAnimation(this, "backgroundColor");
     animationBackgroundColor->setDuration(400);
@@ -82,12 +83,12 @@ void TextEditFull::backgroundColorShowLight()
 {
     if (!backgroundColorIsLight) {
         backgroundColorIsLight = true;
-        animationBackgroundColor->setStartValue(textEditFullBGColor);
-        animationBackgroundColor->setEndValue(textEditFullBGTColor);
+        animationBackgroundColor->setStartValue(appContext->textEditFullBGColor());
+        animationBackgroundColor->setEndValue(appContext->textEditFullBGTColor());
         animationBackgroundColor->start();
 
-        animationBorderColor->setStartValue(textEditFullBTColor);
-        animationBorderColor->setEndValue(textEditFullBColor);
+        animationBorderColor->setStartValue(appContext->textEditFullBTColor());
+        animationBorderColor->setEndValue(appContext->textEditFullBColor());
         animationBorderColor->start();
     }
 }
@@ -96,12 +97,12 @@ void TextEditFull::backgroundColorShowDark()
 {
     if (backgroundColorIsLight) {
         backgroundColorIsLight = false;
-        animationBackgroundColor->setStartValue(textEditFullBGTColor);
-        animationBackgroundColor->setEndValue(textEditFullBGColor);
+        animationBackgroundColor->setStartValue(appContext->textEditFullBGTColor());
+        animationBackgroundColor->setEndValue(appContext->textEditFullBGColor());
         animationBackgroundColor->start();
 
-        animationBorderColor->setStartValue(textEditFullBColor);
-        animationBorderColor->setEndValue(textEditFullBTColor);
+        animationBorderColor->setStartValue(appContext->textEditFullBColor());
+        animationBorderColor->setEndValue(appContext->textEditFullBTColor());
         animationBorderColor->start();
     }
 }

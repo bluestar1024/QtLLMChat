@@ -21,6 +21,8 @@
 // extern const QColor textEditFullBTColor;
 // extern const QColor textEditFullBColor;
 
+class AppContext;
+
 class TextEditFull : public QWidget
 {
     Q_OBJECT
@@ -28,7 +30,7 @@ class TextEditFull : public QWidget
     Q_PROPERTY(QColor borderColor READ getBorderColor WRITE setBorderColor)
 
 public:
-    explicit TextEditFull(QWidget *parent = nullptr);
+    explicit TextEditFull(AppContext *appContext, QWidget *parent = nullptr);
     ~TextEditFull();
 
     void backgroundColorShowLight();
@@ -49,6 +51,7 @@ protected:
     void paintEvent(QPaintEvent *e) override;
 
 private:
+    AppContext *appContext;
     TextEdit *textEdit;
     QHBoxLayout *mainHLayout;
     QPropertyAnimation *animationBackgroundColor;

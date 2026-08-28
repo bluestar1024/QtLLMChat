@@ -1,8 +1,13 @@
 #include "TitleButton.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-TitleButton::TitleButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
-    : QPushButton(parent), tipText(tipText), tipOffsetX(tipOffsetX), tipOffsetY(tipOffsetY)
+TitleButton::TitleButton(AppContext *appContext, const QString &tipText, int tipOffsetX,
+                         int tipOffsetY, QWidget *parent)
+    : QPushButton(parent),
+      appContext(appContext),
+      tipText(tipText),
+      tipOffsetX(tipOffsetX),
+      tipOffsetY(tipOffsetY)
 {
     setMouseTracking(true);
     setCursor(Qt::PointingHandCursor);
@@ -48,7 +53,7 @@ bool TitleButton::event(QEvent *event)
         static QString fontFamily;
 
         if (!fontLoaded) {
-            int fontId = QFontDatabase::addApplicationFont(fontFilePath);
+            int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
             if (fontId != -1) {
                 QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
                 if (!fontFamilies.isEmpty()) {
@@ -59,7 +64,7 @@ bool TitleButton::event(QEvent *event)
         }
 
         if (!fontFamily.isEmpty()) {
-            QFont font(fontFamily, buttonFontPointSize);
+            QFont font(fontFamily, appContext->buttonFontPointSize());
             QToolTip::setFont(font);
         }
 

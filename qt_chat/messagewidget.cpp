@@ -1,17 +1,18 @@
 #include "messagewidget.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 #include <QtCore/QMutexLocker>
 #include <QtCore/QPointer>
 
-MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
-                             std::function<void()> renewResponseFun,
+MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
+                             std::function<void()> copyFun, std::function<void()> renewResponseFun,
                              std::function<void(MessageWidget *)> widgetResizeFun,
                              std::function<void(bool)> getSetTextingFun,
                              std::function<void()> executeNextFun, ListWidget *listWidget,
                              QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser,
                              bool thinkIsExpand, int textMaxWidth, QWidget *parent)
     : QWidget(parent),
+      appContext(appContext),
       text(text),
       copyFun(copyFun),
       renewResponseFun(renewResponseFun),
@@ -38,7 +39,7 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     connect(this, &MessageWidget::resizeFinished, this->widgetResizeFun);
     connect(this, &MessageWidget::setTexting, this->getSetTextingFun);
 
-    imageLabel = new ImageLabel(isUser);
+    imageLabel = new ImageLabel(this->appContext, isUser);
     textWidget = new TextWidget(isUser);
     textLayout = new QVBoxLayout(textWidget);
     textLayout->setSpacing(0);
@@ -56,12 +57,12 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     qDebug() << "MessageWidget funWidget:" << funWidget;
     funHLayout = new QHBoxLayout(funWidget);
     funHLayout->setContentsMargins(5, 5, 5, 5);
-    copyButton = new CopyButton("复制", 15, 35);
+    copyButton = new CopyButton(this->appContext, "复制", 15, 35);
     qDebug() << "this:" << this << "qobject_cast<MessageWidget *>(copyButton->parent()):"
              << qobject_cast<MessageWidget *>(copyButton->parent());
     copyButton->setFixedSize(16, 16);
-    copyImagesPath = imagesDir + "/copy.png";
-    copyHoverImagesPath = imagesDir + "/copy_hover.png";
+    copyImagesPath = this->appContext->imagesDir() + "/copy.png";
+    copyHoverImagesPath = this->appContext->imagesDir() + "/copy_hover.png";
     copyButton->setStyleSheet(QString("QPushButton{ border-image:url(%1); }"
                                       "QPushButton:hover{ border-image:url(%2); }")
                                       .arg(copyImagesPath, copyHoverImagesPath));
@@ -75,10 +76,10 @@ MessageWidget::MessageWidget(const QString &text, std::function<void()> copyFun,
     copyButton->hide();
 
     if (!isUser) {
-        renewResponseButton = new PushButton("重新生成响应", 25, 35);
+        renewResponseButton = new PushButton(this->appContext, "重新生成响应", 25, 35);
         renewResponseButton->setFixedSize(16, 16);
-        renewResponseImagesPath = imagesDir + "/renewResponse.png";
-        renewResponseHoverImagesPath = imagesDir + "/renewResponse_hover.png";
+        renewResponseImagesPath = this->appContext->imagesDir() + "/renewResponse.png";
+        renewResponseHoverImagesPath = this->appContext->imagesDir() + "/renewResponse_hover.png";
         renewResponseButton->setStyleSheet(
                 QString("QPushButton{ border-image:url(%1); }"
                         "QPushButton:hover{ border-image:url(%2); }")
@@ -139,7 +140,7 @@ void MessageWidget::buildUserUi()
     // 触发信号回调到这里，用 QPointer 保护，对象已销毁时安全跳过
     QPointer<MessageWidget> self(this);
     textShow = new TextShow(
-            text,
+            appContext, text,
             [self]() {
                 if (self)
                     self->onSizeFinished();
@@ -170,7 +171,7 @@ void MessageWidget::buildAiUi()
 
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
         qDebug() << "new ThinkingButton()";
-        thinkButton = new ThinkingButton();
+        thinkButton = new ThinkingButton(appContext);
         thinkButton->setIsShowThinkContent(thinkIsExpand);
         thinkButton->connectButtonClick(this, &MessageWidget::thinkButtonClicked);
         thinkButtonHaveCreated = true;
@@ -195,7 +196,7 @@ void MessageWidget::buildAiUi()
             qDebug() << "thinkTempText:" << thinkTempText;
             QPointer<MessageWidget> thinkCodeSelf(this);
             auto *codeShow = new CodeShow(
-                    codeBlock.code, codeBlock.language,
+                    appContext, codeBlock.code, codeBlock.language,
                     [thinkCodeSelf]() {
                         if (thinkCodeSelf)
                             thinkCodeSelf->onSizeFinished();
@@ -215,7 +216,7 @@ void MessageWidget::buildAiUi()
             if (!splitText.trimmed().isEmpty()) {
                 QPointer<MessageWidget> thinkTextSelf(this);
                 thinkTextShowList.append(new ThinkWidget(
-                        splitText,
+                        appContext, splitText,
                         [thinkTextSelf]() {
                             if (thinkTextSelf)
                                 thinkTextSelf->onSizeFinished();
@@ -307,7 +308,7 @@ void MessageWidget::buildAiUi()
                                            + codeBlock.code.size());
             QPointer<MessageWidget> resultCodeSelf(this);
             auto *codeShow = new CodeShow(
-                    codeBlock.code, codeBlock.language,
+                    appContext, codeBlock.code, codeBlock.language,
                     [resultCodeSelf]() {
                         if (resultCodeSelf)
                             resultCodeSelf->onSizeFinished();
@@ -322,7 +323,7 @@ void MessageWidget::buildAiUi()
             if (!splitText.trimmed().isEmpty()) {
                 QPointer<MessageWidget> resultTextSelf(this);
                 resultTextShowList.append(new TextShow(
-                        splitText,
+                        appContext, splitText,
                         [resultTextSelf]() {
                             if (resultTextSelf)
                                 resultTextSelf->onSizeFinished();
@@ -706,7 +707,7 @@ void MessageWidget::setText(const QString &text)
     qDebug() << "MessageWidget setText ing0" << this;
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
         if (!thinkButtonHaveCreated) {
-            thinkButton = new ThinkingButton();
+            thinkButton = new ThinkingButton(appContext);
             thinkButton->setIsShowThinkContent(thinkIsExpand);
             thinkButton->connectButtonClick(this, &MessageWidget::thinkButtonClicked);
             thinkButtonHaveCreated = true;
@@ -736,7 +737,7 @@ void MessageWidget::setText(const QString &text)
             if (thinkCodeShowListLastLen < i) {
                 QPointer<MessageWidget> thinkCodeSelf(this);
                 auto *codeShow = new CodeShow(
-                        thinkCodeBlocks[i].code, thinkCodeBlocks[i].language,
+                        appContext, thinkCodeBlocks[i].code, thinkCodeBlocks[i].language,
                         [thinkCodeSelf]() {
                             if (thinkCodeSelf)
                                 thinkCodeSelf->onSizeFinished();
@@ -764,7 +765,7 @@ void MessageWidget::setText(const QString &text)
                 if (thinkTextShowListLastLen < i) {
                     QPointer<MessageWidget> thinkTextSelf(this);
                     ThinkWidget *thinkWidget = new ThinkWidget(
-                            splitText,
+                            appContext, splitText,
                             [thinkTextSelf]() {
                                 if (thinkTextSelf)
                                     thinkTextSelf->onSizeFinished();
@@ -996,7 +997,7 @@ void MessageWidget::setText(const QString &text)
                 qDebug() << "MessageWidget setText ing3" << this;
                 QPointer<MessageWidget> resultCodeSelf(this);
                 auto *codeShow = new CodeShow(
-                        resultCodeBlocks[i].code, resultCodeBlocks[i].language,
+                        appContext, resultCodeBlocks[i].code, resultCodeBlocks[i].language,
                         [resultCodeSelf]() {
                             if (resultCodeSelf)
                                 resultCodeSelf->onSizeFinished();
@@ -1021,7 +1022,7 @@ void MessageWidget::setText(const QString &text)
                     qDebug() << "messageWidget splitText:" << splitText;
                     QPointer<MessageWidget> resultTextSelf(this);
                     resultTextShowList.append(new TextShow(
-                            splitText,
+                            appContext, splitText,
                             [resultTextSelf]() {
                                 if (resultTextSelf)
                                     resultTextSelf->onSizeFinished();

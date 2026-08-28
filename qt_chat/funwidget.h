@@ -24,11 +24,13 @@
 // extern const QString fontFilePath;
 // extern const int titleFontPixelSize;
 
+class AppContext;
+
 class FunWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit FunWidget(QWidget *parent = nullptr);
+    explicit FunWidget(AppContext *appContext, QWidget *parent = nullptr);
     ~FunWidget();
 
     template <typename T>
@@ -49,6 +51,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *e) override;
 
 private:
+    AppContext *appContext;
     PushButton *chatRecordsButton;
     PushButton *newChatButton;
     QString chatRecordsImagesPath;

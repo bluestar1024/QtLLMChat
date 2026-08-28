@@ -1,14 +1,14 @@
 #include "thinkwidget.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 #include <QDebug>
 #include <QPointer>
 
 #include <cmath>
 
-ThinkWidget::ThinkWidget(const QString &text, std::function<void()> sizeFinishFun, int maxWidth,
-                         QWidget *parent)
-    : QWidget(parent),
+ThinkWidget::ThinkWidget(AppContext *appContext, const QString &text,
+                         std::function<void()> sizeFinishFun, int maxWidth, QWidget *parent)
+    : QWidget(parent), appContext(appContext),
       text(text.trimmed()),
       sizeFinishFun(sizeFinishFun),
       maxWidth(maxWidth - 10),
@@ -20,12 +20,12 @@ ThinkWidget::ThinkWidget(const QString &text, std::function<void()> sizeFinishFu
     connect(this, &ThinkWidget::setSizeFinished, this->sizeFinishFun);
 
     bool fontLoaded = false;
-    int fontId = QFontDatabase::addApplicationFont(fontFilePath);
+    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
     if (fontId != -1) {
         QStringList families = QFontDatabase::applicationFontFamilies(fontId);
         if (!families.isEmpty()) {
             font = QFont(families.first());
-            font.setPixelSize(windowFontPixelSize);
+            font.setPixelSize(this->appContext->windowFontPixelSize());
             fontLoaded = true;
         }
     }
@@ -44,7 +44,7 @@ ThinkWidget::ThinkWidget(const QString &text, std::function<void()> sizeFinishFu
     updateSizeTimer->setSingleShot(true);
     connect(updateSizeTimer, &QTimer::timeout, this, &ThinkWidget::onUpdateSize);
 
-    webEngineView = new WebEngineView();
+    webEngineView = new WebEngineView(this->appContext);
     webEngineView->setMaximumWidth(this->maxWidth);
     connect(webEngineView->page(), &QWebEnginePage::loadFinished, this,
             &ThinkWidget::onPageLoadFinished);
@@ -106,8 +106,8 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 <body>
 <div class="content">
 )")
-                         .arg(mathjaxScriptPath)
-                         .arg(windowFontPixelSize);
+                         .arg(this->appContext->mathjaxScriptPath())
+                         .arg(this->appContext->windowFontPixelSize());
     // ---- markdown → html ----
     if (!text.isEmpty()) {
         TableInfo tbl = getTable(text);
@@ -257,8 +257,8 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 <body>
 <div class="content">
 )")
-                         .arg(mathjaxScriptPath)
-                         .arg(windowFontPixelSize);
+                         .arg(appContext->mathjaxScriptPath())
+                         .arg(appContext->windowFontPixelSize());
     // ---- markdown → html ----
     if (!text.isEmpty()) {
         TableInfo tbl = getTable(text);

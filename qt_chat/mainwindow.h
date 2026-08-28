@@ -16,7 +16,7 @@
 #include "itemwidget.h"
 #include "messagethread.h"
 #include "printlabel.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 // #include <windowsx.h>
 #ifdef Q_OS_WIN
@@ -95,6 +95,8 @@ private:
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
     void messageWidgetRegenerate();
+
+    AppContext *appContext;
 
     QQuickWindow *qwindow;
 

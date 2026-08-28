@@ -19,12 +19,16 @@
 // extern const QString fontFilePath;
 // extern const int windowFontPointSize;
 
+class AppContext;
+
 class CodeShow : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit CodeShow(const QString &codeText, const QString &lexerName = "cpp", std::function<void()> sizeFinishFun = nullptr, int maxWidth = 810,
+    explicit CodeShow(AppContext *appContext, const QString &codeText,
+                      const QString &lexerName = "cpp",
+                      std::function<void()> sizeFinishFun = nullptr, int maxWidth = 810,
                       QWidget *parent = nullptr);
     ~CodeShow();
 
@@ -51,6 +55,8 @@ private:
     void setupUI();
     void applyDarkStyle();
     void applyLightStyle();
+
+    AppContext *appContext;
 
     QString codeText;
     QString lexerName;

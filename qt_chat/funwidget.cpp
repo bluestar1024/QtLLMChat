@@ -1,11 +1,12 @@
 #include "funwidget.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
+FunWidget::FunWidget(AppContext *appContext, QWidget *parent)
+    : QWidget(parent), appContext(appContext)
 {
-    chatRecordsButton = new PushButton("聊天历史", 15, 35);
+    chatRecordsButton = new PushButton(this->appContext, "聊天历史", 15, 35);
     chatRecordsButton->setFixedSize(44, 44);
-    chatRecordsImagesPath = QDir(imagesDir).filePath("chat_records.png");
+    chatRecordsImagesPath = QDir(this->appContext->imagesDir()).filePath("chat_records.png");
     chatRecordsButton->setIcon(QIcon(chatRecordsImagesPath));
     chatRecordsButton->setIconSize(QSize(30, 30));
     chatRecordsButton->setStyleSheet("QPushButton{ border:none; border-radius:22px; }"
@@ -23,11 +24,11 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     funLeftSubHLayout->setContentsMargins(10, 10, 5, 6);
     titleLabel = new QLabel();
     titleLabel->setFixedHeight(60);
-    int fontId = QFontDatabase::addApplicationFont(fontFilePath);
+    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
     if (fontId != -1) {
         QString family = QFontDatabase::applicationFontFamilies(fontId).at(0);
         QFont font(family);
-        font.setPixelSize(titleFontPixelSize);
+        font.setPixelSize(this->appContext->titleFontPixelSize());
         titleLabel->setFont(font);
     }
     titleLabel->setText("AI助理");
@@ -44,9 +45,9 @@ FunWidget::FunWidget(QWidget *parent) : QWidget(parent)
     funMidSubHLayout->addWidget(titleLabel);
     funMidSubHLayout->setAlignment(Qt::AlignCenter);
     funMidSubHLayout->setContentsMargins(0, 0, 0, 0);
-    newChatButton = new PushButton("新聊天", 10, 35);
+    newChatButton = new PushButton(this->appContext, "新聊天", 10, 35);
     newChatButton->setFixedSize(44, 44);
-    newChatImagesPath = QDir(imagesDir).filePath("new_chat.png");
+    newChatImagesPath = QDir(this->appContext->imagesDir()).filePath("new_chat.png");
     newChatButton->setIcon(QIcon(newChatImagesPath));
     newChatButton->setIconSize(QSize(30, 30));
     newChatButton->setStyleSheet("QPushButton{ border:none; border-radius:22px; }"

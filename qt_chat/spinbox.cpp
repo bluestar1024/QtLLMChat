@@ -1,14 +1,15 @@
 #include "spinbox.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-SpinBox::SpinBox(QWidget *parent) : QSpinBox(parent)
+SpinBox::SpinBox(AppContext *appContext, QWidget *parent)
+    : QSpinBox(parent), appContext(appContext)
 {
     resize(170, 32);
     setCursor(Qt::PointingHandCursor);
     setAlignment(Qt::AlignHCenter);
 
-    upArrowImagePath = imagesDir + "/up_arrow.png";
-    downArrowImagePath = imagesDir + "/down_arrow.png";
+    upArrowImagePath = appContext->imagesDir() + "/up_arrow.png";
+    downArrowImagePath = appContext->imagesDir() + "/down_arrow.png";
 
     setStyleSheet(QString(R"(
         QSpinBox {
@@ -34,7 +35,7 @@ SpinBox::SpinBox(QWidget *parent) : QSpinBox(parent)
             margin-bottom: 1px;
         }
     )")
-                          .arg(windowFontPixelSize)
+                          .arg(appContext->windowFontPixelSize())
                           .arg(upArrowImagePath)
                           .arg(downArrowImagePath));
 }
@@ -70,7 +71,7 @@ void SpinBox::setSize(int width, int height)
         }
     )")
                           .arg(buttonSize)
-                          .arg(windowFontPixelSize)
+                          .arg(appContext->windowFontPixelSize())
                           .arg(upArrowImagePath)
                           .arg(downArrowImagePath));
 }

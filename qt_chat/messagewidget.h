@@ -27,11 +27,14 @@
 
 // extern const QString imagesDir;
 
+class AppContext;
+
 class MessageWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit MessageWidget(const QString &text, std::function<void()> copyFun,
+    explicit MessageWidget(AppContext *appContext, const QString &text,
+                           std::function<void()> copyFun,
                            std::function<void()> renewResponseFun,
                            std::function<void(MessageWidget *)> widgetResizeFun,
                            std::function<void(bool)> getSetTextingFun,
@@ -77,6 +80,8 @@ private slots:
     void thinkButtonClicked();
 
 private:
+    AppContext *appContext;
+
     struct CodeBlock
     {
         QString language;

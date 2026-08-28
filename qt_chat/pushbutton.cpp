@@ -1,8 +1,9 @@
 #include "pushbutton.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-PushButton::PushButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
-    : QPushButton(parent), tipText(tipText)
+PushButton::PushButton(AppContext *appContext, const QString &tipText, int tipOffsetX,
+                       int tipOffsetY, QWidget *parent)
+    : QPushButton(parent), appContext(appContext), tipText(tipText)
 {
     setCursor(Qt::PointingHandCursor);
     tipStartPos = rect().topLeft() - QPoint(tipOffsetX, tipOffsetY);
@@ -28,11 +29,11 @@ bool PushButton::event(QEvent *e)
         static bool fontLoaded = false;
         static QFont customFont;
         if (!fontLoaded) {
-            int fontId = QFontDatabase::addApplicationFont(fontFilePath);
+            int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
             if (fontId != -1) {
                 QStringList families = QFontDatabase::applicationFontFamilies(fontId);
                 if (!families.isEmpty()) {
-                    customFont = QFont(families.at(0), buttonFontPointSize);
+                    customFont = QFont(families.at(0), appContext->buttonFontPointSize());
                     fontLoaded = true;
                 }
             }

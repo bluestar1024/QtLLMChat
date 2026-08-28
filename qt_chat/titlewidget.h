@@ -17,11 +17,13 @@
 #include <QtGui/QPixmap>
 #include <QtCore/QSize>
 
+class AppContext;
+
 class TitleWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit TitleWidget(QWidget *parent = nullptr);
+    explicit TitleWidget(AppContext *appContext, QWidget *parent = nullptr);
     ~TitleWidget();
 
     // void setRoundAngle();
@@ -50,6 +52,7 @@ private:
     void setupRightWidget();
     void setupMainLayout();
 
+    AppContext *appContext;
     QLabel *titleIconLabel;
     TitleButton *minButton;
     TitleButton *maxButton;

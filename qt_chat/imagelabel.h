@@ -6,11 +6,16 @@
 
 // extern const QString imagesDir;
 
+class AppContext;
+
 class ImageLabel : public QLabel
 {
     Q_OBJECT
 public:
-    explicit ImageLabel(bool isUser = true, QWidget *parent = nullptr);
+    explicit ImageLabel(AppContext *appContext, bool isUser = true, QWidget *parent = nullptr);
+
+private:
+    AppContext *appContext;
 };
 
 #endif // IMAGELABEL_H

@@ -1,29 +1,30 @@
 #include "lineedit.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QScreen>
 #include <QtCore/QDir>
 
-LineEdit::LineEdit(QWidget *parent) : QLineEdit(parent)
+LineEdit::LineEdit(AppContext *appContext, QWidget *parent)
+    : QLineEdit(parent), appContext(appContext)
 {
     setFixedSize(1200 / 3 - 82, 32);
     setPlaceholderText(QStringLiteral("输入搜索词"));
 
-    int fontId = QFontDatabase::addApplicationFont(fontFilePath);
+    int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
     if (fontId != -1) {
         QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
         if (!fontFamilies.isEmpty()) {
             QString fontFamily = fontFamilies.at(0);
             font = QFont(fontFamily);
-            font.setPixelSize(windowFontPixelSize);
+            font.setPixelSize(appContext->windowFontPixelSize());
             setFont(font);
         }
     }
 
-    searchButton = new PushButton("搜索", 5, 35, this);
+    searchButton = new PushButton(appContext, "搜索", 5, 35, this);
     searchButton->setFixedSize(32, 32);
-    QString searchImagePath = imagesDir + "/search.png";
+    QString searchImagePath = appContext->imagesDir() + "/search.png";
     searchButton->setIcon(QIcon(searchImagePath));
     searchButton->setIconSize(QSize(30, 30));
     searchButton->move(0, 0);
@@ -70,7 +71,7 @@ void LineEdit::updateSize(int curDpi, int lastDpi)
     searchButton->setIconSize(QSize(btnIconNewWidth, btnIconNewHeight));
 
     if (!font.family().isEmpty()) {
-        font.setPixelSize(windowFontPixelSize);
+        font.setPixelSize(appContext->windowFontPixelSize());
         setFont(font);
     }
 

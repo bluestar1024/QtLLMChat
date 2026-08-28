@@ -16,11 +16,13 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QWidget>
 
+class AppContext;
+
 class PrintLabel : public QWidget
 {
     Q_OBJECT
 public:
-    explicit PrintLabel(const QString &text, QWidget *parent = nullptr);
+    explicit PrintLabel(const QString &text, AppContext *appContext, QWidget *parent = nullptr);
     ~PrintLabel();
 
     void updateSize(int curDpi, int lastDpi);
@@ -32,6 +34,7 @@ protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
+    AppContext *appContext;
     QString text;
     QLabel *label;
     QFont font;

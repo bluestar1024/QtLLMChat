@@ -21,11 +21,13 @@
 #include <QtCore/QVariant>
 #include <QtCore/QMap>
 
+class AppContext;
+
 class ChatRecordsWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ChatRecordsWidget(QWidget *parent = nullptr);
+    explicit ChatRecordsWidget(AppContext *appContext, QWidget *parent = nullptr);
     ~ChatRecordsWidget();
 
     template <typename T>
@@ -62,6 +64,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
+    AppContext *appContext;
     QFont font;
     QString fontFamily;
     PushButton *settingButton;

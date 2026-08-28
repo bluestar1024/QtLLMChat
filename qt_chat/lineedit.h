@@ -11,11 +11,13 @@
 #include <QtCore/QSize>
 #include <QtCore/QMap>
 
+class AppContext;
+
 class LineEdit : public QLineEdit
 {
     Q_OBJECT
 public:
-    explicit LineEdit(QWidget *parent = nullptr);
+    explicit LineEdit(AppContext *appContext, QWidget *parent = nullptr);
     ~LineEdit();
 
     template <typename T>
@@ -27,6 +29,7 @@ public:
     void updateSize(int curDpi, int lastDpi);
 
 private:
+    AppContext *appContext;
     QPushButton *searchButton;
     QFont font;
     QMap<QString, QSize> widgetSizeDict;
