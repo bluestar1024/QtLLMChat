@@ -1,7 +1,8 @@
 #include "settingedit.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-SettingEdit::SettingEdit(QWidget *parent) : QLineEdit(parent)
+SettingEdit::SettingEdit(AppContext *appContext, QWidget *parent)
+    : QLineEdit(parent), appContext(appContext)
 {
     resize(282, 32);
     updateStyleSheet();
@@ -27,5 +28,5 @@ void SettingEdit::updateStyleSheet()
             font-size: %1px;
         }
     )")
-                          .arg(windowFontPixelSize));
+                          .arg(appContext->windowFontPixelSize()));
 }

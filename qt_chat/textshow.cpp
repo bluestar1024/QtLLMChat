@@ -2,8 +2,8 @@
 
 #include <QPointer>
 
-TextShow::TextShow(const QString &text, std::function<void()> sizeFinishFun, std::function<void()> executeNextFun, int maxWidth, QWidget *parent)
-    : ThinkWidget(text, sizeFinishFun, maxWidth, parent), executeNextFun(executeNextFun), firstExecuteNextEmit(true)
+TextShow::TextShow(AppContext *appContext, const QString &text, std::function<void()> sizeFinishFun, std::function<void()> executeNextFun, int maxWidth, QWidget *parent)
+    : ThinkWidget(appContext, text, sizeFinishFun, maxWidth, parent), executeNextFun(executeNextFun), firstExecuteNextEmit(true)
 {
 }
 

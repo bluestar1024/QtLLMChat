@@ -44,6 +44,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    appcontext.cpp \
     chatrecordswidget.cpp \
     codeeditor.cpp \
     codeshow.cpp \
@@ -84,6 +85,7 @@ SOURCES += \
     splitter.cpp \
     stylesyntaxhighlighter.cpp \
     syntaxstyle.cpp \
+    testtext.cpp \
     textboxwidget.cpp \
     textedit.cpp \
     texteditfull.cpp \
@@ -99,6 +101,7 @@ SOURCES += \
     widget.cpp
 
 HEADERS += \
+    appcontext.h \
     chatrecordswidget.h \
     codeeditor.h \
     codeshow.h \
@@ -110,7 +113,6 @@ HEADERS += \
     doublespinbox.h \
     frame.h \
     funwidget.h \
-    globalvariables.h \
     glslhighlighter.h \
     html_renderer.h \
     imagelabel.h \
@@ -139,6 +141,7 @@ HEADERS += \
     splitter.h \
     stylesyntaxhighlighter.h \
     syntaxstyle.h \
+    testtext.h \
     textboxwidget.h \
     textedit.h \
     texteditfull.h \

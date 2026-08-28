@@ -20,14 +20,16 @@
 // extern const QString mathjaxScriptPath;
 // extern const int windowFontPixelSize;
 
+class AppContext;
 class WebEngineView;
 
 class ThinkWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ThinkWidget(const QString &text = "", std::function<void()> sizeFinishFun = nullptr,
-                         int maxWidth = 810, QWidget *parent = nullptr);
+    explicit ThinkWidget(AppContext *appContext, const QString &text = "",
+                         std::function<void()> sizeFinishFun = nullptr, int maxWidth = 810,
+                         QWidget *parent = nullptr);
     ~ThinkWidget();
 
     void setText(const QString &text);
@@ -58,6 +60,8 @@ private slots:
     virtual void onUpdateSize();
 
 private:
+    AppContext *appContext;
+
     void measureText(const QString &text, int &labelWidth, int &labelHeight) const;
     QString htmlReplaceText(const QString &text) const;
     struct TableInfo

@@ -1,14 +1,15 @@
 #include "imagelabel.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 #include <QPixmap>
 
-ImageLabel::ImageLabel(bool isUser, QWidget *parent) : QLabel(parent)
+ImageLabel::ImageLabel(AppContext *appContext, bool isUser, QWidget *parent)
+    : QLabel(parent), appContext(appContext)
 {
     setFixedSize(32, 32);
 
-    const QString userImagePath(imagesDir + "/user.png");
-    const QString aiImagePath(imagesDir + "/ai.png");
+    const QString userImagePath(this->appContext->imagesDir() + "/user.png");
+    const QString aiImagePath(this->appContext->imagesDir() + "/ai.png");
 
     setPixmap(QPixmap(isUser ? userImagePath : aiImagePath));
 }

@@ -5,11 +5,13 @@
 #include <QtWidgets/QDoubleSpinBox>
 #include <QtGui/QMouseEvent>
 
+class AppContext;
+
 class DoubleSpinBox : public QDoubleSpinBox
 {
     Q_OBJECT
 public:
-    explicit DoubleSpinBox(QWidget *parent = nullptr);
+    explicit DoubleSpinBox(AppContext *appContext, QWidget *parent = nullptr);
     ~DoubleSpinBox();
 
     void setSize(int width, int height);
@@ -19,6 +21,7 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
 
 private:
+    AppContext *appContext;
     QString upArrowImagePath;
     QString downArrowImagePath;
 };

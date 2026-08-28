@@ -1,771 +1,9 @@
 #include "mainwindow.h"
 
+#include <QtWebEngineCore/QWebEngineProfile>
 #include <QQuickWindow>
 #include <QDebug>
 #include <QPointer>
-
-const QString imagesDir = ":/images";
-const QString fontFilePath = ":/font/msyhl.ttc";
-const QString configFilePath = ":/config/config.txt";
-const QString mathjaxScriptPath = "mathjax/es5/tex-mml-chtml.js";
-const QString chatRecordsDir = "../../chatrecords/";
-QString codeThemeFilePath = ":/config/dark_theme.xml";
-const QString webEngineCacheDir = "../../webengine_cache";
-QWebEngineProfile *sharedProfile = nullptr;
-const int windowFontPointSize = 10;
-int windowFontPixelSize = 20;
-const int titleFontPointSize = 14;
-int titleFontPixelSize = 28;
-const int buttonFontPointSize = 9;
-const QColor textEditFullBGColor = QColor(224, 224, 224);
-const QColor textEditFullBGTColor = QColor(224, 224, 224, 0);
-const QColor textEditFullBTColor = QColor(100, 100, 100);
-const QColor textEditFullBColor = QColor(100, 100, 100, 0);
-const QString initBaseUrl = "http://127.0.0.1:11434/v1";
-const QString initApiKey = "EMPTY";
-const QString initModel = "deepseek-r1:1.5b";
-const int maxTokensMinimum = 0;
-const int maxTokensMaximum = 32768;
-const int initMaxTokensCurrentVal = 5000;
-const int topPMinimum = 0;
-const int topPMaximum = 1;
-const double initTopPCurrentVal = 0.8;
-const double topPSingleStep = 0.01;
-const double temperatureMinimum = 0.01;
-const int temperatureMaximum = 1;
-const double initTemperatureCurrentVal = 0.8;
-const double temperatureSingleStep = 0.01;
-const QString testText1 = R"(<think>
-让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
-
-那我先写出循环的方法。代码结构大概是：
-
-```lua
--- Two dashes start a one-line comment.
---[[
-   Adding two ['s and ]'s makes it a
-   multi-line comment.
-http://learnxinyminutes.com/
-Have fun with Lua!
---]]
-```
-
-这两种方法都可行，我觉得第二种更好，因为效率更高而且代码更简洁。
-
-现在整理一下：
-
-C++：
-同样，两种方法都可以。
-
-Python：
-可以用循环、公式，或者生成一个range然后求和。
-
-那现在我来写出这三种语言的代码：
-
-C++：
-```cpp
-#include <iostream>
-
-using namespace std;
-
-int main() {
-    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-    int n = 100;
-    int sum = n * (n + 1) / 2;
-    cout << sum << endl;
-    return 0;
-}
-```
-
-或者循环：
-
-```python
-sum = 0
-for i in range(1, 101):
-    sum += i
-```
-
-或者使用range和sum函数：
-
-print(sum(range(1, 101)))
-
-嗯，我觉得这三种方法都是可行的。现在，我需要把它们分别用C++和Python写出来。
-
-总结一下，每个语言可以有两种实现方式，但问题可能只需要一种，所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
-</think>
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-qweertyuiopasdfghj
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
-那我先写出循环的方法。代码结构大概是：
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
-
-### C++
-```cpp
-#include <iostream>
-
-using namespace std;
-
-int main() {
-    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-    int n = 100;
-    int sum = n * (n + 1) / 2;
-    cout << sum << endl;
-    return 0;
-}
-```
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
-那我先写出循环的方法。代码结构大概是：
-### Python
-```python
-n = 100
-tota = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
-那我先写出循环的方法。代码结构大概是：
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
-让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
-那我先写出循环的方法。代码结构大概是：
-### C++
-)";
-
-const QString testText_simple = R"(<think>
-那我先写出循环的方法。代码结构大概是：
-
-```cpp
-int sum = 0;
-for (int i = 1; i <= 100; ++i) {
-    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-    sum += i;
-}
-
-int main()
-{
-    int n, sum = 0;
-
-    for (int i = 1; i <= n; ++i)
-    {
-        sum += i;
-    }
-
-    std::cout << "Sum = " << sum;
-    return 0;
-}
-```
-
-或者用公式：
-
-所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
-</think>
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
-
-### C++
-)";
-
-const QString testText = R"(<think>
-让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
-
-那我先写出循环的方法。代码结构大概是：
-
-```cpp
-int sum = 0;
-for (int i = 1; i <= 100; ++i) {
-    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-    sum += i;
-}
-std::cout << sum << std::endl;
-
-#include <iostream>
-#include <QDebug>
-
-#sdfgs	"fdgdf"
-#cfdsf	546
-
-int main()
-{
-    int n, sum = 0;
-
-    std::cout << "Enter a positive integer: ";
-    std::cin >> n;
-
-    for (int i = 1; i <= n; ++i)
-    {
-        sum += i;
-    }
-
-    std::cout << "Sum = " << sum;
-    return 0;
-}
-```
-
-或者用公式：
-
-```cpp
-int n = 100;
-int sum = n * (n + 1) / 2;
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-std::cout << sum << std::endl;
-```
-
-同样，两种方法都适用。可能用公式更好。
-
-然后是Python的部分。Python的语法更简单，循环的话：
-
-```python
-sum = 0
-for i in range(1, 101):
-    sum += i
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(sum)
-
-import sys
-from PyQt5.QtWidgets import QTextEdit, QApplication, QWidget
-from PyQt5.QtGui import QTextCharFormat, QColor, QPainter, QFont
-from PyQt5.QtCore import Qt, QRect
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = CodeEditor()
-    window.show()
-    sys.exit(app.exec_())
-```
-
-或者，直接用公式：
-
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-```glsl
-precision mediump float;
-
-uniform vec2 resolution;
-uniform float time;
-
-void main() {
-    mat3 lense = mat3(1.,0.,0.,
-                        0.,888989898989898989,0.,
-                        0.,0.,1.);
-        vec3 pos3 = vec3(pos,camDir.z*10.);
-        camDir = vec3(
-                camDir.x,
-                camDir.y,
-                camDir.z);
-        camDir*=normalize(dot(camDir,pos3));
-    vec3 rayDir = normalize(camSide*pos.x + camUp*pos.y + camDir*focus);
-
-    vec3 normal = getNormal(posOnRay);
-    if(abs(d) < 0.001)
-    {
-        gl_FragColor = vec4(normal, 1.0);
-    }else
-    {
-        gl_FragColor = vec4(0.0);
-    }
-}
-```
-
-这样应该就能得到结果了。或者直接用公式的话，可能更简洁：
-
-```lua
--- Two dashes start a one-line comment.
---[[
-   Adding two ['s and ]'s makes it a
-   multi-line comment.
-http://learnxinyminutes.com/
-Have fun with Lua!
---]]
-```
-
-这两种方法都可行，我觉得第二种更好，因为效率更高而且代码更简洁。
-
-现在整理一下：
-
-C++：
-同样，两种方法都可以。
-
-Python：
-可以用循环、公式，或者生成一个range然后求和。
-
-那现在我来写出这三种语言的代码：
-
-C++：
-```cpp
-#include <iostream>
-
-using namespace std;
-
-int main() {
-    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-    int n = 100;
-    int sum = n * (n + 1) / 2;
-    cout << sum << endl;
-    return 0;
-}
-```
-
-或者循环：
-
-```cpp
-#include <iostream>
-
-using namespace std;
-
-int main() {
-    return 0;
-}
-```
-
-Python：
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-或者循环：
-
-```python
-sum = 0
-for i in range(1, 101):
-    sum += i
-```
-
-或者使用range和sum函数：
-
-print(sum(range(1, 101)))
-
-嗯，我觉得这三种方法都是可行的。现在，我需要把它们分别用C++和Python写出来。
-
-总结一下，每个语言可以有两种实现方式，但问题可能只需要一种，所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
-</think>
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
-
-### C++
-```cpp
-#include <iostream>
-
-using namespace std;
-
-int main() {
-    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-    int n = 100;
-    int sum = n * (n + 1) / 2;
-    cout << sum << endl;
-    return 0;
-}
-```
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-### Python
-```python
-n = 100
-tota = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-以下是使用 C++ 和 Python 分别计算整数 1 到 100 的和的代码示例：
-
-### C++
-)";
-
-const QString testText_code = R"(<think>
-让我想一下两种方法。第一种方法更直观，适合新手理解。第二种方法效率更高，特别是当n很大的时候。那么对于这个问题来说，两种方式都行。我应该两种方法都写吗？可能问题只需要一种实现，但为了全面，我可以两种情况都考虑一下。
-
-那我先写出循环的方法。代码结构大概是：
-
-```cpp
-int sum = 0;
-for (int i = 1; i <= 100; ++i) {
-    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-    sum += i;
-}
-std::cout << sum << std::endl;
-
-#include <iostream>
-#include <QDebug>
-
-#define sdfgs	"fdgdf"
-#define cfdsf	546
-
-int main()
-{
-    int n, sum = 0;
-
-    std::cout << "Enter a positive integer: ";
-    std::cin >> n;
-
-    for (int i = 1; i <= n; ++i)
-    {
-        sum += i;
-    }
-
-    std::cout << "Sum = " << sum;
-    return 0;
-}
-int fun()
-fun()
-std:: fun()
-int std::fun ()
-float std::std::fun()
-fun
-
-// sdassadfsa sda
-
-// sada
-
-/* jkhj
-jkk
-gjh */
-
-int xf;
-int ydsf = 1;
-int sdy=0
-int xv + =1
-int xvbd+ =1
-int xf+=1
-int xfddd - =1
-int fvdx * =1
-int xfg / =1
-int xh % =1
-int xnb , y ;
-int xdgf = 1,
-
-a.b.fun()
-12.3
-```
-
-然后是Python的部分。Python的语法更简单，循环的话：
-### jfdls;lf
-```python
-sum = 0
-for i in range(1, 101):
-    sum += i
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(sum)
-
-import sys
-from PyQt5.QtWidgets import QTextEdit, QApplication, QWidget
-from PyQt5.QtGui import QTextCharFormat, QColor, QPainter, QFont
-from PyQt5.QtCore import Qt, QRect
-from pygments import highlight
-from pygments.lexers import PythonLexer
-from pygments.formatters import HtmlFormatter
-
-class LineNumberArea(QWidget):
-    def __init__(self, editor):
-        super().__init__(editor)
-        self.editor = editor
-        xd - = 8
-        fy += 6
-        ztrh *= 7
-        xr /= 7
-        yrte % = 9
-        self.editor.document().blockCountChanged.connect(self.update_width)
-        """ self.editor.updateRequest.connect(self.update) """
-        print(self.editor.document())
-
-    def paintEvent(self, event):
-        """ painter = QPainter(self)
-        painter.fillRect(event.rect(), QColor(240, 240, 240))
-        block = self.editor.document().begin()
-        while block and block.isValid():
-            line_number = block.blockNumber() + 1
-            painter.drawText(0, block.position() -
-            self.editor.contentOffset().y(), str(line_number))
-            block = block.next() """
-        painter = QPainter(self)
-        painter.fillRect(event.rect(), QColor(240, 240, 240))
-        """ for count in range(0, self.editor.document().blockCount()): """
-        painter.end()
-
-class CodeEditor(QTextEdit):
-    def __init__(self):
-        super().__init__()
-        self.setTabStopWidth(4)
-        self.lineNumberArea = LineNumberArea(self)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        # 更新行号区域位置
-        cr = self.contentsRect()
-        self.lineNumberArea.setGeometry(QRect(cr.left(), cr.top(),
-        self.lineNumberArea.width(), cr.height()))
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = CodeEditor()
-    window.show()
-    sys.exit(app.exec_())
-```
-
-总结一下，每个语言可以有两种实现方式，但问题可能只需要一种，所以我可以选择其中一种，比如公式的方法，这样更简洁高效。
-</think>
-
-以下是分别计算整数 1 到 100 的和的代码示例：
-
-### C++
-```cpp
-#include <iostream>
-
-using namespace std;
-
-int main() {
-    #path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-    int n = 100;
-    int sum = n * (n + 1) / 2;
-    cout << sum << endl;
-    return 0;
-}
-```
-
-### Python
-```python
-n = 100
-total = n * (n + 1) // 2
-#path.addRoundedRect(self.rect().x() + 1, self.rect().y() + 1, self.rect().width() - 2, self.rect().height() - 2, 16, 16)
-print(total)
-```
-
-这些代码都使用了高斯公式来计算从 1 到 100 的和，结果都是 5050。
-)";
-
-const QString testText_markdown = R"(
-一级标题
-========
-二级标题
---------
-------------------
-# 一级标题
-## 二级标题
-### 三级标题
-这是一个段落，包含一些 *Markdown* 语法。
-*斜体文本*
-_斜体文本_
-**粗体文本**
-__粗体文本__
-***粗斜体文本***
-___粗斜体文本___
-~~删除线文本~~
-<u>带下划线文本</u>
-苹果10$，梨子20$，香蕉30$，橘子40$。
-苹果10\$，梨子20\$，香蕉30\$，橘子40\$。
-苹果10\\$，梨子20\\$，香蕉30\\$，橘子40\\$。
-$\alpha$ $\beta$ $\gamma$ $\delta$ $\epsilon$ $\zeta$ $\eta$ $\theta$ $\iota$ $\kappa$ $\lambda$ $\mu$ $\nu$ $\xi$ $\omicron$ $\pi$ $\rho$ $\sigma$ $\tau$ $\upsilon$ $\phi$ $\chi$ $\psi$ $\omega$ $\Gamma$ $\Delta$ $\Theta$ $\Lambda$ $\Xi$ $\Pi$ $\Sigma$ $\Upsilon$ $\Phi$ $\Psi$ $\Omega$
-创建脚注格式类似这样 [^RUNOOB]。
-[^RUNOOB]: 菜鸟教程 -- 学的不仅是技术，更是梦想！！！
-
-******************
-### 无序列表
-* 第一项
-* 第二项
-* 第三项
-
-+ 第一项
-+ 第二项
-+ 第三项
-
-- 第一项
-- 第二项
-- 第三项
-
-### 有序列表
-1. 第一项
-2. 第二项
-3. 第三项
-
-### 列表嵌套
-1. 第一项
-    - 第一项嵌套的第一个元素
-    - 第一项嵌套的第二个元素
-2. 第二项
-    1. 第二项嵌套的第一个元素
-    2. 第二项嵌套的第二个元素
-******************
-### 区块
-> 菜鸟教程
-> 学的不仅是技术更是梦想
-
-> 最外层
-> > 第一层嵌套
-> > > 第二层嵌套
-
-> 区块中使用列表
-> 1. 第一项
-> 2. 第二项
-> + 第一项
-> + 第二项
-> + 第三项
-
-列表中使用区块
-* 第一项
-    > 菜鸟教程
-    > 学的不仅是技术更是梦想
-* 第二项
-******************
-### 代码
-`printHelloWorld()`函数
-
-    def printHelloWorld():
-        print('hello world')
-
-```python
-def printHelloWorld():
-    print('hello world')
-```
-******************
-### 链接
-这是一个链接 [菜鸟教程](https://www.runoob.com)
-这个链接用 1 作为网址变量 [Google][1]
-这个链接用 runoob 作为网址变量 [Runoob][runoob]
-然后在文档的结尾为变量赋值（网址）
-
-[1]: http://www.google.com/
-[runoob]: http://www.runoob.com/
-******************
-### 图片
-![thinking 图标](images/thinking_icon.png "thinking")
-
-这个链接用 2 作为网址变量 [thinking][2]
-然后在文档的结尾为变量赋值（网址）
-
-[2]: images/thinking_icon.png
-
-<img src="images/thinking_icon.png" width="25%">
-
-******************
-### 表格
-|  表头  |  表头  |  表头  |
-| :----- | -----: | :----: |
-| 单元格 | 单元格 | 单元格 |
-| 单元格 | 单元格 | 单元格 |
-******************
-### LaTeX公式：
-这是一个行内公式 $E=mc^2$ 的示例。
-行间公式：
-$$\sum_{i=1}^n a_i$$
-$$\frac{a}{b} = c$$
-积分公式：
-$$\int_{a}^{b} {f(x)} \, \mathrm{d}x = F(b) - F(a)$$
-微分公式：
-$$\frac{d}{dx} e^x = e^x$$
-)";
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -794,12 +32,14 @@ MainWindow::MainWindow(QWidget *parent)
       avoidRepeatSelfFun(false),
       borderLen(3)
 {
-    QWebEngineProfile *sharedProfile = new QWebEngineProfile("shared");
-    sharedProfile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
-    sharedProfile->setCachePath(webEngineCacheDir);
+    appContext = new AppContext();
+    QWebEngineProfile *profile = new QWebEngineProfile("shared");
+    profile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
+    profile->setCachePath(appContext->webEngineCacheDir());
+    appContext->setWebEngineProfile(profile);
     QWebEngineView *dummyView = new QWebEngineView();
     // dummyView->setPage(new WebEnginePage(sharedProfile, dummyView));
-    WebEnginePage *page = new WebEnginePage(sharedProfile, nullptr); // 无 parent
+    WebEnginePage *page = new WebEnginePage(appContext->webEngineProfile(), nullptr); // 无 parent
     dummyView->setPage(page);
     connect(
             dummyView, &QWebEngineView::loadFinished, dummyView,
@@ -866,7 +106,7 @@ MainWindow::MainWindow(QWidget *parent)
     regionDir = RegionEnum::Middle;
     padding = 2;
     titleWidgetInit();
-    chatFun = new FunWidget();
+    chatFun = new FunWidget(appContext);
     // qDebug() << "FunWidget size:" << chatFun->size();
     chatFun->connectChatRecordsButtonClick(this, &MainWindow::showChatRecords);
     chatFun->connectNewChatButtonClick(this, &MainWindow::newChat);
@@ -878,7 +118,7 @@ MainWindow::MainWindow(QWidget *parent)
     chatShowVLayout = new QVBoxLayout(chatShowWidget);
     chatShowVLayout->addWidget(chatShow);
     chatShowVLayout->setContentsMargins(20, 4, 10, 16);
-    chatInput = new TextEditFull();
+    chatInput = new TextEditFull(appContext);
     chatInput->connectSendButtonClick(this, &MainWindow::sendMessage);
     chatInputWidget = new Widget();
     chatInputWidget->setMinimumHeight(100);
@@ -930,12 +170,12 @@ MainWindow::MainWindow(QWidget *parent)
     // setGraphicsEffect(shadow);
     settingWidgetInit();
     chatRecordsWidgetInit();
-    emptyTextLabel = new PrintLabel("文本不能为空", this);
+    emptyTextLabel = new PrintLabel("文本不能为空", appContext, this);
     emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
                          titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     emptyTextLabel->raise();
     emptyTextLabel->hide();
-    textCopyLabel = new PrintLabel("文本复制成功", this);
+    textCopyLabel = new PrintLabel("文本复制成功", appContext, this);
     textCopyLabel->move((width() - textCopyLabel->width()) / 2,
                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     textCopyLabel->raise();
@@ -987,7 +227,7 @@ MainWindow::~MainWindow() { }
 
 void MainWindow::titleWidgetInit()
 {
-    titleWidget = new TitleWidget();
+    titleWidget = new TitleWidget(appContext);
     connect(titleWidget, &TitleWidget::minimizeClicked, this, &MainWindow::uiMinimize);
     connect(titleWidget, &TitleWidget::maximizeClicked, this, &MainWindow::uiMaximize);
     connect(titleWidget, &TitleWidget::closeClicked, this, &MainWindow::uiClose);
@@ -995,7 +235,7 @@ void MainWindow::titleWidgetInit()
 
 void MainWindow::settingWidgetInit()
 {
-    settingWidget = new SettingWidget(mainWidget);
+    settingWidget = new SettingWidget(appContext, mainWidget);
     settingWidget->setGeometry(-mainWidget->width() / 3, titleWidget->height(),
                                mainWidget->width() / 3,
                                mainWidget->height() - titleWidget->height());
@@ -1027,7 +267,7 @@ void MainWindow::settingWidgetInit()
 
 void MainWindow::chatRecordsWidgetInit()
 {
-    chatRecordsWidget = new ChatRecordsWidget(mainWidget);
+    chatRecordsWidget = new ChatRecordsWidget(appContext, mainWidget);
     chatRecordsWidget->setGeometry(-mainWidget->width() / 3, titleWidget->height(),
                                    mainWidget->width() / 3,
                                    mainWidget->height() - titleWidget->height());
@@ -1829,8 +1069,10 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         if (screenChanged) {
             qDebug() << "mouseReleaseEvent screenChanged";
             curDpi = curScreen->logicalDotsPerInch();
-            windowFontPixelSize = std::ceil(windowFontPointSize * (curDpi / 72));
-            titleFontPixelSize = std::ceil(titleFontPointSize * (curDpi / 72));
+            appContext->setWindowFontPixelSize(
+                    std::ceil(appContext->windowFontPointSize() * (curDpi / 72)));
+            appContext->setTitleFontPixelSize(
+                    std::ceil(appContext->titleFontPointSize() * (curDpi / 72)));
             screenChanged = false;
         }
     }
@@ -1842,7 +1084,8 @@ void MainWindow::onDpiChanged()
     qDebug() << "onDpiChanged";
     lastDpi = curDpi;
     curDpi = curScreen->logicalDotsPerInch();
-    windowFontPixelSize = std::ceil(windowFontPointSize * (curDpi / 72));
+    appContext->setWindowFontPixelSize(
+            std::ceil(appContext->windowFontPointSize() * (curDpi / 72)));
     isDpiChanged = true;
 }
 
@@ -2020,7 +1263,7 @@ void MainWindow::chatRecordsUiMoveFinished()
 void MainWindow::onBaseUrlTextChanged(const QString &text)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2060,7 +1303,7 @@ void MainWindow::onBaseUrlTextChanged(const QString &text)
 void MainWindow::onApiKeyTextChanged(const QString &text)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2100,7 +1343,7 @@ void MainWindow::onApiKeyTextChanged(const QString &text)
 void MainWindow::onModelNameTextChanged(const QString &text)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2140,7 +1383,7 @@ void MainWindow::onModelNameTextChanged(const QString &text)
 void MainWindow::onMaxTokensBoxValueChanged(int i)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2182,7 +1425,7 @@ void MainWindow::onMaxTokensBoxValueChanged(int i)
 void MainWindow::onTopPBoxValueChanged(double d)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2224,7 +1467,7 @@ void MainWindow::onTopPBoxValueChanged(double d)
 void MainWindow::onTemperatureBoxValueChanged(double d)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2266,7 +1509,7 @@ void MainWindow::onTemperatureBoxValueChanged(double d)
 void MainWindow::onMaxTokensSliderValueChanged(int i)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2308,7 +1551,7 @@ void MainWindow::onMaxTokensSliderValueChanged(int i)
 void MainWindow::onTopPSliderValueChanged(int i)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2350,7 +1593,7 @@ void MainWindow::onTopPSliderValueChanged(int i)
 void MainWindow::onTemperatureSliderValueChanged(int i)
 {
     try {
-        QFile file(configFilePath);
+        QFile file(appContext->configFilePath());
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             throw std::runtime_error("无法打开文件");
         }
@@ -2436,7 +1679,7 @@ void MainWindow::sendMessage()
             }
             thinkTimeLengthList.append(0);
             messageSendWidget = new MessageWidget(
-                    text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                    appContext, text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
                     [this](MessageWidget *selfMessageWidget) {
                         messageWidgetResize(selfMessageWidget);
                     },
@@ -2513,7 +1756,7 @@ void MainWindow::messageStart()
 
     thinkTimeLengthList.append(0);
     messageRecvWidget = new MessageWidget(
-            message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+            appContext, message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
             [this](MessageWidget *selfMessageWidget) { messageWidgetResize(selfMessageWidget); },
             [this](bool state) { getSetTexting(state); }, nullptr, chatShow, thinkTimeLengthList,
             messageWidgetList.size(), false, true, chatShow->width() * 3 / 4);
@@ -2686,7 +1929,7 @@ void MainWindow::writeToChatRecordFile(bool withholdCurChatFile)
     chatRecordFileName += QDateTime::currentDateTime().toString("yyyy_MM_dd_HH_mm_ss");
     chatRecordFileName += ".txt";
 
-    QString filePath = QDir(chatRecordsDir).filePath(chatRecordFileName);
+    QString filePath = QDir(appContext->chatRecordsDir()).filePath(chatRecordFileName);
     qDebug() << "writeToChatRecordFile filePath:" << filePath;
 
     try {
@@ -2727,7 +1970,7 @@ void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
         if (curChatFile.isEmpty()) {
             writeToChatRecordFile(withholdCurChatFile);
         } else {
-            QString filePath = QDir(chatRecordsDir).filePath(curChatFile);
+            QString filePath = QDir(appContext->chatRecordsDir()).filePath(curChatFile);
             if (!QFile::exists(filePath)) {
                 writeToChatRecordFile(withholdCurChatFile);
             } else {
@@ -2797,7 +2040,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
     int expandIndex = 0;
 
     QStringList lines;
-    QString filePath = QDir(chatRecordsDir).filePath(curChatFile);
+    QString filePath = QDir(appContext->chatRecordsDir()).filePath(curChatFile);
     try {
         QFile file(filePath);
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -2836,7 +2079,8 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                     if (expandIndex < thinkExpandedList.size())
                         thinkExpand = thinkExpandedList[expandIndex];
                     messageWidget = new MessageWidget(
-                            text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                            appContext, text, [this]() { textCopy(); },
+                            [this]() { messageRenewResponse(); },
                             [this](MessageWidget *selfMessageWidget) {
                                 messageWidgetResize(selfMessageWidget);
                             },
@@ -2846,7 +2090,8 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                 } else {
                     // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
                     messageWidget = new MessageWidget(
-                            text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                            appContext, text, [this]() { textCopy(); },
+                            [this]() { messageRenewResponse(); },
                             [this](MessageWidget *selfMessageWidget) {
                                 messageWidgetResize(selfMessageWidget);
                             },
@@ -2857,7 +2102,8 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
             } else {
                 // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
                 messageWidget = new MessageWidget(
-                        text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                        appContext, text, [this]() { textCopy(); },
+                        [this]() { messageRenewResponse(); },
                         [this](MessageWidget *selfMessageWidget) {
                             messageWidgetResize(selfMessageWidget);
                         },

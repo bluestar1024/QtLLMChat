@@ -1,12 +1,13 @@
 #include "thinkingbutton.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 #include <QtGui/QCursor>
 #include <QtGui/QPixmap>
 #include <QtMath>
 
-ThinkingButton::ThinkingButton(QWidget *parent)
+ThinkingButton::ThinkingButton(AppContext *appContext, QWidget *parent)
     : QWidget{ parent },
+      appContext(appContext),
       isShowThinkContent(true),
       backgroundColor(QColor(248, 248, 248)),
       thinkTimeLength(0)
@@ -14,9 +15,9 @@ ThinkingButton::ThinkingButton(QWidget *parent)
     setCursor(Qt::PointingHandCursor);
     startThinkTime = QTime::currentTime();
 
-    thinkingIconPath = imagesDir + "/thinking_icon.png";
-    arrowUpPath = imagesDir + "/arrow_up.png";
-    arrowDownPath = imagesDir + "/arrow_down.png";
+    thinkingIconPath = this->appContext->imagesDir() + "/thinking_icon.png";
+    arrowUpPath = this->appContext->imagesDir() + "/arrow_up.png";
+    arrowDownPath = this->appContext->imagesDir() + "/arrow_down.png";
 
     initUI();
 }
@@ -31,12 +32,12 @@ void ThinkingButton::initUI()
     textLabel->setIndent(0);
     textLabel->setStyleSheet("QLabel{ padding: 0px; margin: 0px; }");
 
-    int fontId = QFontDatabase::addApplicationFont(fontFilePath);
+    int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
     if (fontId != -1) {
         QStringList families = QFontDatabase::applicationFontFamilies(fontId);
         if (!families.isEmpty()) {
             QFont font(families.at(0));
-            font.setPixelSize(windowFontPixelSize);
+            font.setPixelSize(appContext->windowFontPixelSize());
             textLabel->setFont(font);
         }
     }

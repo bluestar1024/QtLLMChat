@@ -17,11 +17,13 @@
 // extern const QString fontFilePath;
 // extern const QString imagesDir;
 
+class AppContext;
+
 class ThinkingButton : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ThinkingButton(QWidget *parent = nullptr);
+    explicit ThinkingButton(AppContext *appContext, QWidget *parent = nullptr);
     ~ThinkingButton();
 
     template <typename T>
@@ -44,6 +46,7 @@ private:
     void initUI();
     void updateSize();
 
+    AppContext *appContext;
     bool isShowThinkContent;
     QColor backgroundColor;
     QTime startThinkTime;

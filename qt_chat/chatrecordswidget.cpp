@@ -1,8 +1,9 @@
 #include "chatrecordswidget.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-ChatRecordsWidget::ChatRecordsWidget(QWidget *parent)
+ChatRecordsWidget::ChatRecordsWidget(AppContext *appContext, QWidget *parent)
     : QWidget(parent),
+      appContext(appContext),
       settingButton(nullptr),
       buttonWidget(nullptr),
       buttonVLayout(nullptr),
@@ -21,19 +22,19 @@ ChatRecordsWidget::ChatRecordsWidget(QWidget *parent)
     resize(400, 760);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
-    int fontId = QFontDatabase::addApplicationFont(fontFilePath);
+    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
     if (fontId != -1) {
         QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
         if (!fontFamilies.isEmpty()) {
             fontFamily = fontFamilies.at(0);
             font = QFont(fontFamily);
-            font.setPixelSize(windowFontPixelSize);
+            font.setPixelSize(this->appContext->windowFontPixelSize());
         }
     }
 
-    settingButton = new PushButton("设置", 5, 35);
+    settingButton = new PushButton(this->appContext, "设置", 5, 35);
     settingButton->setFixedSize(44, 44);
-    settingImagesPath = imagesDir + "/setting.png";
+    settingImagesPath = this->appContext->imagesDir() + "/setting.png";
     settingButton->setIcon(QIcon(settingImagesPath));
     settingButton->setIconSize(QSize(30, 30));
     settingButton->setStyleSheet("QPushButton{"
@@ -58,7 +59,7 @@ ChatRecordsWidget::ChatRecordsWidget(QWidget *parent)
     label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     QFont titleFont(fontFamily);
-    titleFont.setPixelSize(titleFontPixelSize);
+    titleFont.setPixelSize(this->appContext->titleFontPixelSize());
     titleFont.setBold(true);
     label->setFont(titleFont);
 
@@ -77,13 +78,13 @@ ChatRecordsWidget::ChatRecordsWidget(QWidget *parent)
     headHLayout->setStretch(0, 1);
     headHLayout->setStretch(1, 0);
 
-    lineEdit = new LineEdit();
+    lineEdit = new LineEdit(appContext);
 
-    clearAllButton = new PushButton("删除所有记录", 25, 35);
+    clearAllButton = new PushButton(appContext, "删除所有记录", 25, 35);
     clearAllButton->setFixedSize(32, 32);
     clearAllButton->setIconSize(QSize(30, 30));
-    clearAllImagesPath = imagesDir + "/clearAll.png";
-    clearAllHoverImagesPath = imagesDir + "/clearAll_hover.png";
+    clearAllImagesPath = appContext->imagesDir() + "/clearAll.png";
+    clearAllHoverImagesPath = appContext->imagesDir() + "/clearAll_hover.png";
 
     clearAllButton->setStyleSheet(QString("QPushButton{"
                                           "    border: none;"
@@ -290,7 +291,7 @@ void ChatRecordsWidget::updateSize(int curDpi, int lastDpi)
 
     widgetSizeDict["chatRecordItem height"] =
             qRound(widgetSizeDict["chatRecordItem height"].value<int>() * ratio);
-    font.setPixelSize(windowFontPixelSize);
+    font.setPixelSize(appContext->windowFontPixelSize());
     for (int i = 0; i < listWidget->count(); ++i) {
         QListWidgetItem *item = listWidget->item(i);
         item->setSizeHint(
@@ -310,7 +311,7 @@ QListWidgetItem *ChatRecordsWidget::addListItem(const QString &string)
     listWidget->insertItem(0, chatRecordItem);
     chatRecordItem->setSizeHint(
             QSize(listWidget->width(), widgetSizeDict["chatRecordItem height"].value<int>()));
-    font.setPixelSize(windowFontPixelSize);
+    font.setPixelSize(appContext->windowFontPixelSize());
     chatRecordItem->setFont(font);
     return chatRecordItem;
 }

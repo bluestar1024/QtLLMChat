@@ -1,9 +1,10 @@
 #include "copybutton.h"
 #include "messagewidget.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-CopyButton::CopyButton(const QString &tipText, int tipOffsetX, int tipOffsetY, QWidget *parent)
-    : QPushButton(parent), tipText(tipText)
+CopyButton::CopyButton(AppContext *appContext, const QString &tipText, int tipOffsetX,
+                       int tipOffsetY, QWidget *parent)
+    : QPushButton(parent), appContext(appContext), tipText(tipText)
 {
     setCursor(Qt::PointingHandCursor);
     tipStartPos = rect().topLeft() - QPoint(tipOffsetX, tipOffsetY);
@@ -44,13 +45,13 @@ bool CopyButton::event(QEvent *e)
         static int fontId = -1;
         static QString families;
         if (fontId == -1) {
-            fontId = QFontDatabase::addApplicationFont(fontFilePath);
+            fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
             if (fontId != -1) {
                 families = QFontDatabase::applicationFontFamilies(fontId).value(0);
             }
         }
         if (!families.isEmpty()) {
-            QFont font(families, buttonFontPointSize);
+            QFont font(families, appContext->buttonFontPointSize());
             QToolTip::setFont(font);
         }
         QToolTip::showText(mapToGlobal(tipStartPos), tipText, this);

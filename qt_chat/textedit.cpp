@@ -1,25 +1,26 @@
 #include "textedit.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 #include <QDebug>
 
-TextEdit::TextEdit(QWidget *parent) : QTextEdit(parent), isSending(false)
+TextEdit::TextEdit(AppContext *appContext, QWidget *parent)
+    : QTextEdit(parent), appContext(appContext), isSending(false)
 {
     resize(1130, 150);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    int font_id = QFontDatabase::addApplicationFont(fontFilePath);
+    int font_id = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
     if (font_id != -1) {
         QStringList font_families = QFontDatabase::applicationFontFamilies(font_id);
         if (!font_families.isEmpty()) {
             QString font_family = font_families.at(0);
             QFont font(font_family);
-            font.setPixelSize(windowFontPixelSize);
+            font.setPixelSize(this->appContext->windowFontPixelSize());
             setFont(font);
             qDebug() << "textEdit setFont end";
         }
     }
     setPlaceholderText("按Shift+Enter换行、按Enter提交");
-    sendButton = new SendButton("发送", 10, 40);
+    sendButton = new SendButton(this->appContext, "发送", 10, 40);
     sendButton->setFixedSize(30, 30);
     sendButton->setIconSize(QSize(30, 30));
     gLayout = new QGridLayout();
@@ -30,9 +31,9 @@ TextEdit::TextEdit(QWidget *parent) : QTextEdit(parent), isSending(false)
     gLayout->setContentsMargins(10, 10, 25, 10);
     gLayout->setSpacing(0);
     connect(this, &QTextEdit::textChanged, this, &TextEdit::sendButtonShow);
-    sendImagesPath = imagesDir + "/send.png";
-    sendHoverImagesPath = imagesDir + "/send_hover.png";
-    sendDisableImagesPath = imagesDir + "/send_disable.png";
+    sendImagesPath = this->appContext->imagesDir() + "/send.png";
+    sendHoverImagesPath = this->appContext->imagesDir() + "/send_hover.png";
+    sendDisableImagesPath = this->appContext->imagesDir() + "/send_disable.png";
     sendButton->setStyleSheet(QString(R"(
         QPushButton{
             border: none;
@@ -50,7 +51,7 @@ TextEdit::TextEdit(QWidget *parent) : QTextEdit(parent), isSending(false)
             width: 25px;
         }
     )")
-                          .arg(windowFontPointSize));
+                          .arg(this->appContext->windowFontPointSize()));
     setMouseTracking(true);
     widgetSizeDict["sendButton"] = sendButton->size();
     widgetSizeDict["sendButton iconSize"] = sendButton->iconSize();
@@ -75,19 +76,19 @@ void TextEdit::contextMenuEvent(QContextMenuEvent *e)
     )");
     QAction *action1 = menu->addAction("剪切");
     action1->setShortcut(QKeySequence("Ctrl+x"));
-    QString action1ImagesPath = imagesDir + "/cut.png";
+    QString action1ImagesPath = appContext->imagesDir() + "/cut.png";
     action1->setIcon(QIcon(action1ImagesPath));
     connect(action1, &QAction::triggered, this, &QTextEdit::cut);
 
     QAction *action2 = menu->addAction("复制");
     action2->setShortcut(QKeySequence("Ctrl+c"));
-    QString action2ImagesPath = imagesDir + "/menu_copy.png";
+    QString action2ImagesPath = appContext->imagesDir() + "/menu_copy.png";
     action2->setIcon(QIcon(action2ImagesPath));
     connect(action2, &QAction::triggered, this, &QTextEdit::copy);
 
     QAction *action3 = menu->addAction("粘贴");
     action3->setShortcut(QKeySequence("Ctrl+v"));
-    QString action3ImagesPath = imagesDir + "/paste.png";
+    QString action3ImagesPath = appContext->imagesDir() + "/paste.png";
     action3->setIcon(QIcon(action3ImagesPath));
     connect(action3, &QAction::triggered, this, &QTextEdit::paste);
 

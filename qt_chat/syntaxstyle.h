@@ -11,6 +11,8 @@
 
 // extern QString codeThemeFilePath;
 
+class AppContext;
+
 class SyntaxStyle : public QObject
 {
     Q_OBJECT
@@ -22,7 +24,7 @@ public:
     QString getName();
     QTextCharFormat getFormat(const QString &name) const;
     bool isLoaded();
-    static SyntaxStyle *defaultStyle();
+    static SyntaxStyle *defaultStyle(AppContext *appContext);
 
 private:
     QString name;

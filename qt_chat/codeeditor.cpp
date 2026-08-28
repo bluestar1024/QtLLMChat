@@ -1,5 +1,5 @@
 #include "codeeditor.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 #include <QtGui/QFontMetrics>
 #include <QtGui/QTextBlock>
@@ -7,8 +7,9 @@
 #include <QtGui/QPalette>
 #include <QtGui/QAbstractTextDocumentLayout>
 
-CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
-    : QTextEdit(parent), text(""), lexerName(""), isResetText(false), isDestroying(false)
+CodeEditor::CodeEditor(AppContext *appContext, int maxWidth, QWidget *parent)
+    : QTextEdit(parent), appContext(appContext), text(""), lexerName(""), isResetText(false),
+      isDestroying(false)
 {
     // qDebug() << "CodeEditor start" << this;
     setFixedWidth(maxWidth);
@@ -17,7 +18,7 @@ CodeEditor::CodeEditor(int maxWidth, QWidget *parent)
     // qDebug() << "CodeEditor ing0" << this;
     QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     font.setFixedPitch(true);
-    font.setPointSize(windowFontPointSize);
+    font.setPointSize(this->appContext->windowFontPointSize());
     setFont(font);
 
     // qDebug() << "CodeEditor ing1" << this;
@@ -72,7 +73,7 @@ void CodeEditor::setThemeStyle(bool light)
         p.setColor(QPalette::Text, QColor(78, 86, 92));
         setPalette(p);
         lineNumberArea->setLightTheme();
-        codeThemeFilePath = ":/config/light_theme.xml";
+        appContext->setCodeThemeFilePath(":/config/light_theme.xml");
         // qDebug() << "CodeEditor setThemeStyle ing2" << this;
     } else {
         // qDebug() << "CodeEditor setThemeStyle ing3" << this;
@@ -93,7 +94,7 @@ void CodeEditor::setThemeStyle(bool light)
         // qDebug() << "CodeEditor setThemeStyle ing6" << this;
         lineNumberArea->setDarkTheme();
         // qDebug() << "CodeEditor setThemeStyle ing7" << this;
-        codeThemeFilePath = ":/config/dark_theme.xml";
+        appContext->setCodeThemeFilePath(":/config/dark_theme.xml");
         // qDebug() << "CodeEditor setThemeStyle ing5" << this;
     }
     highlightCode(text, lexerName);
@@ -216,5 +217,5 @@ void CodeEditor::setHighlighter(StyleSyntaxHighlighter *high)
     if (highlighter && highlighter->document() != document())
         highlighter->setDocument(document());
     if (highlighter)
-        highlighter->setSyntaxStyle(SyntaxStyle::defaultStyle());
+        highlighter->setSyntaxStyle(SyntaxStyle::defaultStyle(appContext));
 }

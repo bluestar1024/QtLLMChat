@@ -20,11 +20,13 @@
 #include <QtCore/QFile>
 #include <QtCore/QTextStream>
 
+class AppContext;
+
 class SettingWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit SettingWidget(QWidget *parent = nullptr);
+    explicit SettingWidget(AppContext *appContext, QWidget *parent = nullptr);
     ~SettingWidget();
 
     void maxTokensBoxSetValue(int i);
@@ -55,6 +57,8 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
 
 private:
+    AppContext *appContext;
+
     void loadConfig();
     void setupUI();
     void setupConnections();

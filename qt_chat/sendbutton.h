@@ -12,18 +12,21 @@
 // extern const QString fontFilePath;
 // extern const int buttonFontPointSize;
 
+class AppContext;
+
 class SendButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit SendButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
-                        QWidget *parent = nullptr);
+    explicit SendButton(AppContext *appContext, const QString &tipText = "", int tipOffsetX = 10,
+                        int tipOffsetY = 40, QWidget *parent = nullptr);
     ~SendButton();
 
 protected:
     bool event(QEvent *e) override;
 
 private:
+    AppContext *appContext;
     QString tipText;
     QPoint tipStartPos;
 };

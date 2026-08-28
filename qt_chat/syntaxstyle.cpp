@@ -1,5 +1,5 @@
 #include "syntaxstyle.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
 #include <QtGui/QFont>
 
@@ -82,11 +82,11 @@ bool SyntaxStyle::isLoaded()
     return loaded;
 }
 
-SyntaxStyle *SyntaxStyle::defaultStyle()
+SyntaxStyle *SyntaxStyle::defaultStyle(AppContext *appContext)
 {
     static SyntaxStyle style;
     if (!style.isLoaded()) {
-        QFile f(codeThemeFilePath);
+        QFile f(appContext->codeThemeFilePath());
         if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
             qWarning() << "Can't open default style file.";
             return &style;

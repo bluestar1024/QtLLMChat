@@ -1,8 +1,8 @@
 #include "settingwidget.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-SettingWidget::SettingWidget(QWidget *parent)
-    : QWidget(parent),
+SettingWidget::SettingWidget(AppContext *appContext, QWidget *parent)
+    : QWidget(parent), appContext(appContext),
       maxTokensCurrentVal(0),
       topPCurrentVal(0.0),
       temperatureCurrentVal(0.0),
@@ -64,18 +64,18 @@ void SettingWidget::mouseMoveEvent(QMouseEvent *event)
 
 void SettingWidget::loadConfig()
 {
-    QFile configFile(configFilePath);
+    QFile configFile(this->appContext->configFilePath());
 
-    if (!QFile::exists(configFilePath)) {
+    if (!QFile::exists(this->appContext->configFilePath())) {
         if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream out(&configFile);
             out.setEncoding(QStringConverter::Utf8);
-            out << initBaseUrl << '\n'
-                << initApiKey << '\n'
-                << initModel << '\n'
-                << initMaxTokensCurrentVal << '\n'
-                << initTopPCurrentVal << '\n'
-                << initTemperatureCurrentVal << '\n';
+            out << this->appContext->initBaseUrl() << '\n'
+                << this->appContext->initApiKey() << '\n'
+                << this->appContext->initModel() << '\n'
+                << this->appContext->initMaxTokensCurrentVal() << '\n'
+                << this->appContext->initTopPCurrentVal() << '\n'
+                << this->appContext->initTemperatureCurrentVal() << '\n';
             configFile.close();
         }
     }
@@ -102,12 +102,12 @@ void SettingWidget::loadConfig()
 
 void SettingWidget::setupUI()
 {
-    baseUrlLabel = new Label();
-    apiKeyLabel = new Label();
-    modelNameLabel = new Label();
-    maxTokensLabel = new Label();
-    topPLabel = new Label();
-    temperatureLabel = new Label();
+    baseUrlLabel = new Label(this->appContext);
+    apiKeyLabel = new Label(this->appContext);
+    modelNameLabel = new Label(this->appContext);
+    maxTokensLabel = new Label(this->appContext);
+    topPLabel = new Label(this->appContext);
+    temperatureLabel = new Label(this->appContext);
 
     baseUrlLabel->setText("Base Url");
     apiKeyLabel->setText("Api Key");
@@ -126,43 +126,43 @@ void SettingWidget::setupUI()
     topPLabel->adjustSize();
     temperatureLabel->adjustSize();
 
-    baseUrlEdit = new SettingEdit();
-    apiKeyEdit = new SettingEdit();
-    modelNameEdit = new SettingEdit();
+    baseUrlEdit = new SettingEdit(this->appContext);
+    apiKeyEdit = new SettingEdit(this->appContext);
+    modelNameEdit = new SettingEdit(this->appContext);
 
     baseUrlEdit->setText(baseUrl);
     apiKeyEdit->setText(apiKey);
     modelNameEdit->setText(model);
 
-    maxTokensBox = new SpinBox();
-    topPBox = new DoubleSpinBox();
-    temperatureBox = new DoubleSpinBox();
+    maxTokensBox = new SpinBox(this->appContext);
+    topPBox = new DoubleSpinBox(this->appContext);
+    temperatureBox = new DoubleSpinBox(this->appContext);
 
-    maxTokensBox->setRange(maxTokensMinimum, maxTokensMaximum);
+    maxTokensBox->setRange(this->appContext->maxTokensMinimum(), this->appContext->maxTokensMaximum());
     maxTokensBox->setValue(maxTokensCurrentVal);
 
-    topPBox->setRange(topPMinimum, topPMaximum);
+    topPBox->setRange(this->appContext->topPMinimum(), this->appContext->topPMaximum());
     topPBox->setValue(topPCurrentVal);
-    topPBox->setSingleStep(topPSingleStep);
+    topPBox->setSingleStep(this->appContext->topPSingleStep());
 
-    temperatureBox->setRange(temperatureMinimum, temperatureMaximum);
+    temperatureBox->setRange(this->appContext->temperatureMinimum(), this->appContext->temperatureMaximum());
     temperatureBox->setValue(temperatureCurrentVal);
-    temperatureBox->setSingleStep(temperatureSingleStep);
+    temperatureBox->setSingleStep(this->appContext->temperatureSingleStep());
 
     maxTokensSlider = new Slider();
     topPSlider = new Slider();
     temperatureSlider = new Slider();
 
-    maxTokensSlider->setMinimum(maxTokensMinimum);
-    maxTokensSlider->setMaximum(maxTokensMaximum);
+    maxTokensSlider->setMinimum(this->appContext->maxTokensMinimum());
+    maxTokensSlider->setMaximum(this->appContext->maxTokensMaximum());
     maxTokensSlider->setValue(maxTokensCurrentVal);
 
-    topPSlider->setMinimum(static_cast<int>(topPMinimum * 100));
-    topPSlider->setMaximum(static_cast<int>(topPMaximum * 100));
+    topPSlider->setMinimum(static_cast<int>(this->appContext->topPMinimum() * 100));
+    topPSlider->setMaximum(static_cast<int>(this->appContext->topPMaximum() * 100));
     topPSlider->setValue(static_cast<int>(topPCurrentVal * 100));
 
-    temperatureSlider->setMinimum(static_cast<int>((temperatureMinimum - 0.01) * 100));
-    temperatureSlider->setMaximum(static_cast<int>((temperatureMaximum - 0.01) * 100));
+    temperatureSlider->setMinimum(static_cast<int>((this->appContext->temperatureMinimum() - 0.01) * 100));
+    temperatureSlider->setMaximum(static_cast<int>((this->appContext->temperatureMaximum() - 0.01) * 100));
     temperatureSlider->setValue(static_cast<int>((temperatureCurrentVal - 0.01) * 100));
 
     createModelSelectWidget();

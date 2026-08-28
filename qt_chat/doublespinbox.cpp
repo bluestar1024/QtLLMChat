@@ -1,14 +1,15 @@
 #include "doublespinbox.h"
-#include "globalvariables.h"
+#include "appcontext.h"
 
-DoubleSpinBox::DoubleSpinBox(QWidget *parent) : QDoubleSpinBox(parent)
+DoubleSpinBox::DoubleSpinBox(AppContext *appContext, QWidget *parent)
+    : QDoubleSpinBox(parent), appContext(appContext)
 {
     resize(170, 32);
     setCursor(Qt::PointingHandCursor);
     setAlignment(Qt::AlignHCenter);
 
-    upArrowImagePath = imagesDir + "/up_arrow.png";
-    downArrowImagePath = imagesDir + "/down_arrow.png";
+    upArrowImagePath = appContext->imagesDir() + "/up_arrow.png";
+    downArrowImagePath = appContext->imagesDir() + "/down_arrow.png";
 
     setStyleSheet(QString(R"(
         QDoubleSpinBox {
@@ -34,7 +35,7 @@ DoubleSpinBox::DoubleSpinBox(QWidget *parent) : QDoubleSpinBox(parent)
             margin-bottom: 1px;
         }
     )")
-                          .arg(windowFontPixelSize)
+                          .arg(appContext->windowFontPixelSize())
                           .arg(upArrowImagePath)
                           .arg(downArrowImagePath));
 }
@@ -70,7 +71,7 @@ void DoubleSpinBox::setSize(int width, int height)
         }
     )")
                           .arg(buttonSize)
-                          .arg(windowFontPixelSize)
+                          .arg(appContext->windowFontPixelSize())
                           .arg(upArrowImagePath)
                           .arg(downArrowImagePath));
 }

@@ -15,13 +15,14 @@
 // extern const int buttonFontPointSize;
 
 class MessageWidget;
+class AppContext;
 
 class CopyButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit CopyButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
-                        QWidget *parent = nullptr);
+    explicit CopyButton(AppContext *appContext, const QString &tipText = "", int tipOffsetX = 10,
+                        int tipOffsetY = 40, QWidget *parent = nullptr);
     ~CopyButton();
 
 protected:
@@ -32,6 +33,7 @@ protected:
 private:
     MessageWidget *getMessageWidget();
 
+    AppContext *appContext;
     QString tipText;
     QPoint tipStartPos;
 };

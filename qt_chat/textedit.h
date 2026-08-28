@@ -24,12 +24,14 @@
 // extern const int windowFontPointSize;
 // extern const int windowFontPixelSize;
 
+class AppContext;
+
 class TextEdit : public QTextEdit
 {
     Q_OBJECT
 
 public:
-    explicit TextEdit(QWidget *parent = nullptr);
+    explicit TextEdit(AppContext *appContext, QWidget *parent = nullptr);
     ~TextEdit();
 
     void updateSendButtonSize(qreal curDpi, qreal lastDpi);
@@ -51,6 +53,7 @@ private slots:
     void sendButtonShow();
 
 private:
+    AppContext *appContext;
     SendButton *sendButton;
     QGridLayout *gLayout;
     QString sendImagesPath;

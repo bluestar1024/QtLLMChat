@@ -10,12 +10,14 @@
 #include <QtGui/QFont>
 #include <QtCore/QPoint>
 
+class AppContext;
+
 class TitleButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit TitleButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
-                         QWidget *parent = nullptr);
+    explicit TitleButton(AppContext *appContext, const QString &tipText = "", int tipOffsetX = 10,
+                         int tipOffsetY = 40, QWidget *parent = nullptr);
     ~TitleButton();
 
     void setTipText(const QString &tipText);
@@ -31,6 +33,7 @@ protected:
 private:
     void updateTipStartPos();
 
+    AppContext *appContext;
     QString tipText;
     int tipOffsetX;
     int tipOffsetY;

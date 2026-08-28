@@ -13,12 +13,14 @@
 // extern const QString fontFilePath;
 // extern const int buttonFontPointSize;
 
+class AppContext;
+
 class PushButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit PushButton(const QString &tipText = "", int tipOffsetX = 10, int tipOffsetY = 40,
-                        QWidget *parent = nullptr);
+    explicit PushButton(AppContext *appContext, const QString &tipText = "", int tipOffsetX = 10,
+                        int tipOffsetY = 40, QWidget *parent = nullptr);
     ~PushButton();
 
     void setTipText(QString tipText);
@@ -30,6 +32,7 @@ protected:
     bool event(QEvent *e) override;
 
 private:
+    AppContext *appContext;
     QString tipText;
     QPoint tipStartPos;
 };
