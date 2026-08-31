@@ -1679,7 +1679,8 @@ void MainWindow::sendMessage()
             }
             thinkTimeLengthList.append(0);
             messageSendWidget = new MessageWidget(
-                    appContext, text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                    appContext, text, [this]() { textCopy(); },
+                    [this]() { messageRenewResponse(); },
                     [this](MessageWidget *selfMessageWidget) {
                         messageWidgetResize(selfMessageWidget);
                     },
@@ -2028,7 +2029,53 @@ void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
 
 void MainWindow::chatRecordsGenerateItem(QString searchText)
 {
-    Q_UNUSED(searchText);
+    QDir dir(appContext->chatRecordsDir());
+    // 按文件名升序（文件名含时间戳，升序即时间序），addListItem 头部插入后最新记录在最上方
+    QStringList fileNames = dir.entryList(QStringList() << "*.txt", QDir::Files, QDir::Name);
+    for (const QString &fileName : fileNames) {
+        QString filePath = dir.filePath(fileName);
+        try {
+            QStringList lines;
+            QFile file(filePath);
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                qDebug() << "错误：文件" << filePath << "不存在";
+                continue;
+            }
+            QTextStream in(&file);
+            in.setEncoding(QStringConverter::Utf8);
+            QString content = in.readAll();
+            file.close();
+
+            // 有搜索词时先过滤，内容不含关键词的记录跳过
+            if (!searchText.isEmpty() && !content.contains(searchText))
+                continue;
+
+            lines = content.split('\n');
+            for (int i = 0; i < lines.size() - 1; i++)
+                lines[i] += '\n';
+            if (lines.last().isEmpty())
+                lines.removeLast();
+
+            // 定位首条用户消息结束标记（True\n），其后为 AI 回复首行；
+            // 若为 <think>\n 则再跳一行，取思考或正文首行
+            int index = 0;
+            for (; index < lines.size(); index++) {
+                if (lines[index] == "True\n") {
+                    if (index + 1 < lines.size() && lines[index + 1] == "<think>\n")
+                        index++;
+                    break;
+                }
+            }
+            if (lines.isEmpty() || index + 1 >= lines.size())
+                continue;
+
+            QString chatRecordStr = lines[0] + QString(lines[index + 1]).remove('\n');
+            QListWidgetItem *item = chatRecordsWidget->addListItem(chatRecordStr);
+            chatRecordsWidget->listItemSetData(item, fileName);
+        } catch (const std::exception &e) {
+            qDebug() << "发生未知错误：" << e.what();
+        }
+    }
 }
 
 void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandList)
@@ -2332,7 +2379,35 @@ void MainWindow::setScrollValue()
     }
 }
 
-void MainWindow::showChatRecords() { }
+void MainWindow::showChatRecords()
+{
+    if (!chatRecordsWidgetIsOpen) {
+        saveCurChatRecord();
+        chatRecordsGenerateItem();
+        chatRecordsWidget->raise();
+        chatRecordsAnimationMove->setStartValue(chatRecordsWidget->geometry());
+        chatRecordsAnimationMove->setEndValue(QRect(
+                0, titleWidget->height(), chatRecordsWidget->width(), chatRecordsWidget->height()));
+        chatRecordsAnimationMove->start();
+        chatRecordsWidgetIsOpen = true;
+    } else {
+        if (settingWidgetIsOpen) {
+            settingAnimationMove->setStartValue(settingWidget->geometry());
+            settingAnimationMove->setEndValue(QRect(-settingWidget->width(), titleWidget->height(),
+                                                    settingWidget->width(),
+                                                    settingWidget->height()));
+            settingAnimationMove->start();
+            settingWidgetIsOpen = false;
+        }
+        chatRecordsAnimationMove->setStartValue(chatRecordsWidget->geometry());
+        chatRecordsAnimationMove->setEndValue(
+                QRect(-chatRecordsWidget->width(), titleWidget->height(),
+                      chatRecordsWidget->width(), chatRecordsWidget->height()));
+        chatRecordsAnimationMove->start();
+        chatRecordsWidgetIsOpen = false;
+    }
+    pushButtonIsPress = true;
+}
 
 void MainWindow::showSearchRecords()
 {
@@ -2341,7 +2416,16 @@ void MainWindow::showSearchRecords()
     chatRecordsGenerateItem(text);
 }
 
-void MainWindow::clearAllChatRecords() { }
+void MainWindow::clearAllChatRecords()
+{
+    chatRecordsWidget->delAllListItems();
+    QDir dir(appContext->chatRecordsDir());
+    const QStringList fileNames = dir.entryList(QStringList() << "*.txt", QDir::Files);
+    for (const QString &fileName : fileNames) {
+        if (!QFile::remove(dir.filePath(fileName)))
+            qDebug() << "删除聊天记录文件失败：" << fileName;
+    }
+}
 
 void MainWindow::generateChatRecord(QListWidgetItem *item)
 {
@@ -2366,4 +2450,25 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
     generateCurChatRecord();
 }
 
-void MainWindow::newChat() { }
+void MainWindow::newChat()
+{
+    if (isSending) {
+        thread->stop();
+        isSending = false;
+        // 主动停止线程：放弃本轮收尾，防止积压队列清空时误触发 messageFinish
+        isThreadFinished = false;
+        if (messageRecvWidget)
+            messageRecvWidget->breakHandle();
+    }
+    saveCurChatRecord();
+    messageWidgetList.clear();
+    thinkTimeLengthList.clear();
+    for (int i = 0; i < chatShow->count(); i++) {
+        QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
+        if (itemWidget)
+            itemWidget->deleteLater();
+    }
+    chatShow->clear();
+    curChatFile = "";
+    pushButtonIsPress = true;
+}
