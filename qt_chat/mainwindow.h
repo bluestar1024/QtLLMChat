@@ -95,6 +95,28 @@ private:
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
     void messageWidgetRegenerate();
+    // 按聊天记录部件的展开状态计算 chatShow 宽度（不读取 chatShow->width()，
+    // 避免展开/收起动画过程中读到的中间宽度影响 MessageWidget 最大宽度）
+    int chatShowWidth(bool recordsExpanded) const;
+    // MessageWidget 的最大宽度：与展开状态无关，未展开时约为 chatShow 宽度的 2/3，
+    // 展开时 AI 消息达到该宽度后右边缘与用户消息 ImageLabel 右边缘对齐
+    int messageWidgetMaxWidth() const;
+    // 传给 MessageWidget 构造函数的最大宽度参数（构造函数内部会再减去 10）
+    int messageWidgetTextMaxWidth() const;
+    // 按当前 chatShow 宽度同步单个 item 部件的尺寸、布局边距与 sizeHint
+    void updateItemLayout(QWidget *itemWidget, MessageWidget *messageWidget, QListWidgetItem *item);
+    // 聊天记录部件展开/收起后只调整 item 布局边距，不重建 MessageWidget
+    void messageWidgetItemRelayout();
+
+    // 用户消息 item 的右侧留白：用户消息 ImageLabel 右边缘与 chatShow 右边缘的距离，
+    // 同时也是 AI 消息达到最大宽度时右边缘的对齐基准
+    static constexpr int itemRightMargin = 25;
+    // item 布局的上下留白
+    static constexpr int itemVerticalMargin = 5;
+    // MessageWidget 构造参数比其实际最大宽度多出的量（构造函数内部会减去 10）
+    static constexpr int messageWidgetTextMaxWidthExtra = 10;
+    // MessageWidget 最大宽度下限，避免窗口过窄时算出非正值
+    static constexpr int minMessageWidgetMaxWidth = 200;
 
     AppContext *appContext;
 

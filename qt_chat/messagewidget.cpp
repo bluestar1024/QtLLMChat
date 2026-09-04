@@ -201,7 +201,7 @@ void MessageWidget::buildAiUi()
                         if (thinkCodeSelf)
                             thinkCodeSelf->onSizeFinished();
                     },
-                    textMaxWidth - imageLabel->width() - 80, this);
+                    textMaxWidth - imageLabel->width() - 80 - codeShowExtraWidth, this);
             qDebug() << "new CodeShow";
             codeShow->hide();
             qDebug() << "hide CodeShow";
@@ -313,7 +313,7 @@ void MessageWidget::buildAiUi()
                         if (resultCodeSelf)
                             resultCodeSelf->onSizeFinished();
                     },
-                    textMaxWidth - imageLabel->width() - 35, this);
+                    textMaxWidth - imageLabel->width() - 35 - codeShowExtraWidth, this);
             codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
             resultCodeShowList.append(codeShow);
@@ -742,7 +742,7 @@ void MessageWidget::setText(const QString &text)
                             if (thinkCodeSelf)
                                 thinkCodeSelf->onSizeFinished();
                         },
-                        textMaxWidth - imageLabel->width() - 80, this);
+                        textMaxWidth - imageLabel->width() - 80 - codeShowExtraWidth, this);
                 codeShow->hide();
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 // codeShow->setVisible(thinkIsExpand);
@@ -1002,7 +1002,7 @@ void MessageWidget::setText(const QString &text)
                             if (resultCodeSelf)
                                 resultCodeSelf->onSizeFinished();
                         },
-                        textMaxWidth - imageLabel->width() - 35, this);
+                        textMaxWidth - imageLabel->width() - 35 - codeShowExtraWidth, this);
                 codeShow->hide();
                 qDebug() << "MessageWidget setText ing4" << this;
                 codeShow->connectCodeCopyButtonClick(copyFun);

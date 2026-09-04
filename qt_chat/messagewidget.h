@@ -112,6 +112,10 @@ private:
     bool isUser;
     bool thinkIsExpand;
     int textMaxWidth;
+    // CodeShow 的实际宽度为传入的最大宽度 + 2（内部边框），而 ThinkWidget/TextShow 的宽度
+    // 等于传入的最大宽度：代码块的最大宽度需再减去该值，使同一条 AI 消息中代码块与
+    // 文本的最大宽度一致，从而 MessageWidget 的最大宽度恒为构造参数 textMaxWidth - 10
+    static constexpr int codeShowExtraWidth = 2;
 
     ImageLabel *imageLabel;
     TextShow *textShow;
