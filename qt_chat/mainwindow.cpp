@@ -4,8 +4,7 @@
 #include <QQuickWindow>
 #include <QDebug>
 #include <QPointer>
-#include <QCoreApplication>
-#include <QEventLoop>
+#include <QTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -1263,6 +1262,9 @@ void MainWindow::chatRecordsUiAnimationMove(const QVariant &value)
 
 void MainWindow::chatRecordsUiMoveFinished()
 {
+    qDebug() << "chatRecordsUiMoveFinished at" << QTime::currentTime().toString("hh:mm:ss.zzz")
+             << "chatShow width:" << chatShow->width()
+             << "mainWidget width:" << mainWidget->width();
     chatFun->saveWidgetSize();
     if (!chatRecordsWidgetIsOpen)
         chatRecordsWidget->delAllListItems();
@@ -2286,6 +2288,9 @@ void MainWindow::getSetTexting(bool state)
 
 void MainWindow::messageWidgetRegenerate()
 {
+    qDebug() << "messageWidgetRegenerate enter at" << QTime::currentTime().toString("hh:mm:ss.zzz")
+             << "mainWidget width:" << mainWidget->width()
+             << "chatShow width:" << chatShow->width();
     // 重入保护：正在重建或 AI 消息渲染中（嵌套事件循环内 WM_EXITSIZEMOVE 会被再次分发）
     // 再次触发时仅标记待重建，避免半成品控件重复创建与悬空指针访问
     if (isRegenerating || isSetTexting) {
@@ -2293,11 +2298,6 @@ void MainWindow::messageWidgetRegenerate()
         return;
     }
     isRegenerating = true;
-    // 先冲刷积压的 Resize/布局事件再重建：WM_EXITSIZEMOVE 的 singleShot(0) 可能
-    // 早于最终 resizeEvent 执行（13.txt 中拖窄到 1100 后重建仍采样到旧宽度 1575
-    // 展开态的 chatShow≈1020，重建出 762 > 1100 的 2/3），冲刷后 mainWidget/
-    // chatShow 的宽度才是释放鼠标后的最终值
-    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
     do {
         isRegeneratePending = false;
         if (messageWidgetList.size() != 0) {
@@ -2394,22 +2394,6 @@ void MainWindow::messageWidgetRegenerate()
         }
     } while (isRegeneratePending);
     isRegenerating = false;
-    // 重建后自检：若本次重建被推迟过（流式渲染中拖拉）或仍采样到未稳定宽度，
-    // 延迟比对每个控件的构造宽度与当前应有宽度，不一致则补一次重建；宽度一致
-    // 时不做任何事，因此收敛后自动停止，展开/收起也不会触发重建
-    QPointer<MainWindow> self(this);
-    QTimer::singleShot(150, this, [self]() {
-        if (!self || self->isRegenerating || self->isSetTexting)
-            return;
-        const int maxWidth = self->messageWidgetMaxWidth();
-        for (MessageWidget *messageWidget : self->messageWidgetList) {
-            if (messageWidget && messageWidget->getTextMaxWidth() != maxWidth) {
-                qDebug() << "regenerate self-check: width outdated, rebuild, maxWidth:" << maxWidth;
-                self->messageWidgetRegenerate();
-                return;
-            }
-        }
-    });
     // 重建完成：恢复队列处理（重建期间 queueMessage 只入队、recvMessage 暂停，
     // 文本保留在队列中）。延迟到重建栈退出后执行：接收仍在进行（isSending）或
     // 接收已结束但队列仍有积压（AI 输出完毕时未渲染的尾部文本）时，逐条增量渲染

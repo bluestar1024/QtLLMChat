@@ -41,6 +41,7 @@ public:
     // bool getIsEmitSizeFinish();
     void setIsSizeFinish(bool flag);
     bool getIsSizeFinish();
+    int getMaxWidth() const { return maxWidth; }
 
 protected:
     WebEngineView *webEngineView;

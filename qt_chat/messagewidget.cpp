@@ -3,6 +3,7 @@
 
 #include <QtCore/QMutexLocker>
 #include <QtCore/QPointer>
+#include <QtCore/QTime>
 
 MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
                              std::function<void()> copyFun, std::function<void()> renewResponseFun,
@@ -34,6 +35,8 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       loadingWidgetIsRemove(true),
       renewResponseButtonIsRemove(true)
 {
+    qDebug() << "MessageWidget ctor at" << QTime::currentTime().toString("hh:mm:ss.zzz")
+             << "textMaxWidth:" << textMaxWidth << "isUser:" << isUser;
     setMouseTracking(true);
 
     connect(this, &MessageWidget::resizeFinished, this->widgetResizeFun);
@@ -125,7 +128,7 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
     }
     mainHLayout->addLayout(subVLayout1);
     mainHLayout->addLayout(subVLayout2);
-    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, textMaxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
     // emit resizeFinished(this);
     // 构造渲染完成，若有待执行的重建，将在事件循环空闲时执行
@@ -462,7 +465,7 @@ void MessageWidget::setSize()
         qDebug() << "textBoxWidget:" << textBoxWidget->width() << textBoxWidget->height();
     }
     qDebug() << "MessageWidget setSize ing2" << this;
-    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, textMaxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
     qDebug() << "MessageWidget size:" << this->width() << this->height();
     qDebug() << "MessageWidget setSize end" << this;
@@ -642,7 +645,7 @@ void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
         textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                     textWidget->height() + funWidget->height());
     }
-    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, textMaxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
 }
 
@@ -1226,7 +1229,7 @@ void MessageWidget::removeLoadingWidget()
     textBoxLayout->setSpacing(0);
     textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                 textWidget->height() + funWidget->height());
-    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, textMaxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
 }
 
