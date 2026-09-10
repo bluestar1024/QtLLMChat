@@ -63,6 +63,8 @@ public:
     void setText(const QString &text);
     QString getText();
     bool getIsUser();
+    // 构造时确定的实际最大宽度（= 构造参数 - 10），供重建后自检比对是否采样到旧宽度
+    int getTextMaxWidth() const { return textMaxWidth; }
     TextWidget *getTextWidget();
     TextBoxWidget *getTextBoxWidget();
     bool getIsRemoveloadingWidget();
