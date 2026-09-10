@@ -3,7 +3,6 @@
 
 #include <QtCore/QMutexLocker>
 #include <QtCore/QPointer>
-#include <QtCore/QTime>
 
 MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
                              std::function<void()> copyFun, std::function<void()> renewResponseFun,
@@ -35,8 +34,6 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       loadingWidgetIsRemove(true),
       renewResponseButtonIsRemove(true)
 {
-    qDebug() << "MessageWidget ctor at" << QTime::currentTime().toString("hh:mm:ss.zzz")
-             << "textMaxWidth:" << textMaxWidth << "isUser:" << isUser;
     setMouseTracking(true);
 
     connect(this, &MessageWidget::resizeFinished, this->widgetResizeFun);

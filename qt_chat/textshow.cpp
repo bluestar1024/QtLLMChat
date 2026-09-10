@@ -48,9 +48,7 @@ getPageSize();
         // JS 量测的 .content 宽度（代码长行自然宽、MathJax 展开宽等）可能超过构造时
         // 传入的最大宽度（拖窄窗口重建后尤其明显）：不夹取会把 TextShow 固定到
         // 量测宽，使气泡宽度超过 MessageWidget 的最大宽度（14.txt 中 762 > 679）
-        qDebug() << "TextShow onUpdateSize w:" << w << "maxWidth:" << self->getMaxWidth();
         w = qMin(w, self->getMaxWidth());
-        qDebug() << "TextShow onUpdateSize w:" << w;
         if (self->webEngineSize == QSize(w, h)) {
             if (self->isSetTextEnd) {
                 self->isSetTextEnd = false;

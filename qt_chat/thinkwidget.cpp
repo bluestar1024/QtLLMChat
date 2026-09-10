@@ -552,9 +552,7 @@ getPageSize();
             self->updateSizeTimer->start(10);
             return;
         }
-        qDebug() << "ThinkWidget onUpdateSize w:" << w << "maxWidth:" << self->getMaxWidth();
         w = qMin(w, self->getMaxWidth());
-        qDebug() << "ThinkWidget onUpdateSize w:" << w;
         if (self->webEngineSize == QSize(w, h)) {
             if (self->isSetTextEnd) {
                 self->isSetTextEnd = false;

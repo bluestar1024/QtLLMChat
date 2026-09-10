@@ -4,7 +4,6 @@
 #include <QQuickWindow>
 #include <QDebug>
 #include <QPointer>
-#include <QTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -1151,14 +1150,20 @@ void MainWindow::resizeEvent(QResizeEvent *event)
                               mainWidget->height() - titleWidget->height());
     chatRecordsWidget->resetWidgetSize();
     if (settingWidgetIsOpen || chatRecordsWidgetIsOpen) {
-        chatFun->setFixedSize(mainWidget->width() * 2 / 3, chatFun->height());
+        // 展开态内容区宽度统一使用 mainWidget->width() - mainWidget->width() / 3：
+        // 侧栏宽度为 mainWidget->width() / 3，chatRecordsUiAnimationMove 的终态与
+        // chatShowWidth(true) 都是该表达式；若这里改用 * 2 / 3，当窗口宽度除 3 余 2 时
+        // 会比其小 1px，展开后拖拉窗口将使 AI 最大宽度的右边缘与用户 ImageLabel
+        // 的右边缘错开 1px
+        const int contentWidth = mainWidget->width() - mainWidget->width() / 3;
+        chatFun->setFixedSize(contentWidth, chatFun->height());
         chatFun->resetWidgetSize();
-        chatShow->resize(mainWidget->width() * 2 / 3 - 30, chatShow->height());
-        chatShowWidget->resize(mainWidget->width() * 2 / 3, chatShowWidget->height());
-        chatInput->resize(mainWidget->width() * 2 / 3 - 40, chatInput->height());
+        chatShow->resize(contentWidth - 30, chatShow->height());
+        chatShowWidget->resize(contentWidth, chatShowWidget->height());
+        chatInput->resize(contentWidth - 40, chatInput->height());
         chatInput->resetWidgetSize();
-        chatInputWidget->resize(mainWidget->width() * 2 / 3, chatInputWidget->height());
-        splitter->resize(mainWidget->width() * 2 / 3, splitter->height());
+        chatInputWidget->resize(contentWidth, chatInputWidget->height());
+        splitter->resize(contentWidth, splitter->height());
         contentVLayout->setContentsMargins(mainWidget->width() / 3, 0, 0, 0);
         if (settingWidgetIsOpen)
             settingWidget->move(0, titleWidget->height());
@@ -1262,9 +1267,6 @@ void MainWindow::chatRecordsUiAnimationMove(const QVariant &value)
 
 void MainWindow::chatRecordsUiMoveFinished()
 {
-    qDebug() << "chatRecordsUiMoveFinished at" << QTime::currentTime().toString("hh:mm:ss.zzz")
-             << "chatShow width:" << chatShow->width()
-             << "mainWidget width:" << mainWidget->width();
     chatFun->saveWidgetSize();
     if (!chatRecordsWidgetIsOpen)
         chatRecordsWidget->delAllListItems();
@@ -2288,9 +2290,6 @@ void MainWindow::getSetTexting(bool state)
 
 void MainWindow::messageWidgetRegenerate()
 {
-    qDebug() << "messageWidgetRegenerate enter at" << QTime::currentTime().toString("hh:mm:ss.zzz")
-             << "mainWidget width:" << mainWidget->width()
-             << "chatShow width:" << chatShow->width();
     // 重入保护：正在重建或 AI 消息渲染中（嵌套事件循环内 WM_EXITSIZEMOVE 会被再次分发）
     // 再次触发时仅标记待重建，避免半成品控件重复创建与悬空指针访问
     if (isRegenerating || isSetTexting) {
