@@ -1263,6 +1263,37 @@ void MainWindow::chatRecordsUiAnimationMove(const QVariant &value)
     splitter->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
                      splitter->height());
     contentVLayout->setContentsMargins(rect.x() + chatRecordsWidget->width(), 0, 0, 0);
+    const int count = qMin(chatShow->count(), messageWidgetList.size());
+    // qDebug() << "chatRecordsUiAnimationMove rect:" << rect;
+    for (int i = 0; i < count; ++i) {
+        QListWidgetItem *item = chatShow->item(i);
+        if (!item)
+            continue;
+        ItemWidget *itemWidget = qobject_cast<ItemWidget *>(chatShow->itemWidget(item));
+        MessageWidget *messageWidget = messageWidgetList.at(i);
+        if (messageWidget->getIsUser()) {
+            if (QLayout *itemLayout = itemWidget->layout()) {
+                if (chatRecordsWidgetIsOpen) {
+                    // const int w = chatShow->width();
+                    // const int h = messageWidget->height() + 10;
+                    // itemWidget->setFixedSize(w, h);
+                    itemLayout->setContentsMargins(
+                            itemWidget->width() - rect.x() - chatRecordsWidget->width()
+                                    - messageWidget->width() - itemRightMargin,
+                            itemVerticalMargin,
+                            itemRightMargin + rect.x() + chatRecordsWidget->width(),
+                            itemVerticalMargin);
+                } else {
+                    const int w = chatShow->width();
+                    const int h = messageWidget->height() + 10;
+                    itemWidget->setFixedSize(w, h);
+                    itemLayout->setContentsMargins(
+                            itemWidget->width() - messageWidget->width() - itemRightMargin,
+                            itemVerticalMargin, itemRightMargin, itemVerticalMargin);
+                }
+            }
+        }
+    }
 }
 
 void MainWindow::chatRecordsUiMoveFinished()
@@ -1273,7 +1304,7 @@ void MainWindow::chatRecordsUiMoveFinished()
     // 展开/收起只改变 chatShow 宽度：MessageWidget 的最大宽度与展开状态无关
     // （由 messageWidgetMaxWidth() 统一计算），因此不重建控件，只按新宽度调整
     // itemRecvHLayout 等的边距；延迟到布局激活后执行，保证读到最终的 chatShow 宽度
-    QTimer::singleShot(0, this, &MainWindow::messageWidgetItemRelayout);
+    // QTimer::singleShot(0, this, &MainWindow::messageWidgetItemRelayout);
 }
 
 void MainWindow::onBaseUrlTextChanged(const QString &text)
