@@ -1838,6 +1838,9 @@ void MainWindow::sendMessage()
 void MainWindow::onExecuteNext()
 {
     qDebug() << "onExecuteNext";
+    // 会话切换后旧发送控件已销毁（resetRecvChain 已置空）：跳过，避免悬空访问
+    if (!messageSendWidget)
+        return;
     messageSendWidget->show();
     QTimer::singleShot(50, this, &MainWindow::startThread);
 }
@@ -1856,6 +1859,9 @@ void MainWindow::startThread()
 void MainWindow::messageStart()
 {
     message.clear();
+    // 新接收开始：会话切换时 resetRecvChain 置 false 的渲染开关在此恢复，
+    // 否则切换后新发送的流式文本不会渲染
+    isContinueShow = true;
     int i = messageWidgetList.size() - 1;
     if (i != 0) {
         if (messageWidgetList[i]->getIsUser())
@@ -1919,6 +1925,12 @@ void MainWindow::recvMessage(const QString &text)
         isProcessing = false;
         return;
     }
+    // 会话切换/新建聊天已清空队列：挂起的排队回调（singleShot）在切换后仍可能执行，
+    // 此时无待渲染文本，直接退出，避免后续对空队列 dequeue 的未定义行为
+    if (messageQueue.isEmpty()) {
+        isProcessing = false;
+        return;
+    }
     qDebug() << "recvMessage:" << text;
     // QSignalBlocker blocker(thread);
     // isProcessing = true;
@@ -1944,7 +1956,10 @@ void MainWindow::recvMessage(const QString &text)
                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
     qDebug() << "recvMessage: setText finish";
-    messageQueue.dequeue();
+    // setText 内部嵌套事件循环可能已触发会话切换（用户点击聊天记录）：
+    // 队列已被 resetRecvChain 清空时跳过 dequeue
+    if (!messageQueue.isEmpty())
+        messageQueue.dequeue();
     qDebug() << "recvMessage: messageQueue dequeue";
     if (!messageQueue.isEmpty()) {
         QString next = messageQueue.head();
@@ -1962,6 +1977,10 @@ void MainWindow::recvMessage(const QString &text)
 
 void MainWindow::onThreadFinished()
 {
+    // 仅处理当前线程：会话切换后旧线程的 finished 信号可能迟到（thread 已指向新对象），
+    // 忽略旧线程的完成信号，避免误触发收尾破坏新接收状态
+    if (sender() != thread)
+        return;
     // 线程完成信号到来后不能立即收尾：messageQueue 可能仍有未渲染的文本
     // （AI 输出速度大于渲染速度，或重建期间队列冻结）。仅标记线程已完成，
     // 待 recvMessage 处理完最后一条（队列为空）时再触发 messageFinish
@@ -1996,7 +2015,10 @@ void MainWindow::messageFinish()
         updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
     }
 
-    if (message.isEmpty() && !messageWidgetList.isEmpty() && chatShow->count() > 0) {
+    // 空回复置占位移除：仅在接收控件与本轮 item 上有效。会话切换后这些指针已置空
+    // （resetRecvChain），此时 message 必然被清空，若不加限制会误删新会话的最后一条消息
+    if (message.isEmpty() && messageRecvWidget && itemRecvWidget && recvItem
+        && !messageWidgetList.isEmpty() && chatShow->count() > 0) {
         delete messageWidgetList.takeLast();
         int last = chatShow->count() - 1;
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
@@ -2015,6 +2037,32 @@ void MainWindow::messageFinish()
     //     MessageWidget *messageWidget = messageWidgetList.at(i);
     //     qDebug() << i << "messageWidget size:" << messageWidget->size();
     // }
+}
+
+void MainWindow::resetRecvChain()
+{
+    // 切换聊天记录/新建聊天时调用：旧消息控件随后会被 deleteLater/chatShow->clear()
+    // 销毁，但排队的 recvMessage 回调（singleShot）与尚未返回的 setText 调用栈
+    // （流式渲染中嵌套事件循环内触发的切换）仍持有旧控件指针。这里清空积压队列、
+    // 复位流式状态并断开接收链上的裸指针：
+    // - recvMessage 通过 isContinueShow/messageRecvWidget 判断跳过对旧控件的渲染；
+    // - 队列清空后，recvMessage 的空队列检查使挂起回调安全退出
+    //   （避免对空队列 dequeue 的未定义行为）；
+    // - messageFinish 通过 messageRecvWidget 判断避免误收尾
+    messageQueue.clear();
+    isProcessing = false;
+    isContinueShow = false;
+    isThreadFinished = false;
+    first = true;
+    message.clear();
+    messageRecvWidget = nullptr;
+    itemRecvWidget = nullptr;
+    itemRecvHLayout = nullptr;
+    recvItem = nullptr;
+    messageSendWidget = nullptr;
+    itemSendWidget = nullptr;
+    itemSendHLayout = nullptr;
+    sendItem = nullptr;
 }
 
 void MainWindow::textCopy() { }
@@ -2517,6 +2565,9 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
             messageRecvWidget->breakHandle();
     }
     saveCurChatRecord();
+    // 旧消息控件即将被销毁：停止接收链并断开裸指针，防止流式渲染中的
+    // setText 调用栈或排队的 recvMessage 回调在控件销毁后继续访问（悬空崩溃）
+    resetRecvChain();
     messageWidgetList.clear();
 
     for (int i = 0; i < chatShow->count(); ++i) {
@@ -2540,6 +2591,8 @@ void MainWindow::newChat()
             messageRecvWidget->breakHandle();
     }
     saveCurChatRecord();
+    // 旧消息控件即将被销毁：停止接收链并断开裸指针（同 generateChatRecord）
+    resetRecvChain();
     messageWidgetList.clear();
     thinkTimeLengthList.clear();
     for (int i = 0; i < chatShow->count(); i++) {

@@ -95,6 +95,9 @@ private:
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
     void messageWidgetRegenerate();
+    // 会话切换/新建聊天时停止接收链：清空积压队列、复位流式渲染状态、
+    // 断开接收链上指向旧消息控件的裸指针（旧控件随后被 deleteLater/clear 销毁）
+    void resetRecvChain();
     // 按聊天记录部件的展开状态计算 chatShow 宽度（不读取 chatShow->width()，
     // 避免展开/收起动画过程中读到的中间宽度影响 MessageWidget 最大宽度）
     int chatShowWidth(bool recordsExpanded) const;
