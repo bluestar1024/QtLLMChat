@@ -17,7 +17,7 @@ CodeShow::CodeShow(AppContext *appContext, const QString &codeText, const QStrin
       isLightThemeStyle(false),
       isWordWrap(true)
 {
-    resize(this->maxWidth + 2, 40);
+    resize(this->maxWidth, 40);
     connect(this, &CodeShow::setSizeFinished, this->sizeFinishFun);
     qDebug() << "connect CodeShow";
     setupUI();
@@ -104,7 +104,7 @@ void CodeShow::setupUI()
     topHLayout->setContentsMargins(10, 0, 10, 0);
 
     qDebug() << "CodeShow setupUI ing6" << this;
-    codeEdit = new CodeEditor(appContext, maxWidth);
+    codeEdit = new CodeEditor(appContext, maxWidth - 2);
     qDebug() << "CodeShow setupUI ing9" << this;
     // lambda 捕获 QPointer 而非裸 this：CodeEditor 析构链中可能仍触发此连接
     // （CodeShow 的 disconnectAll 尚未执行），对象已销毁时必须安全跳过，
@@ -113,7 +113,7 @@ void CodeShow::setupUI()
     connect(codeEdit, &CodeEditor::setSizeFinished, [self]() {
         if (!self)
             return;
-        self->setFixedSize(self->maxWidth + 2,
+        self->setFixedSize(self->maxWidth,
                            self->codeEdit->height() + self->topWidget->height() + 2);
         emit self->setSizeFinished();
     });
@@ -155,7 +155,7 @@ void CodeShow::setText(const QString &codeText, const QString &lexerName)
     this->codeText = codeText;
     this->lexerName = lexerName;
     codeEdit->highlightCode(codeText, lexerName);
-    codeEdit->setFixedWidth(maxWidth);
+    codeEdit->setFixedWidth(maxWidth - 2);
 }
 
 bool CodeShow::hasSelectedText() const

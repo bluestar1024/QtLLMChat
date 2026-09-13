@@ -1742,13 +1742,6 @@ int MainWindow::messageWidgetMaxWidth() const
     return qMax(minMessageWidgetMaxWidth, maxWidth);
 }
 
-int MainWindow::messageWidgetTextMaxWidth() const
-{
-    // MessageWidget 构造时会在传入的最大宽度上再减去 10（内部边距），此处回加，
-    // 使 MessageWidget 的实际最大宽度等于 messageWidgetMaxWidth()
-    return messageWidgetMaxWidth() + messageWidgetTextMaxWidthExtra;
-}
-
 void MainWindow::updateItemLayout(QWidget *itemWidget, MessageWidget *messageWidget,
                                   QListWidgetItem *item)
 {
@@ -1833,7 +1826,7 @@ void MainWindow::sendMessage()
                     },
                     [this](bool state) { getSetTexting(state); }, [this]() { onExecuteNext(); },
                     chatShow, thinkTimeLengthList, messageWidgetList.size(), true, true,
-                    messageWidgetTextMaxWidth());
+                    messageWidgetMaxWidth());
             messageSendWidget->hide();
             messageSendWidget->updateFunWidgetSize(curDpi, initDpi);
             // messageSendWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
@@ -1912,7 +1905,7 @@ void MainWindow::messageStart()
             appContext, message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
             [this](MessageWidget *selfMessageWidget) { messageWidgetResize(selfMessageWidget); },
             [this](bool state) { getSetTexting(state); }, nullptr, chatShow, thinkTimeLengthList,
-            messageWidgetList.size(), false, true, messageWidgetTextMaxWidth());
+            messageWidgetList.size(), false, true, messageWidgetMaxWidth());
     // messageRecvWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
     // messageRecvWidget->connectSetTexting(this, &MainWindow::getSetTexting);
     messageWidgetList.append(messageRecvWidget);
@@ -2315,7 +2308,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             },
                             [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
                             thinkTimeLengthList, thinkTimeIndex, isUser, thinkExpand,
-                            messageWidgetTextMaxWidth());
+                            messageWidgetMaxWidth());
                 } else {
                     // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
                     messageWidget = new MessageWidget(
@@ -2326,7 +2319,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             },
                             [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
                             thinkTimeLengthList, thinkTimeIndex, isUser, true,
-                            messageWidgetTextMaxWidth());
+                            messageWidgetMaxWidth());
                 }
             } else {
                 // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
@@ -2337,8 +2330,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             messageWidgetResize(selfMessageWidget);
                         },
                         [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
-                        thinkTimeLengthList, thinkTimeIndex, isUser, true,
-                        messageWidgetTextMaxWidth());
+                        thinkTimeLengthList, thinkTimeIndex, isUser, true, messageWidgetMaxWidth());
             }
             // messageWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
             // messageWidget->connectSetTexting(this, &MainWindow::getSetTexting);

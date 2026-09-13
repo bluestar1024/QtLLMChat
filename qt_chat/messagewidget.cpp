@@ -10,7 +10,7 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
                              std::function<void(bool)> getSetTextingFun,
                              std::function<void()> executeNextFun, ListWidget *listWidget,
                              QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser,
-                             bool thinkIsExpand, int textMaxWidth, QWidget *parent)
+                             bool thinkIsExpand, int maxWidth, QWidget *parent)
     : QWidget(parent),
       appContext(appContext),
       text(text),
@@ -24,7 +24,7 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       thinkTimeIndex(thinkTimeIndex),
       isUser(isUser),
       thinkIsExpand(thinkIsExpand),
-      textMaxWidth(textMaxWidth - 10),
+      maxWidth(maxWidth),
       thinkButtonHaveCreated(false),
       thinkText(""),
       resultText(""),
@@ -125,7 +125,7 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
     }
     mainHLayout->addLayout(subVLayout1);
     mainHLayout->addLayout(subVLayout2);
-    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, textMaxWidth),
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, this->maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
     // emit resizeFinished(this);
     // 构造渲染完成，若有待执行的重建，将在事件循环空闲时执行
@@ -145,7 +145,7 @@ void MessageWidget::buildUserUi()
                 if (self)
                     self->onSizeFinished();
             },
-            executeNextFun, textMaxWidth - imageLabel->width() - 15);
+            executeNextFun, maxWidth - imageLabel->width() - 15);
     // connect(textShow, &TextShow::executeNext, this->executeNextFun);
     // connect(textShow, &ThinkWidget::setSizeFinished, this, &MessageWidget::onSizeFinished);
     // if (textShow->getIsEmitSizeFinish()) {
@@ -201,7 +201,7 @@ void MessageWidget::buildAiUi()
                         if (thinkCodeSelf)
                             thinkCodeSelf->onSizeFinished();
                     },
-                    textMaxWidth - imageLabel->width() - 80 - codeShowExtraWidth, this);
+                    maxWidth - imageLabel->width() - 80, this);
             qDebug() << "new CodeShow";
             codeShow->hide();
             qDebug() << "hide CodeShow";
@@ -221,7 +221,7 @@ void MessageWidget::buildAiUi()
                             if (thinkTextSelf)
                                 thinkTextSelf->onSizeFinished();
                         },
-                        textMaxWidth - imageLabel->width() - 80, this));
+                        maxWidth - imageLabel->width() - 80, this));
                 // connect(thinkTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                 //         &MessageWidget::onSizeFinished);
                 // if (thinkTextShowList.last()->getIsEmitSizeFinish()) {
@@ -313,7 +313,7 @@ void MessageWidget::buildAiUi()
                         if (resultCodeSelf)
                             resultCodeSelf->onSizeFinished();
                     },
-                    textMaxWidth - imageLabel->width() - 35 - codeShowExtraWidth, this);
+                    maxWidth - imageLabel->width() - 35, this);
             codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
             resultCodeShowList.append(codeShow);
@@ -328,7 +328,7 @@ void MessageWidget::buildAiUi()
                             if (resultTextSelf)
                                 resultTextSelf->onSizeFinished();
                         },
-                        nullptr, textMaxWidth - imageLabel->width() - 35, this));
+                        nullptr, maxWidth - imageLabel->width() - 35, this));
                 // connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                 //         &MessageWidget::onSizeFinished);
                 // if (resultTextShowList.last()->getIsEmitSizeFinish()) {
@@ -462,7 +462,7 @@ void MessageWidget::setSize()
         qDebug() << "textBoxWidget:" << textBoxWidget->width() << textBoxWidget->height();
     }
     qDebug() << "MessageWidget setSize ing2" << this;
-    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, textMaxWidth),
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
     qDebug() << "MessageWidget size:" << this->width() << this->height();
     qDebug() << "MessageWidget setSize end" << this;
@@ -642,7 +642,7 @@ void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
         textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                     textWidget->height() + funWidget->height());
     }
-    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, textMaxWidth),
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
 }
 
@@ -742,7 +742,7 @@ void MessageWidget::setText(const QString &text)
                             if (thinkCodeSelf)
                                 thinkCodeSelf->onSizeFinished();
                         },
-                        textMaxWidth - imageLabel->width() - 80 - codeShowExtraWidth, this);
+                        maxWidth - imageLabel->width() - 80, this);
                 codeShow->hide();
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 // codeShow->setVisible(thinkIsExpand);
@@ -770,7 +770,7 @@ void MessageWidget::setText(const QString &text)
                                 if (thinkTextSelf)
                                     thinkTextSelf->onSizeFinished();
                             },
-                            textMaxWidth - imageLabel->width() - 80, this);
+                            maxWidth - imageLabel->width() - 80, this);
                     // thinkWidget->setVisible(thinkIsExpand);
                     thinkTextShowList.append(thinkWidget);
                     // connect(thinkWidget, &ThinkWidget::setSizeFinished, this,
@@ -1002,7 +1002,7 @@ void MessageWidget::setText(const QString &text)
                             if (resultCodeSelf)
                                 resultCodeSelf->onSizeFinished();
                         },
-                        textMaxWidth - imageLabel->width() - 35 - codeShowExtraWidth, this);
+                        maxWidth - imageLabel->width() - 35, this);
                 codeShow->hide();
                 qDebug() << "MessageWidget setText ing4" << this;
                 codeShow->connectCodeCopyButtonClick(copyFun);
@@ -1027,7 +1027,7 @@ void MessageWidget::setText(const QString &text)
                                 if (resultTextSelf)
                                     resultTextSelf->onSizeFinished();
                             },
-                            nullptr, textMaxWidth - imageLabel->width() - 35, this));
+                            nullptr, maxWidth - imageLabel->width() - 35, this));
                     // connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                     //         &MessageWidget::onSizeFinished);
                     // if (resultTextShowList.last()->getIsEmitSizeFinish()) {
@@ -1226,7 +1226,7 @@ void MessageWidget::removeLoadingWidget()
     textBoxLayout->setSpacing(0);
     textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                 textWidget->height() + funWidget->height());
-    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, textMaxWidth),
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
 }
 
