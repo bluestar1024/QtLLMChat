@@ -26,6 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
       isSizeMoveDrag(false),
       dragRegenerateDone(false),
       pendingRegenerateAfterResize(false),
+      isMinimizedState(false),
       lastRegenerateWidth(-1),
       lastRegenerateHeight(-1),
       isDpiChanged(false),
@@ -370,7 +371,12 @@ void MainWindow::changeEvent(QEvent *event)
 
         if ((oldState & Qt::WindowMinimized) && !(newState & Qt::WindowMinimized)) {
             qDebug() << "从最小化恢复";
+            // 兜底清除最小化标记：正常路径下 WM_SIZE(SIZE_RESTORED) 已消费该标记
+            isMinimizedState = false;
             QTimer::singleShot(10, this, [this]() { applyDWMShadow(); });
+        } else if (!(oldState & Qt::WindowMinimized) && (newState & Qt::WindowMinimized)) {
+            // 兜底记录最小化状态：恢复时的 WM_SIZE 据此跳过重建
+            isMinimizedState = true;
         }
         // if ((newState & Qt::WindowMaximized) && !(oldState & Qt::WindowMaximized)) {
         if (!(oldState & Qt::WindowMaximized) && (newState & Qt::WindowMaximized)) {
@@ -523,16 +529,44 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     }
 
     case WM_SIZE: {
+        // 最小化：窗口会被移到屏幕外并缩成图标尺寸，该尺寸不代表恢复后的界面尺寸。
+        // 仅记录状态供恢复时识别，避免最小化/恢复被当成窗口尺寸变化而触发重建
+        if (msg->wParam == SIZE_MINIMIZED) {
+            isMinimizedState = true;
+            break;
+        }
         if (msg->wParam == SIZE_RESTORED || msg->wParam == SIZE_MAXIMIZED) {
             QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
+
+            RECT rect;
+            GetWindowRect(hwnd, &rect);
+            int w = rect.right - rect.left;
+            int h = rect.bottom - rect.top;
+
+            // 从最小化恢复：窗口恢复到最小化前的尺寸（lastRegenerateWidth 即该尺寸），
+            // 直接按最小化前的界面继续显示，不重建 MessageWidget。
+            // 最小化前若为最大化，恢复时后续还会收到 SIZE_MAXIMIZED，仍走下方宽度比较
+            if (isMinimizedState && msg->wParam == SIZE_RESTORED) {
+                isMinimizedState = false;
+                lastRegenerateHeight = h;
+                qDebug() << "WM_SIZE restore from minimized, skip regenerate" << w << h;
+                break;
+            }
+            isMinimizedState = false;
+
+            // 首次显示阶段（showEvent 之前）的 WM_SIZE：只记录初始尺寸作为重建基准。
+            // 否则 lastRegenerateWidth 始终为初值，此后任何一次 WM_SIZE（如从任务栏
+            // 恢复窗口、DWM 触发的尺寸通知）都会被误判为宽度变化并重建 MessageWidget
+            if (isShowFirst) {
+                lastRegenerateWidth = w;
+                lastRegenerateHeight = h;
+                break;
+            }
+
             // 双击标题栏/单击最大化按钮等非拖拽方式的最大化/还原：
             // 不经过 WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE，只能在这里触发重建；
             // 与上次重建尺寸相同（如 Snap 后延迟到达的 WM_SIZE）则跳过
-            if (!isShowFirst && !isSizeMoveDrag) {
-                RECT rect;
-                GetWindowRect(hwnd, &rect);
-                int w = rect.right - rect.left;
-                int h = rect.bottom - rect.top;
+            if (!isSizeMoveDrag) {
                 // 仅宽度变化才重建：MessageWidget 的宽度只取决于窗口宽度，
                 // 只改变高度（上下拉伸）不影响文本换行，重建只带来无谓开销与闪烁
                 if (w != lastRegenerateWidth) {

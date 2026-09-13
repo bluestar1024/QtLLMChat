@@ -173,6 +173,7 @@ private:
     bool isSizeMoveDrag;
     bool dragRegenerateDone;
     bool pendingRegenerateAfterResize;
+    bool isMinimizedState;
     int lastRegenerateWidth;
     int lastRegenerateHeight;
     bool isChangeRectFirst;
