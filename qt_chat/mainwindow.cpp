@@ -1781,6 +1781,9 @@ void MainWindow::sendMessage()
         QList<QVariantMap> context = {};
         QString text = chatInput->toPlainText().trimmed();
         if (!text.isEmpty()) {
+            // 用户主动发送消息：恢复滚动条自动跟随，避免之前滚动查看历史关闭的
+            // 自动跟随（scrollAutoChange=false）残留使本轮新消息不再滚动到底部
+            chatShow->resetScrollAutoChange();
             for (auto *w : messageWidgetList) {
                 QVariantMap m;
                 m["role"] = w->getIsUser() ? "user" : "assistant";
@@ -2576,6 +2579,8 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
             itemWidget->deleteLater();
     }
     chatShow->clear();
+    // 切换聊天记录：恢复自动跟随，保证加载完成与后续追加都显示最新内容（底部）
+    chatShow->resetScrollAutoChange();
     curChatFile = chatRecordsWidget->listItemToString(item);
     generateCurChatRecord();
 }
@@ -2601,6 +2606,9 @@ void MainWindow::newChat()
             itemWidget->deleteLater();
     }
     chatShow->clear();
+    // 新建聊天：恢复自动跟随，避免上一会话中滚动查看历史关闭的自动跟随
+    // 残留（清空时 value 本就为 0，不触发 valueChanged 恢复）导致新会话不滚动
+    chatShow->resetScrollAutoChange();
     curChatFile = "";
     pushButtonIsPress = true;
 }
