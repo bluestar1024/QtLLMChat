@@ -32,7 +32,8 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       isRecvFirst(true),
       funWidgetIsShow(false),
       loadingWidgetIsRemove(true),
-      renewResponseButtonIsRemove(true)
+      renewResponseButtonIsRemove(true),
+      renderingAborted(false)
 {
     setMouseTracking(true);
 
@@ -162,6 +163,9 @@ void MessageWidget::buildUserUi()
 
 void MessageWidget::buildAiUi()
 {
+    // 控件已被外部中止渲染（会话已清空/即将销毁）：跳过构建，避免在其上继续创建子控件
+    if (renderingAborted)
+        return;
     parseThinkAndResult(text, thinkText, resultText, thinkTextIsRecvEnd);
     qDebug() << "parseThinkAndResult:" << thinkText << "and" << resultText << this;
     thinkBackWidget = new ThinkBackWidget(this);
@@ -254,6 +258,10 @@ void MessageWidget::buildAiUi()
                     qDebug() << "checkTimer start-1";
                     loop.exec();
                     qDebug() << "loop exec-1";
+                    // 外部已清空会话并中止渲染（重建完成前用户点击新建聊天/切换会话）：
+                    // 立即退出，不再访问随后会被销毁的成员控件
+                    if (renderingAborted)
+                        return;
                 }
             } else
                 j += 1;
@@ -280,6 +288,10 @@ void MessageWidget::buildAiUi()
                 qDebug() << "checkTimer start0";
                 loop.exec();
                 qDebug() << "loop exec0";
+                // 外部已清空会话并中止渲染（重建完成前用户点击新建聊天/切换会话）：
+                // 立即退出，不再访问随后会被销毁的成员控件
+                if (renderingAborted)
+                    return;
             }
         }
         textLayout->addWidget(thinkBackWidget);
@@ -358,6 +370,10 @@ void MessageWidget::buildAiUi()
                     qDebug() << "checkTimer start-1";
                     loop.exec();
                     qDebug() << "loop exec-1";
+                    // 外部已清空会话并中止渲染（重建完成前用户点击新建聊天/切换会话）：
+                    // 立即退出，不再访问随后会被销毁的成员控件
+                    if (renderingAborted)
+                        return;
                 }
             } else
                 j += 1;
@@ -384,6 +400,10 @@ void MessageWidget::buildAiUi()
                 qDebug() << "checkTimer start0";
                 loop.exec();
                 qDebug() << "loop exec0";
+                // 外部已清空会话并中止渲染（重建完成前用户点击新建聊天/切换会话）：
+                // 立即退出，不再访问随后会被销毁的成员控件
+                if (renderingAborted)
+                    return;
             }
         }
     }
@@ -442,6 +462,9 @@ void MessageWidget::parseThinkAndResult(const QString &txt, QString &think, QStr
 
 void MessageWidget::setSize()
 {
+    // 外部已中止渲染（会话已清空/控件即将销毁）：跳过布局更新，避免访问已废弃成员
+    if (renderingAborted)
+        return;
     qDebug() << "MessageWidget setSize start" << this;
     if (isUser) {
         qDebug() << "MessageWidget setSize ing0" << this;
@@ -676,6 +699,27 @@ void MessageWidget::breakHandle()
     }
 }
 
+// 外部清空会话/销毁控件前调用（新建聊天、切换聊天记录、窗口重建）：
+// 追加文本时 setText/buildAiUi 正在嵌套事件循环（loop.exec）中同步等待子控件渲染，
+// 点击这类按钮的事件会在该嵌套循环内被处理：旧控件随 chatShow->clear() 被 deleteLater 后，
+// 等待条件（子控件 getIsSizeFinish）永远无法满足，等待循环若继续运行、或在控件销毁后
+// 返回渲染栈继续访问 thinkButton/thinkTextShowList 等成员，将导致悬空访问崩溃。
+// 这里置位中止标志并唤醒等待循环，使渲染栈在控件销毁前从等待点安全退出
+void MessageWidget::abortRendering()
+{
+    if (renderingAborted)
+        return;
+    renderingAborted = true;
+    // 断开旧等待 lambda：其按引用捕获局部连接变量，渲染栈退出后该变量已失效
+    checkTimer.stop();
+    checkTimer.disconnect();
+    if (loop.isRunning())
+        loop.quit();
+    // 渲染栈被中止后不会执行到 setText 末尾的 setTexting(false)，此处补发复位
+    // MainWindow 的渲染中标志，避免其重建流程被永久挂起
+    emit setTexting(false);
+}
+
 void MessageWidget::removeRenewResponseButton()
 {
     if (isUser || renewResponseButtonIsRemove)
@@ -692,6 +736,9 @@ void MessageWidget::removeRenewResponseButton()
 
 void MessageWidget::setText(const QString &text)
 {
+    // 控件已被外部中止渲染（会话已清空/即将销毁）：忽略本次追加
+    if (renderingAborted)
+        return;
     qDebug() << "MessageWidget setText start" << this;
     this->text = text;
     if (isUser) {
@@ -825,6 +872,10 @@ void MessageWidget::setText(const QString &text)
                             qDebug() << "checkTimer start2";
                             loop.exec();
                             qDebug() << "loop exec2";
+                            // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                            // 立即退出，不再访问随后会被销毁的成员控件
+                            if (renderingAborted)
+                                return;
                         }
                         // externalLoop.quit();
                         // qDebug() << "externalLoop quit";
@@ -890,6 +941,10 @@ void MessageWidget::setText(const QString &text)
                         qDebug() << "checkTimer start";
                         loop.exec();
                         qDebug() << "loop exec";
+                        // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                        // 立即退出，不再访问随后会被销毁的成员控件
+                        if (renderingAborted)
+                            return;
                     }
                     // externalLoop.quit();
                     // qDebug() << "externalLoop quit";
@@ -960,6 +1015,10 @@ void MessageWidget::setText(const QString &text)
                 qDebug() << "checkTimer start1";
                 loop.exec();
                 qDebug() << "loop exec1";
+                // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                // 立即退出，不再访问随后会被销毁的成员控件
+                if (renderingAborted)
+                    return;
             }
             // externalLoop.quit();
             // qDebug() << "externalLoop quit1";
@@ -1074,6 +1133,10 @@ void MessageWidget::setText(const QString &text)
                             qDebug() << "checkTimer start2";
                             loop.exec();
                             qDebug() << "loop exec2";
+                            // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                            // 立即退出，不再访问随后会被销毁的成员控件
+                            if (renderingAborted)
+                                return;
                         }
                         // externalLoop.quit();
                         // qDebug() << "externalLoop quit2";
@@ -1133,6 +1196,10 @@ void MessageWidget::setText(const QString &text)
                         qDebug() << "checkTimer start";
                         loop.exec();
                         qDebug() << "loop exec";
+                        // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                        // 立即退出，不再访问随后会被销毁的成员控件
+                        if (renderingAborted)
+                            return;
                     }
                     // externalLoop.quit();
                     // qDebug() << "externalLoop quit";
@@ -1193,6 +1260,10 @@ void MessageWidget::setText(const QString &text)
                 qDebug() << "checkTimer start1";
                 loop.exec();
                 qDebug() << "loop exec1";
+                // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                // 立即退出，不再访问随后会被销毁的成员控件
+                if (renderingAborted)
+                    return;
             }
             // externalLoop.quit();
             // qDebug() << "externalLoop quit1";
@@ -1232,6 +1303,10 @@ void MessageWidget::removeLoadingWidget()
 
 void MessageWidget::onSizeFinished()
 {
+    // 外部已中止渲染（会话已清空/控件即将销毁）：跳过尺寸/布局回调，
+    // 避免子控件渲染完成回调（sizeFinishFun）在控件废弃后继续触发布局更新
+    if (renderingAborted)
+        return;
     static int i;
     i += 1;
     qDebug() << "onSizeFinished" << i << this;

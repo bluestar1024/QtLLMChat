@@ -51,6 +51,7 @@ public:
     // void connectExecuteNext(T *receiver, void (T::*slot)());
     // void toggleWidget();
     void breakHandle();
+    void abortRendering();
     void removeRenewResponseButton();
     void removeLoadingWidget();
     void updateFunWidgetSize(qreal curDpi, qreal initDpi);
@@ -138,6 +139,9 @@ private:
     bool funWidgetIsShow;
     bool loadingWidgetIsRemove;
     bool renewResponseButtonIsRemove;
+    // 外部清空/销毁本控件前（新建聊天、切换聊天记录、窗口重建）置位：
+    // 渲染等待循环立即退出，且 setText/buildAiUi 不再访问随后会被销毁的成员控件
+    bool renderingAborted;
 
     QEventLoop loop;
     QTimer checkTimer;

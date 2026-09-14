@@ -2079,6 +2079,13 @@ void MainWindow::resetRecvChain()
     // - 队列清空后，recvMessage 的空队列检查使挂起回调安全退出
     //   （避免对空队列 dequeue 的未定义行为）；
     // - messageFinish 通过 messageRecvWidget 判断避免误收尾
+    // 先中止各控件的渲染等待栈：用户点击发生在旧控件的嵌套事件循环（loop.exec）内时，
+    // 其 setText/buildAiUi 仍在同步等待子控件渲染（子控件随后的销毁会使等待条件
+    // 永远无法满足，且渲染栈继续访问已销毁成员会悬空崩溃），使其在销毁前安全退出
+    for (MessageWidget *messageWidget : messageWidgetList) {
+        if (messageWidget)
+            messageWidget->abortRendering();
+    }
     messageQueue.clear();
     isProcessing = false;
     isContinueShow = false;
@@ -2428,6 +2435,13 @@ void MainWindow::messageWidgetRegenerate()
             }
 
             // 重建期间置空接收指针，防止嵌套事件循环中消息回调访问旧控件
+            // 先中止各控件的渲染等待栈（同 resetRecvChain）：窗口重建由嵌套事件循环
+            // 内的 WM_EXITSIZEMOVE 触发时，旧控件的 setText/buildAiUi 仍在等待子控件
+            // 渲染，控件销毁后渲染栈继续访问悬空成员会崩溃
+            for (MessageWidget *oldMessageWidget : messageWidgetList) {
+                if (oldMessageWidget)
+                    oldMessageWidget->abortRendering();
+            }
             messageRecvWidget = nullptr;
             messageWidgetList.clear();
 
@@ -2445,6 +2459,7 @@ void MainWindow::messageWidgetRegenerate()
                 // 但重建前队列可能仍有积压（AI 输出速度大于渲染速度，thread 结束后未处理
                 // 的文本仍在队列中）：重建完成后队列恢复的 recvMessage 仍需增量渲染补全，
                 // 因此队列非空时恢复最后一条 AI 消息控件的接收指针（否则积压文本只累积
+                
                 // 到 message 不显示，最终消息缺尾部）
                 if (!messageQueue.isEmpty() && !messageWidgetList.isEmpty()
                     && !messageWidgetList.last()->getIsUser()) {
