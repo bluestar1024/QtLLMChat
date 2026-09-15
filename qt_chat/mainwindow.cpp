@@ -2049,7 +2049,13 @@ void MainWindow::messageFinish()
     // （resetRecvChain），此时 message 必然被清空，若不加限制会误删新会话的最后一条消息
     if (message.isEmpty() && messageRecvWidget && itemRecvWidget && recvItem
         && !messageWidgetList.isEmpty() && chatShow->count() > 0) {
-        delete messageWidgetList.takeLast();
+        // 不能同步 delete：本函数可能被渲染期间到达的线程完成信号触发，控件仍停留在
+        // setText/buildAiUi 的嵌套事件循环（loop.exec）中，同步销毁会使其渲染栈访问
+        // 已释放成员。改用 abortRendering：中止渲染等待、摘除父级并接管销毁时机
+        // （渲染栈已退出则立即 deleteLater，否则推迟到渲染栈退出后）
+        MessageWidget *lastMessageWidget = messageWidgetList.takeLast();
+        if (lastMessageWidget)
+            lastMessageWidget->abortRendering();
         int last = chatShow->count() - 1;
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
         if (itemWidget)
@@ -2502,7 +2508,12 @@ void MainWindow::messageWidgetRegenerate()
                     }
                     if (message.isEmpty() && !messageWidgetList.isEmpty()
                         && chatShow->count() > 0) {
-                        delete messageWidgetList.takeLast();
+                        // 同上：不能同步 delete —— 控件可能仍停留在渲染等待的嵌套
+                        // 事件循环中，改用 abortRendering 接管销毁时机（摘除父级，
+                        // 渲染栈退出后再销毁）
+                        MessageWidget *lastMessageWidget = messageWidgetList.takeLast();
+                        if (lastMessageWidget)
+                            lastMessageWidget->abortRendering();
                         int last = chatShow->count() - 1;
                         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
                         if (itemWidget)
@@ -2609,6 +2620,10 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
             messageRecvWidget->breakHandle();
     }
     saveCurChatRecord();
+    for (MessageWidget *oldMessageWidget : messageWidgetList) {
+        if (oldMessageWidget)
+            oldMessageWidget->abortRendering();
+    }
     // 旧消息控件即将被销毁：停止接收链并断开裸指针，防止流式渲染中的
     // setText 调用栈或排队的 recvMessage 回调在控件销毁后继续访问（悬空崩溃）
     resetRecvChain();
@@ -2637,6 +2652,10 @@ void MainWindow::newChat()
             messageRecvWidget->breakHandle();
     }
     saveCurChatRecord();
+    for (MessageWidget *oldMessageWidget : messageWidgetList) {
+        if (oldMessageWidget)
+            oldMessageWidget->abortRendering();
+    }
     // 旧消息控件即将被销毁：停止接收链并断开裸指针（同 generateChatRecord）
     resetRecvChain();
     messageWidgetList.clear();

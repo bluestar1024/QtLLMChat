@@ -33,7 +33,9 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       funWidgetIsShow(false),
       loadingWidgetIsRemove(true),
       renewResponseButtonIsRemove(true),
-      renderingAborted(false)
+      renderingAborted(false),
+      renderDepth(0),
+      destroyPending(false)
 {
     setMouseTracking(true);
 
@@ -161,7 +163,18 @@ void MessageWidget::buildUserUi()
                                 textWidget->height() + funWidget->height());
 }
 
+// buildAiUi/setText 的渲染栈包装：abortRendering 中止（新建聊天/切换记录/窗口重建）
+// 只标记不销毁，待渲染栈完全退出后才 deleteLater —— 嵌套事件循环（loop.exec）及
+// 其后续代码执行期间保证本控件存活（外部/父级销毁已由 abortRendering 摘除父级阻断）
 void MessageWidget::buildAiUi()
+{
+    ++renderDepth;
+    buildAiUiImpl();
+    if (--renderDepth == 0 && destroyPending)
+        deleteLater();
+}
+
+void MessageWidget::buildAiUiImpl()
 {
     // 控件已被外部中止渲染（会话已清空/即将销毁）：跳过构建，避免在其上继续创建子控件
     if (renderingAborted)
@@ -718,6 +731,18 @@ void MessageWidget::abortRendering()
     // 渲染栈被中止后不会执行到 setText 末尾的 setTexting(false)，此处补发复位
     // MainWindow 的渲染中标志，避免其重建流程被永久挂起
     emit setTexting(false);
+    // 从父链摘除：外部清空（chatShow 的 item widget 被 releaseEditor->deleteLater）
+    // 会在事件队列中被处理且其组合层级可能比当前事件处理更深，若无此摘除，
+    // 本控件会作为子控件随父级同步销毁 —— 而此刻渲染栈（loop.exec）可能尚未退出。
+    // 摘除后本控件的销毁完全由渲染栈退出时接管（destroyPending），
+    // 保证 exec 与后续渲染代码执行期间成员始终有效
+    if (parentWidget()) {
+        hide();
+        setParent(nullptr);
+    }
+    destroyPending = true;
+    if (renderDepth == 0)
+        deleteLater();
 }
 
 void MessageWidget::removeRenewResponseButton()
@@ -734,7 +759,16 @@ void MessageWidget::removeRenewResponseButton()
     funWidget->setFixedSize(w, h);
 }
 
+// 渲染栈包装（同 buildAiUi）：中止后销毁推迟到渲染栈退出，保证栈内访问安全
 void MessageWidget::setText(const QString &text)
+{
+    ++renderDepth;
+    setTextImpl(text);
+    if (--renderDepth == 0 && destroyPending)
+        deleteLater();
+}
+
+void MessageWidget::setTextImpl(const QString &text)
 {
     // 控件已被外部中止渲染（会话已清空/即将销毁）：忽略本次追加
     if (renderingAborted)
