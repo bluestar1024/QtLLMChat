@@ -2620,10 +2620,6 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
             messageRecvWidget->breakHandle();
     }
     saveCurChatRecord();
-    for (MessageWidget *oldMessageWidget : messageWidgetList) {
-        if (oldMessageWidget)
-            oldMessageWidget->abortRendering();
-    }
     // 旧消息控件即将被销毁：停止接收链并断开裸指针，防止流式渲染中的
     // setText 调用栈或排队的 recvMessage 回调在控件销毁后继续访问（悬空崩溃）
     resetRecvChain();
@@ -2652,10 +2648,6 @@ void MainWindow::newChat()
             messageRecvWidget->breakHandle();
     }
     saveCurChatRecord();
-    for (MessageWidget *oldMessageWidget : messageWidgetList) {
-        if (oldMessageWidget)
-            oldMessageWidget->abortRendering();
-    }
     // 旧消息控件即将被销毁：停止接收链并断开裸指针（同 generateChatRecord）
     resetRecvChain();
     messageWidgetList.clear();
