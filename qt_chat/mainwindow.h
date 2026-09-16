@@ -95,6 +95,13 @@ private:
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
     void messageWidgetRegenerate();
+    // 切换聊天记录/新建聊天的重入保护：generateCurChatRecord 创建 MessageWidget 时会进入
+    // 渲染等待的嵌套事件循环，快速连续点击的记录列表事件会在构建中途重入本流程。
+    // 重入时只记录最新目标，等当前流程（切换/重建）结束后统一执行，避免半成品列表
+    // 被写回文件（记录文件被截断）、新旧会话消息混入同一列表（显示与文件不符）
+    void requestChatRecordSwitch(const QString &fileName, bool isNewChat);
+    // 真正执行一次会话切换/新建聊天：停止接收线程、保存当前记录、清空列表后重建/置空
+    void applyChatRecordSwitch(const QString &fileName, bool isNewChat);
     // 会话切换/新建聊天时停止接收链：清空积压队列、复位流式渲染状态、
     // 断开接收链上指向旧消息控件的裸指针（旧控件随后被 deleteLater/clear 销毁）
     void resetRecvChain();
@@ -152,6 +159,16 @@ private:
     bool isSetTexting;
     bool isRegenerating;
     bool isRegeneratePending;
+    // generateCurChatRecord 正在按文件构建消息列表（列表为半成品，禁止序列化写回文件）
+    bool isBuildingChatRecord;
+    // 上一次构建被连续点击中止（列表只含部分消息，不代表任何文件的完整内容）
+    bool isChatRecordBuildAbandoned;
+    // 切换聊天记录/新建聊天流程执行中（含被推迟目标的执行阶段）
+    bool isSwitchingChatRecord;
+    // 构建/重建期间收到、等待执行的切换目标（快速连续点击只保留最后一次）
+    bool hasPendingChatSwitch;
+    bool pendingChatSwitchIsNewChat;
+    QString pendingChatSwitchFile;
     bool pushButtonIsPress;
     QScreen *lastScreen;
     QScreen *curScreen;
