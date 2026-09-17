@@ -209,11 +209,9 @@ MainWindow::MainWindow(QWidget *parent)
     checkGraphicsBackend();
 
 #ifdef Q_OS_WIN
-    HWND hwnd = reinterpret_cast<HWND>(winId());
-    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    // 窗口创建后补齐边缘拉伸所需的样式位（Qt 按 windowFlags 生成的样式不含
+    // WS_THICKFRAME）；运行期由 ensureFrameStyle/scheduleFrameStyleEnsure 兜底
+    ensureFrameStyle("constructor");
 
     // HWND hwnd = reinterpret_cast<HWND>(winId());
     // DWORD style = GetWindowLong(hwnd, GWL_STYLE);
@@ -330,6 +328,104 @@ void MainWindow::applyDWMShadow()
 #endif
 }
 
+#ifdef Q_OS_WIN
+HWND MainWindow::nativeHandle() const
+{
+    // windowHandle()/QWindow::handle() 均为纯读取接口，不会触发窗口创建，
+    // 可在窗口创建过程中的消息处理里安全调用；handle() 非空说明平台窗口
+    // （QWindowsWindow）已完整创建，其 winId() 为纯 getter 不会再创建窗口
+    if (QWindow *qwin = windowHandle()) {
+        if (qwin->handle()) {
+            return reinterpret_cast<HWND>(qwin->winId());
+        }
+    }
+    return nullptr;
+}
+#endif
+
+void MainWindow::ensureFrameStyle(const char *reason)
+{
+#ifdef Q_OS_WIN
+    // 优先取已创建的平台窗口句柄（不触发创建）；仅当原生窗口尚不存在
+    // （构造函数首次调用）时才通过 winId() 创建原生窗口
+    HWND hwnd = nativeHandle();
+    if (!hwnd) {
+        hwnd = reinterpret_cast<HWND>(winId());
+    }
+    if (!hwnd || !IsWindow(hwnd)) {
+        return;
+    }
+
+    // 窗口边缘拖拽拉伸依赖 WS_THICKFRAME：Windows 只对含该样式位的窗口执行
+    // WM_NCHITTEST 返回 HTxxx 后的缩放；WS_CAPTION 等位同时支撑贴靠布局。
+    // Qt 平台层在部分路径会按 windowFlags 重算样式并整体写回 GWL_STYLE
+    // （FramelessWindowHint 窗口不含这些位），丢失后拖拽窗口边缘将完全失效，
+    // 在此检测并补齐，使样式在任意路径下都能自愈
+    constexpr DWORD needStyle = WS_OVERLAPPEDWINDOW;
+    const DWORD style = static_cast<DWORD>(GetWindowLongPtrW(hwnd, GWL_STYLE));
+    if ((style & needStyle) == needStyle) {
+        return;
+    }
+
+    const DWORD fixedStyle = style | needStyle;
+    qDebug().nospace() << "ensureFrameStyle(" << reason << ") style: 0x" << Qt::hex << style
+                       << " -> 0x" << fixedStyle;
+    SetWindowLongPtrW(hwnd, GWL_STYLE, fixedStyle);
+    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
+                         | SWP_NOACTIVATE);
+#else
+    Q_UNUSED(reason);
+#endif
+}
+
+void MainWindow::scheduleFrameStyleEnsure()
+{
+#ifdef Q_OS_WIN
+    if (styleEnsurePosted) {
+        return;
+    }
+
+    // 只处理已创建的原生窗口：本函数会在窗口创建过程中（WM_NCCALCSIZE 等在
+    // CreateWindowEx 内分发）被调用，此处绝不能调用 winId()——它会触发窗口
+    // 创建流程重入，导致 CreateWindowEx 失败、主窗口创建崩溃
+    HWND hwnd = nativeHandle();
+    if (!hwnd || !IsWindow(hwnd)) {
+        return; // 原生窗口尚未创建：由构造函数末尾的 ensureFrameStyle 兜底
+    }
+
+    constexpr DWORD needStyle = WS_OVERLAPPEDWINDOW;
+    if ((static_cast<DWORD>(GetWindowLongPtrW(hwnd, GWL_STYLE)) & needStyle) == needStyle) {
+        return;
+    }
+
+    // 不在消息处理/拖拽模态循环内同步重写样式：排队到事件循环空闲时补齐
+    styleEnsurePosted = true;
+    QTimer::singleShot(0, this, [this]() {
+        styleEnsurePosted = false;
+        ensureFrameStyle("scheduled");
+    });
+#endif
+}
+
+void MainWindow::logHitTestRegion(const char *region)
+{
+    if (lastHitTestRegion == region) {
+        return;
+    }
+    lastHitTestRegion = region;
+
+#ifdef Q_OS_WIN
+    // 用 nativeHandle() 而非 winId()：WM_NCHITTEST 可能在窗口创建过程中被
+    // 分发，winId() 会触发创建重入（详见 scheduleFrameStyleEnsure 注释）
+    HWND hwnd = nativeHandle();
+    qDebug().nospace() << "WM_NCHITTEST region: " << region << " style: 0x" << Qt::hex
+                       << (hwnd ? static_cast<DWORD>(GetWindowLongPtrW(hwnd, GWL_STYLE)) : 0);
+#else
+    qDebug() << "WM_NCHITTEST region:" << region;
+#endif
+}
+
 void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
@@ -363,6 +459,8 @@ void MainWindow::showEvent(QShowEvent *event)
     //     applyDWMShadow();
     // }
     applyDWMShadow();
+    // 首次显示后确认窗口样式：显示路径上 Qt 可能重算样式丢失边缘拉伸位
+    ensureFrameStyle("showEvent");
 #endif
 }
 
@@ -394,6 +492,9 @@ void MainWindow::changeEvent(QEvent *event)
             titleWidget->maxButtonToggleIcon(true);
             QTimer::singleShot(10, this, [this]() { applyDWMShadow(); });
         }
+        // 状态切换（最大化/还原/最小化/恢复）后确认样式：Qt 状态切换路径
+        // 可能重写 GWL_STYLE 丢失边缘拉伸位
+        ensureFrameStyle("windowStateChange");
     }
 #endif
 
@@ -411,11 +512,18 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
     switch (msg->message) {
     case WM_NCCALCSIZE: {
+        // 窗口尺寸/位置变化都会经过这里：顺带检查样式，缺失时延迟补齐
+        // （不在 NcCalcSize 处理中同步重写样式，避免重入）
+        scheduleFrameStyleEnsure();
         *result = 0;
         return true;
     }
 
     case WM_NCHITTEST: {
+        // 命中测试期间顺带检查样式：Qt 平台层可能已把 GWL_STYLE 重写为不含
+        // WS_THICKFRAME 的版本，缺失时延迟补齐，恢复鼠标拖拽边缘拉伸的能力
+        scheduleFrameStyleEnsure();
+
         POINT pt;
         pt.x = GET_X_LPARAM(msg->lParam);
         pt.y = GET_Y_LPARAM(msg->lParam);
@@ -429,6 +537,14 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         int nY = pt.y;
         int w = rcClient.right;
         int h = rcClient.bottom;
+
+        // 统一收敛命中返回值：鼠标在拉伸边缘/非拉伸区之间切换时打印一次
+        // 命中的区域与当前窗口样式，便于诊断边缘拖拽问题
+        auto hitTestReturn = [&](LRESULT hit, const char *region) {
+            logHitTestRegion(region);
+            *result = hit;
+            return true;
+        };
 
         WINDOWPLACEMENT wp = { sizeof(wp) };
         bool isMaximized = GetWindowPlacement(hwnd, &wp) && wp.showCmd == SW_MAXIMIZE;
@@ -447,14 +563,11 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                     btnLeft = 0;
 
                 if (nX >= btnLeft && nX < btnRight) {
-                    *result = HTCLIENT;
-                    return true;
+                    return hitTestReturn(HTCLIENT, "CLIENT(maximized button)");
                 }
-                *result = HTCAPTION;
-                return true;
+                return hitTestReturn(HTCAPTION, "CAPTION(maximized)");
             }
-            *result = HTCLIENT;
-            return true;
+            return hitTestReturn(HTCLIENT, "CLIENT(maximized)");
         }
 
         const int detectBorder = 8;
@@ -469,53 +582,41 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             btnLeft = detectBorder;
 
         if (nX >= 0 && nX < detectBorder && nY >= 0 && nY < detectBorder) {
-            *result = HTTOPLEFT;
-            return true;
+            return hitTestReturn(HTTOPLEFT, "HTTOPLEFT");
         }
         if (nX >= w - detectBorder && nX < w && nY >= 0 && nY < detectBorder) {
-            *result = HTTOPRIGHT;
-            return true;
+            return hitTestReturn(HTTOPRIGHT, "HTTOPRIGHT");
         }
         if (nX >= 0 && nX < detectBorder && nY >= h - detectBorder && nY < h) {
-            *result = HTBOTTOMLEFT;
-            return true;
+            return hitTestReturn(HTBOTTOMLEFT, "HTBOTTOMLEFT");
         }
         if (nX >= w - detectBorder && nX < w && nY >= h - detectBorder && nY < h) {
-            *result = HTBOTTOMRIGHT;
-            return true;
+            return hitTestReturn(HTBOTTOMRIGHT, "HTBOTTOMRIGHT");
         }
 
         if (nY >= 0 && nY < detectBorder && nX >= detectBorder && nX < w - detectBorder) {
-            *result = HTTOP;
-            return true;
+            return hitTestReturn(HTTOP, "HTTOP");
         }
         if (nY >= h - detectBorder && nY < h && nX >= detectBorder && nX < w - detectBorder) {
-            *result = HTBOTTOM;
-            return true;
+            return hitTestReturn(HTBOTTOM, "HTBOTTOM");
         }
         if (nX >= 0 && nX < detectBorder && nY >= detectBorder && nY < h - detectBorder) {
-            *result = HTLEFT;
-            return true;
+            return hitTestReturn(HTLEFT, "HTLEFT");
         }
         if (nX >= w - detectBorder && nX < w && nY >= detectBorder && nY < h - detectBorder) {
-            *result = HTRIGHT;
-            return true;
+            return hitTestReturn(HTRIGHT, "HTRIGHT");
         }
 
         if (nY >= detectBorder && nY < titleHeight) {
             if (nX >= btnLeft && nX < btnRight) {
-                *result = HTCLIENT;
-                return true;
+                return hitTestReturn(HTCLIENT, "CLIENT(button)");
             }
             if (nX >= detectBorder && nX < btnLeft) {
-                // qDebug() << "MainWindow::nativeEvent HTCAPTION";
-                *result = HTCAPTION;
-                return true;
+                return hitTestReturn(HTCAPTION, "CAPTION(title)");
             }
         }
 
-        *result = HTCLIENT;
-        return true;
+        return hitTestReturn(HTCLIENT, "CLIENT");
     }
 
     case WM_GETMINMAXINFO: {
@@ -534,6 +635,9 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     }
 
     case WM_SIZE: {
+        // 尺寸变化（拉伸/最大化/Snap/程序化 resize 等）时顺带检查样式：
+        // 缺失时延迟补齐（拖拽期间样式必然完好，此处仅只读检查）
+        scheduleFrameStyleEnsure();
         // 最小化：窗口会被移到屏幕外并缩成图标尺寸，该尺寸不代表恢复后的界面尺寸。
         // 仅记录状态供恢复时识别，避免最小化/恢复被当成窗口尺寸变化而触发重建
         if (msg->wParam == SIZE_MINIMIZED) {
@@ -594,6 +698,8 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         // 区分“仅移动”与“调整大小”（仅移动不应触发聊天记录重建）
         isSizeMoveDrag = true;
         dragRegenerateDone = false;
+        // 拖拽开始前顺带检查样式（缺失时延迟补齐，恢复后续边缘拉伸能力）
+        scheduleFrameStyleEnsure();
         RECT rect;
         GetWindowRect(hwnd, &rect);
         dragStartWidth = rect.right - rect.left;
@@ -622,6 +728,8 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
         isSizeMoveDrag = false;
+        // 拖拽结束：顺带检查样式（缺失时延迟补齐）
+        scheduleFrameStyleEnsure();
 
         RECT rect;
         GetWindowRect(hwnd, &rect);
@@ -639,7 +747,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
             } else {
                 lastRegenerateHeight = h;
-                qDebug() << "WM_EXITSIZEMOVE pending canceled, width back to start";
+                qDebug() << "WM_EXITSIZEMOVE pending canceled, width back to start" << w << h;
             }
         } else if (dragRegenerateDone) {
             // 拖动过程中已标记过；若最终宽度与重建时不同（继续拉伸）则补一次
@@ -650,7 +758,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
             } else {
                 lastRegenerateHeight = h;
-                qDebug() << "WM_EXITSIZEMOVE already regenerated, skip";
+                qDebug() << "WM_EXITSIZEMOVE already regenerated, skip" << w << h;
             }
         } else if (w != dragStartWidth) {
             // 拖动中未触发（如 Snap 宽度变化发生在最后时刻）：现在重建
@@ -660,7 +768,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
         } else {
             lastRegenerateHeight = h;
-            qDebug() << "WM_EXITSIZEMOVE move or height only, skip regenerate";
+            qDebug() << "WM_EXITSIZEMOVE move or height only, skip regenerate" << w << h;
         }
         dragRegenerateDone = false;
         break;
@@ -1928,11 +2036,7 @@ void MainWindow::messageStart()
     first = true;
     qDebug() << "messageStart";
 
-    HWND hwnd = reinterpret_cast<HWND>(winId());
-    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    ensureFrameStyle("messageStart");
 }
 
 void MainWindow::queueMessage(const QString &text)
@@ -1984,11 +2088,7 @@ void MainWindow::recvMessage(const QString &text)
         updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
     }
 
-    HWND hwnd = reinterpret_cast<HWND>(winId());
-    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    ensureFrameStyle("recvMessage");
 
     qDebug() << "recvMessage: setText finish";
     // setText 内部嵌套事件循环可能已触发会话切换（用户点击聊天记录）：
@@ -2033,11 +2133,7 @@ void MainWindow::messageFinish()
     if (messageRecvWidget && isContinueShow && messageRecvWidget->getText() != message) {
         messageRecvWidget->setText(message);
         updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
-        HWND hwnd = reinterpret_cast<HWND>(winId());
-        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-        SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+        ensureFrameStyle("messageFinish");
     }
 
     if (messageRecvWidget) {
@@ -2525,12 +2621,7 @@ void MainWindow::messageWidgetRegenerate()
                     if (messageRecvWidget->getText() != message) {
                         messageRecvWidget->setText(message);
                         updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
-                        HWND hwnd = reinterpret_cast<HWND>(winId());
-                        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-                        SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-                        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-                                             | SWP_NOOWNERZORDER);
+                        ensureFrameStyle("regenerate");
                     }
                     if (!messageRecvWidget->getIsRemoveloadingWidget()) {
                         messageRecvWidget->removeLoadingWidget();

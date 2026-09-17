@@ -35,6 +35,7 @@
 #include <QtCore/QUrl>
 #include <QtCore/QTimer>
 #include <QtCore/QString>
+#include <QtCore/QByteArray>
 #include <QtGui/QScreen>
 #include <QtWidgets/QApplication>
 #include <QtCore/QVariant>
@@ -82,6 +83,22 @@ private:
     void chatRecordsWidgetInit();
     void checkGraphicsBackend();
     void applyDWMShadow();
+#ifdef Q_OS_WIN
+    // 取当前原生窗口句柄：仅当平台窗口已创建完成时返回有效句柄，否则返回
+    // nullptr；不做任何创建动作（对比 winId() 会触发窗口创建——在窗口创建
+    // 过程中分发的消息处理里调用会造成创建重入、CreateWindowEx 失败）
+    HWND nativeHandle() const;
+#endif
+    // 确保窗口样式包含边缘拉伸所需的位（WS_THICKFRAME 等）：Qt 平台层在部分路径
+    // 会按 windowFlags 重算样式整体写回 GWL_STYLE（FramelessWindowHint 窗口不含
+    // 这些位），一旦丢失鼠标将无法拖拽窗口边缘；检测缺失时补齐并重算非客户区
+    void ensureFrameStyle(const char *reason);
+    // 轻量检查窗口样式，缺失时延迟到事件循环空闲补齐：供 WM_NCCALCSIZE /
+    // WM_NCHITTEST / WM_ENTERSIZEMOVE / WM_EXITSIZEMOVE 等高频或在拖拽模态
+    // 循环内触发的消息处理调用，避免在消息处理过程中同步重写样式
+    void scheduleFrameStyleEnsure();
+    // 诊断：鼠标在拉伸边缘/非拉伸区之间切换时打印一次当前命中区域与窗口样式
+    void logHitTestRegion(const char *region);
     void isItemShowFull(QWidget *widget);
     bool isWindowMaximized() const;
     void regionDivision();
@@ -207,6 +224,10 @@ private:
     bool first;
     bool messageSendWidgetIsFinished;
     int borderLen;
+    // 样式补齐任务已排队标记：WM_NCCALCSIZE/WM_NCHITTEST 等高频消息里避免重复入队
+    bool styleEnsurePosted = false;
+    // 上一次 WM_NCHITTEST 命中区域（仅变化时打印诊断日志，避免高频噪声）
+    QByteArray lastHitTestRegion;
 
     int currentScrollValue = 0;
     int maxScrollValue = 0;
