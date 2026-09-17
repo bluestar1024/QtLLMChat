@@ -21,14 +21,13 @@ ThinkWidget::ThinkWidget(AppContext *appContext, const QString &text,
     connect(this, &ThinkWidget::setSizeFinished, this->sizeFinishFun);
 
     bool fontLoaded = false;
-    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
-    if (fontId != -1) {
-        QStringList families = QFontDatabase::applicationFontFamilies(fontId);
-        if (!families.isEmpty()) {
-            font = QFont(families.first());
-            font.setPixelSize(this->appContext->windowFontPixelSize());
-            fontLoaded = true;
-        }
+    // 字体族由 AppContext 统一注册缓存：ThinkWidget 在会话切换/窗口重建中
+    // 大量创建，逐个自行 addApplicationFont 会使字体数据库重复累积
+    const QString &fontFamily = this->appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        font = QFont(fontFamily);
+        font.setPixelSize(this->appContext->windowFontPixelSize());
+        fontLoaded = true;
     }
     // label = new CustomLabel();
     // label->setTextInteractionFlags(Qt::TextSelectableByMouse);

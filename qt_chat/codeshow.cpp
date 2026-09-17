@@ -34,9 +34,12 @@ void CodeShow::setupUI()
 
     qDebug() << "CodeShow setupUI ing0" << this;
     label = new QLabel(lexerName);
-    int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
-    if (fontId != -1) {
-        QString fontFamily = QFontDatabase::applicationFontFamilies(fontId).at(0);
+    // 字体族由 AppContext 统一注册缓存（原先每个 CodeShow 都自行 addApplicationFont，
+    // 会话切换/窗口重建时大量创建会使字体数据库重复累积，
+    // applicationFontFamilies 返回空列表后 at(0) 越界读取引发崩溃）；
+    // 返回空串表示字体不可用，跳过设置使用默认字体
+    const QString &fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
         QFont font(fontFamily, appContext->windowFontPointSize());
         label->setFont(font);
     }

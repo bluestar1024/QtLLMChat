@@ -24,10 +24,11 @@ FunWidget::FunWidget(AppContext *appContext, QWidget *parent)
     funLeftSubHLayout->setContentsMargins(10, 10, 5, 6);
     titleLabel = new QLabel();
     titleLabel->setFixedHeight(60);
-    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
-    if (fontId != -1) {
-        QString family = QFontDatabase::applicationFontFamilies(fontId).at(0);
-        QFont font(family);
+    // 字体族由 AppContext 统一注册缓存（原先自行 addApplicationFont 且
+    // applicationFontFamilies(fontId).at(0) 未判空，空列表时越界读取崩溃）
+    const QString &fontFamily = this->appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        QFont font(fontFamily);
         font.setPixelSize(this->appContext->titleFontPixelSize());
         titleLabel->setFont(font);
     }

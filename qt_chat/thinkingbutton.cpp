@@ -32,14 +32,12 @@ void ThinkingButton::initUI()
     textLabel->setIndent(0);
     textLabel->setStyleSheet("QLabel{ padding: 0px; margin: 0px; }");
 
-    int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
-    if (fontId != -1) {
-        QStringList families = QFontDatabase::applicationFontFamilies(fontId);
-        if (!families.isEmpty()) {
-            QFont font(families.at(0));
-            font.setPixelSize(appContext->windowFontPixelSize());
-            textLabel->setFont(font);
-        }
+    // 字体族由 AppContext 统一注册缓存，避免每个控件创建时重复注册字体
+    const QString &fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        QFont font(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
+        textLabel->setFont(font);
     }
     textLabel->adjustSize();
 
