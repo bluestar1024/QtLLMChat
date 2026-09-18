@@ -178,7 +178,6 @@ private:
 
     bool isShowFirst;
     bool isProcessing;
-    bool isSetTexting;
     bool isRegenerating;
     bool isRegeneratePending;
     // 已有排队等待执行的重建回调（scheduleMessageWidgetRegenerate 去重标记）

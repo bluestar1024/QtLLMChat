@@ -10,7 +10,6 @@ MainWindow::MainWindow(QWidget *parent)
       message(""),
       isShowFirst(true),
       isProcessing(false),
-      isSetTexting(false),
       isRegenerating(false),
       isRegeneratePending(false),
       isRegenerateScheduled(false),
@@ -2542,13 +2541,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
 
 void MainWindow::getSetTexting(bool state)
 {
-    isSetTexting = state;
-    // 渲染结束后若有待执行的重建，延迟到事件循环空闲时执行，避免在 setText 栈内重建；
-    // 经统一调度入口合并，避免每次 setText 结束都排队一个回调
-    if (!state && isRegeneratePending && !isRegenerating) {
-        qDebug() << "MainWindow getSetTexting scheduleMessageWidgetRegenerate start";
-        scheduleMessageWidgetRegenerate();
-    }
+    Q_UNUSED(state);
 }
 
 void MainWindow::scheduleMessageWidgetRegenerate()
@@ -2575,7 +2568,7 @@ void MainWindow::messageWidgetRegenerate()
     // 或正在切换聊天记录/新建聊天（消息列表为半成品，重建会与之交错）。
     // 再次触发时仅标记待重建：当前重建轮由 generateCurChatRecord 的中止检查即刻
     // 终止（不再完整生成到底），do-while 随后以最新尺寸完整重建一次
-    if (isRegenerating || isSetTexting || isSwitchingChatRecord) {
+    if (isRegenerating || isSwitchingChatRecord) {
         isRegeneratePending = true;
         return;
     }
@@ -2810,7 +2803,7 @@ void MainWindow::requestChatRecordSwitch(const QString &fileName, bool isNewChat
     isSwitchingChatRecord = false;
     // 切换/构建期间被推迟的窗口重建请求（WM_EXITSIZEMOVE 等触发的 messageWidgetRegenerate）：
     // 此时消息列表已构建完成，延迟到事件循环空闲时执行（经统一调度入口合并去重）
-    if (isRegeneratePending && !isRegenerating && !isSetTexting)
+    if (isRegeneratePending && !isRegenerating)
         scheduleMessageWidgetRegenerate();
 }
 
