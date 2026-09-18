@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
       isSetTexting(false),
       isRegenerating(false),
       isRegeneratePending(false),
+      isRegenerateScheduled(false),
       isBuildingChatRecord(false),
       isChatRecordBuildAbandoned(false),
       isSwitchingChatRecord(false),
@@ -683,7 +684,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                     lastRegenerateHeight = h;
                     qDebug() << "WM_SIZE isRegenerate" << w << h;
                     // 延迟到 Qt resizeEvent 执行后再重建，保证 chatShow 宽度已更新
-                    QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+                    scheduleMessageWidgetRegenerate();
                 } else {
                     lastRegenerateHeight = h;
                     qDebug() << "WM_SIZE skip regenerate, width unchanged" << w << h;
@@ -744,7 +745,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 lastRegenerateWidth = w;
                 lastRegenerateHeight = h;
                 qDebug() << "WM_EXITSIZEMOVE regenerate pending" << w << h;
-                QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+                scheduleMessageWidgetRegenerate();
             } else {
                 lastRegenerateHeight = h;
                 qDebug() << "WM_EXITSIZEMOVE pending canceled, width back to start" << w << h;
@@ -755,7 +756,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 lastRegenerateWidth = w;
                 lastRegenerateHeight = h;
                 qDebug() << "WM_EXITSIZEMOVE width still changed, regenerate" << w << h;
-                QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+                scheduleMessageWidgetRegenerate();
             } else {
                 lastRegenerateHeight = h;
                 qDebug() << "WM_EXITSIZEMOVE already regenerated, skip" << w << h;
@@ -765,7 +766,7 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             lastRegenerateWidth = w;
             lastRegenerateHeight = h;
             qDebug() << "WM_EXITSIZEMOVE width changed, regenerate" << w << h;
-            QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+            scheduleMessageWidgetRegenerate();
         } else {
             lastRegenerateHeight = h;
             qDebug() << "WM_EXITSIZEMOVE move or height only, skip regenerate" << w << h;
@@ -1346,7 +1347,8 @@ void MainWindow::resizeEvent(QResizeEvent *event)
             resize(qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi),
                    qRound(widgetSizeDict["MainWindow"].value<QSize>().height() * curDpi / lastDpi));
         }
-        messageWidgetRegenerate();
+        // 与上方 resize 触发的 WM_SIZE 重建请求经统一调度入口合并去重
+        scheduleMessageWidgetRegenerate();
     }
     widgetSizeDict["MainWindow"] = size();
     qDebug() << "resizeEvent MainWindow size:" << size();
@@ -2385,7 +2387,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
     thinkTimeLengthList.clear();
     int thinkTimeIndex = 0;
     int expandIndex = 0;
-    // 本次构建是否被待执行的切换点击中止（列表为半成品）
+    // 本次构建是否被待执行的切换点击或待执行的重建请求中止（列表为半成品）
     bool buildAborted = false;
 
     QStringList lines;
@@ -2511,6 +2513,16 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                 break;
             }
 
+            // 构建期间又收到窗口尺寸变化触发的重建请求（拖拽释放/最大化等）：当前
+            // 构建的控件宽度已过期，立即中止本次构建，把剩余时间交给最新一次重建：
+            // 待重建标记由 messageWidgetRegenerate 的 do-while 在重建轮结束时消费
+            // （再执行一轮完整重建），此处即刻退出避免旧宽度列表无谓生成到底
+            if (isRegeneratePending) {
+                buildAborted = true;
+                qDebug() << "generateCurChatRecord aborted, regenerate pending";
+                break;
+            }
+
         } else if (lines[i].left(8) == QString("消息部件思考时长")) {
             QRegularExpression re("\\d+");
             QRegularExpressionMatch match = re.match(lines[i]);
@@ -2531,17 +2543,38 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
 void MainWindow::getSetTexting(bool state)
 {
     isSetTexting = state;
-    // 渲染结束后若有待执行的重建，延迟到事件循环空闲时执行，避免在 setText 栈内重建
+    // 渲染结束后若有待执行的重建，延迟到事件循环空闲时执行，避免在 setText 栈内重建；
+    // 经统一调度入口合并，避免每次 setText 结束都排队一个回调
     if (!state && isRegeneratePending && !isRegenerating) {
-        QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+        qDebug() << "MainWindow getSetTexting scheduleMessageWidgetRegenerate start";
+        scheduleMessageWidgetRegenerate();
     }
+}
+
+void MainWindow::scheduleMessageWidgetRegenerate()
+{
+    // 已有排队等待执行的重建回调：本次请求合并进去不再重复调度。
+    // 队列中堆积多个回调时，后执行的回调会在重建执行期间进入重入保护再次标记
+    // 待重建，使重建完成后被追加执行一轮（同一次窗口尺寸变化被重复完整重建）；
+    // 合并后由唯一回调在事件循环空闲时执行，重建时读取最新窗口宽度
+    if (isRegenerateScheduled) {
+        qDebug() << "scheduleMessageWidgetRegenerate merged";
+        return;
+    }
+    isRegenerateScheduled = true;
+    qDebug() << "scheduleMessageWidgetRegenerate";
+    QTimer::singleShot(0, this, [this]() {
+        isRegenerateScheduled = false;
+        messageWidgetRegenerate();
+    });
 }
 
 void MainWindow::messageWidgetRegenerate()
 {
     // 重入保护：正在重建、AI 消息渲染中（嵌套事件循环内 WM_EXITSIZEMOVE 会被再次分发），
-    // 或正在切换聊天记录/新建聊天（消息列表为半成品，重建会与之交错）
-    // 再次触发时仅标记待重建，避免半成品控件重复创建与悬空指针访问
+    // 或正在切换聊天记录/新建聊天（消息列表为半成品，重建会与之交错）。
+    // 再次触发时仅标记待重建：当前重建轮由 generateCurChatRecord 的中止检查即刻
+    // 终止（不再完整生成到底），do-while 随后以最新尺寸完整重建一次
     if (isRegenerating || isSetTexting || isSwitchingChatRecord) {
         isRegeneratePending = true;
         return;
@@ -2649,9 +2682,11 @@ void MainWindow::messageWidgetRegenerate()
                 }
             }
         }
-    } while (isRegeneratePending);
+    } while (isRegeneratePending && !hasPendingChatSwitch);
     isRegenerating = false;
     // 重建期间被推迟的切换请求（点击落在重建的嵌套事件循环内）：重建完成后执行。
+    // 切换优先于继续重建：切换会重置接收链与当前会话，重建轮据此提前退出
+    // （待重建标记由切换收尾重新调度，在切换后的列表上再重建一次）；
     // 切换内部会重置接收链与队列状态，下方队列恢复检查随之按新会话状态判断
     if (hasPendingChatSwitch)
         requestChatRecordSwitch(pendingChatSwitchFile, pendingChatSwitchIsNewChat);
@@ -2774,9 +2809,9 @@ void MainWindow::requestChatRecordSwitch(const QString &fileName, bool isNewChat
     } while (hasPendingChatSwitch);
     isSwitchingChatRecord = false;
     // 切换/构建期间被推迟的窗口重建请求（WM_EXITSIZEMOVE 等触发的 messageWidgetRegenerate）：
-    // 此时消息列表已构建完成，延迟到事件循环空闲时执行
+    // 此时消息列表已构建完成，延迟到事件循环空闲时执行（经统一调度入口合并去重）
     if (isRegeneratePending && !isRegenerating && !isSetTexting)
-        QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+        scheduleMessageWidgetRegenerate();
 }
 
 void MainWindow::applyChatRecordSwitch(const QString &fileName, bool isNewChat)

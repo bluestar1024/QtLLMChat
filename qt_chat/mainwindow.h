@@ -111,6 +111,11 @@ private:
     void saveCurChatRecord(bool withholdCurChatFile = false);
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
+    // 统一的窗口重建调度入口：合并同一时间内多个来源的重建请求（拖拽释放、setText
+    // 渲染结束、切换收尾等），保证事件队列中最多只有一个待执行的重建回调。多个回调
+    // 先后执行时，后执行的回调会在重建中途进入重入保护再次标记待重建，使同一次窗口
+    // 尺寸变化被重复完整重建（连续重建）
+    void scheduleMessageWidgetRegenerate();
     void messageWidgetRegenerate();
     // 切换聊天记录/新建聊天的重入保护：generateCurChatRecord 创建 MessageWidget 时会进入
     // 渲染等待的嵌套事件循环，快速连续点击的记录列表事件会在构建中途重入本流程。
@@ -176,6 +181,8 @@ private:
     bool isSetTexting;
     bool isRegenerating;
     bool isRegeneratePending;
+    // 已有排队等待执行的重建回调（scheduleMessageWidgetRegenerate 去重标记）
+    bool isRegenerateScheduled;
     // generateCurChatRecord 正在按文件构建消息列表（列表为半成品，禁止序列化写回文件）
     bool isBuildingChatRecord;
     // 上一次构建被连续点击中止（列表只含部分消息，不代表任何文件的完整内容）
