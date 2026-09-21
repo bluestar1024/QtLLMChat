@@ -32,6 +32,12 @@ public:
     QWebEngineProfile *webEngineProfile() const;
     void setWebEngineProfile(QWebEngineProfile *profile);
 
+    // 应用字体族名：首次调用时注册字体文件并缓存结果，之后直接复用；
+    // 字体不可用时返回空串（调用方应跳过 setFont）。控件在会话切换/窗口重建中
+    // 会大量创建，不应各自调用 addApplicationFont —— 重复注册会使 Qt 字体
+    // 数据库不断累积，最终 applicationFontFamilies 可能返回空列表引发崩溃
+    const QString &fontFamily();
+
     // 字体（pointSize 只读；pixelSize 随 DPI 变化由 MainWindow 重算写入）
     int windowFontPointSize() const;
     int windowFontPixelSize() const;
@@ -72,6 +78,11 @@ private:
     QString codeThemeFilePath_;
     QString webEngineCacheDir_;
     QWebEngineProfile *webEngineProfile_;
+
+    // fontFamily() 的懒加载缓存（fontFamilyLoaded_ 标记"已尝试注册"，
+    // 字体不可用时 fontFamily_ 保持空串，避免反复重试注册）
+    QString fontFamily_;
+    bool fontFamilyLoaded_;
 
     int windowFontPointSize_;
     int windowFontPixelSize_;

@@ -10,7 +10,7 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
                              std::function<void(bool)> getSetTextingFun,
                              std::function<void()> executeNextFun, ListWidget *listWidget,
                              QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser,
-                             bool thinkIsExpand, int textMaxWidth, QWidget *parent)
+                             bool thinkIsExpand, int maxWidth, QWidget *parent)
     : QWidget(parent),
       appContext(appContext),
       text(text),
@@ -24,7 +24,24 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       thinkTimeIndex(thinkTimeIndex),
       isUser(isUser),
       thinkIsExpand(thinkIsExpand),
-      textMaxWidth(textMaxWidth - 10),
+      maxWidth(maxWidth),
+      imageLabel(nullptr),
+      textShow(nullptr),
+      textWidget(nullptr),
+      textLayout(nullptr),
+      textBoxWidget(nullptr),
+      textBoxLayout(nullptr),
+      thinkButton(nullptr),
+      thinkBackWidget(nullptr),
+      thinkBackVLayout(nullptr),
+      subVLayout1(nullptr),
+      subVLayout2(nullptr),
+      mainHLayout(nullptr),
+      loadingWidget(nullptr),
+      funWidget(nullptr),
+      funHLayout(nullptr),
+      copyButton(nullptr),
+      renewResponseButton(nullptr),
       thinkButtonHaveCreated(false),
       thinkText(""),
       resultText(""),
@@ -32,7 +49,10 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       isRecvFirst(true),
       funWidgetIsShow(false),
       loadingWidgetIsRemove(true),
-      renewResponseButtonIsRemove(true)
+      renewResponseButtonIsRemove(true),
+      renderingAborted(false),
+      renderDepth(0),
+      destroyPending(false)
 {
     setMouseTracking(true);
 
@@ -125,7 +145,7 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
     }
     mainHLayout->addLayout(subVLayout1);
     mainHLayout->addLayout(subVLayout2);
-    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, this->maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
     // emit resizeFinished(this);
     // 构造渲染完成，若有待执行的重建，将在事件循环空闲时执行
@@ -145,7 +165,7 @@ void MessageWidget::buildUserUi()
                 if (self)
                     self->onSizeFinished();
             },
-            executeNextFun, textMaxWidth - imageLabel->width() - 15);
+            executeNextFun, maxWidth - imageLabel->width() - 15);
     // connect(textShow, &TextShow::executeNext, this->executeNextFun);
     // connect(textShow, &ThinkWidget::setSizeFinished, this, &MessageWidget::onSizeFinished);
     // if (textShow->getIsEmitSizeFinish()) {
@@ -160,8 +180,22 @@ void MessageWidget::buildUserUi()
                                 textWidget->height() + funWidget->height());
 }
 
+// buildAiUi/setText 的渲染栈包装：abortRendering 中止（新建聊天/切换记录/窗口重建）
+// 只标记不销毁，待渲染栈完全退出后才 deleteLater —— 嵌套事件循环（loop.exec）及
+// 其后续代码执行期间保证本控件存活（外部/父级销毁已由 abortRendering 摘除父级阻断）
 void MessageWidget::buildAiUi()
 {
+    ++renderDepth;
+    buildAiUiImpl();
+    if (--renderDepth == 0 && destroyPending)
+        deleteLater();
+}
+
+void MessageWidget::buildAiUiImpl()
+{
+    // 控件已被外部中止渲染（会话已清空/即将销毁）：跳过构建，避免在其上继续创建子控件
+    if (renderingAborted)
+        return;
     parseThinkAndResult(text, thinkText, resultText, thinkTextIsRecvEnd);
     qDebug() << "parseThinkAndResult:" << thinkText << "and" << resultText << this;
     thinkBackWidget = new ThinkBackWidget(this);
@@ -201,7 +235,7 @@ void MessageWidget::buildAiUi()
                         if (thinkCodeSelf)
                             thinkCodeSelf->onSizeFinished();
                     },
-                    textMaxWidth - imageLabel->width() - 80, this);
+                    maxWidth - imageLabel->width() - 80, this);
             qDebug() << "new CodeShow";
             codeShow->hide();
             qDebug() << "hide CodeShow";
@@ -221,7 +255,7 @@ void MessageWidget::buildAiUi()
                             if (thinkTextSelf)
                                 thinkTextSelf->onSizeFinished();
                         },
-                        textMaxWidth - imageLabel->width() - 80, this));
+                        maxWidth - imageLabel->width() - 80, this));
                 // connect(thinkTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                 //         &MessageWidget::onSizeFinished);
                 // if (thinkTextShowList.last()->getIsEmitSizeFinish()) {
@@ -254,6 +288,10 @@ void MessageWidget::buildAiUi()
                     qDebug() << "checkTimer start-1";
                     loop.exec();
                     qDebug() << "loop exec-1";
+                    // 外部已清空会话并中止渲染（重建完成前用户点击新建聊天/切换会话）：
+                    // 立即退出，不再访问随后会被销毁的成员控件
+                    if (renderingAborted)
+                        return;
                 }
             } else
                 j += 1;
@@ -280,6 +318,10 @@ void MessageWidget::buildAiUi()
                 qDebug() << "checkTimer start0";
                 loop.exec();
                 qDebug() << "loop exec0";
+                // 外部已清空会话并中止渲染（重建完成前用户点击新建聊天/切换会话）：
+                // 立即退出，不再访问随后会被销毁的成员控件
+                if (renderingAborted)
+                    return;
             }
         }
         textLayout->addWidget(thinkBackWidget);
@@ -313,7 +355,7 @@ void MessageWidget::buildAiUi()
                         if (resultCodeSelf)
                             resultCodeSelf->onSizeFinished();
                     },
-                    textMaxWidth - imageLabel->width() - 35, this);
+                    maxWidth - imageLabel->width() - 35, this);
             codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
             resultCodeShowList.append(codeShow);
@@ -328,7 +370,7 @@ void MessageWidget::buildAiUi()
                             if (resultTextSelf)
                                 resultTextSelf->onSizeFinished();
                         },
-                        nullptr, textMaxWidth - imageLabel->width() - 35, this));
+                        nullptr, maxWidth - imageLabel->width() - 35, this));
                 // connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                 //         &MessageWidget::onSizeFinished);
                 // if (resultTextShowList.last()->getIsEmitSizeFinish()) {
@@ -358,6 +400,10 @@ void MessageWidget::buildAiUi()
                     qDebug() << "checkTimer start-1";
                     loop.exec();
                     qDebug() << "loop exec-1";
+                    // 外部已清空会话并中止渲染（重建完成前用户点击新建聊天/切换会话）：
+                    // 立即退出，不再访问随后会被销毁的成员控件
+                    if (renderingAborted)
+                        return;
                 }
             } else
                 j += 1;
@@ -384,6 +430,10 @@ void MessageWidget::buildAiUi()
                 qDebug() << "checkTimer start0";
                 loop.exec();
                 qDebug() << "loop exec0";
+                // 外部已清空会话并中止渲染（重建完成前用户点击新建聊天/切换会话）：
+                // 立即退出，不再访问随后会被销毁的成员控件
+                if (renderingAborted)
+                    return;
             }
         }
     }
@@ -442,6 +492,9 @@ void MessageWidget::parseThinkAndResult(const QString &txt, QString &think, QStr
 
 void MessageWidget::setSize()
 {
+    // 外部已中止渲染（会话已清空/控件即将销毁）：跳过布局更新，避免访问已废弃成员
+    if (renderingAborted)
+        return;
     qDebug() << "MessageWidget setSize start" << this;
     if (isUser) {
         qDebug() << "MessageWidget setSize ing0" << this;
@@ -462,7 +515,7 @@ void MessageWidget::setSize()
         qDebug() << "textBoxWidget:" << textBoxWidget->width() << textBoxWidget->height();
     }
     qDebug() << "MessageWidget setSize ing2" << this;
-    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
     qDebug() << "MessageWidget size:" << this->width() << this->height();
     qDebug() << "MessageWidget setSize end" << this;
@@ -543,6 +596,10 @@ void MessageWidget::syncThinkTimeLength()
     qDebug() << "syncThinkTimeLength before";
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
         qDebug() << "syncThinkTimeLength before1";
+        // thinkButton 在首次解析出 thinkText 时才创建：构建早期（空文本/中止渲染）
+        // 被调用时跳过，避免访问未创建的成员
+        if (!thinkButtonHaveCreated || !thinkButton)
+            return;
         // 窗口重建后本控件可能持有过期的 thinkTimeIndex，列表越界时忽略同步
         if (thinkTimeIndex < 0 || thinkTimeIndex >= thinkTimeLengthList.size()) {
             qDebug() << "syncThinkTimeLength index out of range" << thinkTimeIndex
@@ -642,7 +699,7 @@ void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
         textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                     textWidget->height() + funWidget->height());
     }
-    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
 }
 
@@ -669,11 +726,58 @@ void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
 void MessageWidget::breakHandle()
 {
     if (!thinkTextIsRecvEnd) {
-        thinkButton->setThinkEnd();
-        // 窗口重建后本控件可能持有过期的 thinkTimeIndex，列表越界时忽略同步
-        if (thinkTimeIndex >= 0 && thinkTimeIndex < thinkTimeLengthList.size())
-            thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
+        // thinkButton 尚未创建（AI 回复为空/尚未开始流式时停止发送或切换会话）：跳过
+        if (thinkButtonHaveCreated && thinkButton) {
+            thinkButton->setThinkEnd();
+            // 窗口重建后本控件可能持有过期的 thinkTimeIndex，列表越界时忽略同步
+            if (thinkTimeIndex >= 0 && thinkTimeIndex < thinkTimeLengthList.size())
+                thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
+        }
     }
+}
+
+// 外部清空会话/销毁控件前调用（新建聊天、切换聊天记录、窗口重建）：
+// 追加文本时 setText/buildAiUi 正在嵌套事件循环（loop.exec）中同步等待子控件渲染，
+// 点击这类按钮的事件会在该嵌套循环内被处理：旧控件随 chatShow->clear() 被 deleteLater 后，
+// 等待条件（子控件 getIsSizeFinish）永远无法满足，等待循环若继续运行、或在控件销毁后
+// 返回渲染栈继续访问 thinkButton/thinkTextShowList 等成员，将导致悬空访问崩溃。
+// 这里置位中止标志并唤醒等待循环，使渲染栈在控件销毁前从等待点安全退出
+void MessageWidget::abortRendering()
+{
+    if (renderingAborted)
+        return;
+    renderingAborted = true;
+    // 断开旧等待 lambda：其按引用捕获局部连接变量，渲染栈退出后该变量已失效
+    checkTimer.stop();
+    checkTimer.disconnect();
+    if (loop.isRunning())
+        loop.quit();
+    // 中止所有子渲染控件的 WebEngine 异步活动（尺寸定时器/页面加载/page 信号）：
+    // 它们随本控件延迟销毁，销毁前窗口期内的异步回调若进入后续事件循环
+    // （如新会话渲染的嵌套等待）会在旧控件上触发渲染完成链，与新控件活动叠加
+    for (auto *thinkWidget : thinkTextShowList)
+        if (thinkWidget)
+            thinkWidget->stopPendingWork();
+    for (auto *textShow : resultTextShowList)
+        if (textShow)
+            textShow->stopPendingWork();
+    if (textShow)
+        textShow->stopPendingWork();
+    // 渲染栈被中止后不会执行到 setText 末尾的 setTexting(false)，此处补发复位
+    // MainWindow 的渲染中标志，避免其重建流程被永久挂起
+    emit setTexting(false);
+    // 从父链摘除：外部清空（chatShow 的 item widget 被 releaseEditor->deleteLater）
+    // 会在事件队列中被处理且其组合层级可能比当前事件处理更深，若无此摘除，
+    // 本控件会作为子控件随父级同步销毁 —— 而此刻渲染栈（loop.exec）可能尚未退出。
+    // 摘除后本控件的销毁完全由渲染栈退出时接管（destroyPending），
+    // 保证 exec 与后续渲染代码执行期间成员始终有效
+    if (parentWidget()) {
+        hide();
+        setParent(nullptr);
+    }
+    destroyPending = true;
+    if (renderDepth == 0)
+        deleteLater();
 }
 
 void MessageWidget::removeRenewResponseButton()
@@ -690,8 +794,20 @@ void MessageWidget::removeRenewResponseButton()
     funWidget->setFixedSize(w, h);
 }
 
+// 渲染栈包装（同 buildAiUi）：中止后销毁推迟到渲染栈退出，保证栈内访问安全
 void MessageWidget::setText(const QString &text)
 {
+    ++renderDepth;
+    setTextImpl(text);
+    if (--renderDepth == 0 && destroyPending)
+        deleteLater();
+}
+
+void MessageWidget::setTextImpl(const QString &text)
+{
+    // 控件已被外部中止渲染（会话已清空/即将销毁）：忽略本次追加
+    if (renderingAborted)
+        return;
     qDebug() << "MessageWidget setText start" << this;
     this->text = text;
     if (isUser) {
@@ -742,7 +858,7 @@ void MessageWidget::setText(const QString &text)
                             if (thinkCodeSelf)
                                 thinkCodeSelf->onSizeFinished();
                         },
-                        textMaxWidth - imageLabel->width() - 80, this);
+                        maxWidth - imageLabel->width() - 80, this);
                 codeShow->hide();
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 // codeShow->setVisible(thinkIsExpand);
@@ -770,7 +886,7 @@ void MessageWidget::setText(const QString &text)
                                 if (thinkTextSelf)
                                     thinkTextSelf->onSizeFinished();
                             },
-                            textMaxWidth - imageLabel->width() - 80, this);
+                            maxWidth - imageLabel->width() - 80, this);
                     // thinkWidget->setVisible(thinkIsExpand);
                     thinkTextShowList.append(thinkWidget);
                     // connect(thinkWidget, &ThinkWidget::setSizeFinished, this,
@@ -825,6 +941,10 @@ void MessageWidget::setText(const QString &text)
                             qDebug() << "checkTimer start2";
                             loop.exec();
                             qDebug() << "loop exec2";
+                            // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                            // 立即退出，不再访问随后会被销毁的成员控件
+                            if (renderingAborted)
+                                return;
                         }
                         // externalLoop.quit();
                         // qDebug() << "externalLoop quit";
@@ -890,6 +1010,10 @@ void MessageWidget::setText(const QString &text)
                         qDebug() << "checkTimer start";
                         loop.exec();
                         qDebug() << "loop exec";
+                        // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                        // 立即退出，不再访问随后会被销毁的成员控件
+                        if (renderingAborted)
+                            return;
                     }
                     // externalLoop.quit();
                     // qDebug() << "externalLoop quit";
@@ -960,6 +1084,10 @@ void MessageWidget::setText(const QString &text)
                 qDebug() << "checkTimer start1";
                 loop.exec();
                 qDebug() << "loop exec1";
+                // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                // 立即退出，不再访问随后会被销毁的成员控件
+                if (renderingAborted)
+                    return;
             }
             // externalLoop.quit();
             // qDebug() << "externalLoop quit1";
@@ -1002,7 +1130,7 @@ void MessageWidget::setText(const QString &text)
                             if (resultCodeSelf)
                                 resultCodeSelf->onSizeFinished();
                         },
-                        textMaxWidth - imageLabel->width() - 35, this);
+                        maxWidth - imageLabel->width() - 35, this);
                 codeShow->hide();
                 qDebug() << "MessageWidget setText ing4" << this;
                 codeShow->connectCodeCopyButtonClick(copyFun);
@@ -1027,7 +1155,7 @@ void MessageWidget::setText(const QString &text)
                                 if (resultTextSelf)
                                     resultTextSelf->onSizeFinished();
                             },
-                            nullptr, textMaxWidth - imageLabel->width() - 35, this));
+                            nullptr, maxWidth - imageLabel->width() - 35, this));
                     // connect(resultTextShowList.last(), &ThinkWidget::setSizeFinished, this,
                     //         &MessageWidget::onSizeFinished);
                     // if (resultTextShowList.last()->getIsEmitSizeFinish()) {
@@ -1074,6 +1202,10 @@ void MessageWidget::setText(const QString &text)
                             qDebug() << "checkTimer start2";
                             loop.exec();
                             qDebug() << "loop exec2";
+                            // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                            // 立即退出，不再访问随后会被销毁的成员控件
+                            if (renderingAborted)
+                                return;
                         }
                         // externalLoop.quit();
                         // qDebug() << "externalLoop quit2";
@@ -1133,6 +1265,10 @@ void MessageWidget::setText(const QString &text)
                         qDebug() << "checkTimer start";
                         loop.exec();
                         qDebug() << "loop exec";
+                        // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                        // 立即退出，不再访问随后会被销毁的成员控件
+                        if (renderingAborted)
+                            return;
                     }
                     // externalLoop.quit();
                     // qDebug() << "externalLoop quit";
@@ -1193,6 +1329,10 @@ void MessageWidget::setText(const QString &text)
                 qDebug() << "checkTimer start1";
                 loop.exec();
                 qDebug() << "loop exec1";
+                // 外部已清空会话并中止渲染（追加期间点击新建聊天/切换会话）：
+                // 立即退出，不再访问随后会被销毁的成员控件
+                if (renderingAborted)
+                    return;
             }
             // externalLoop.quit();
             // qDebug() << "externalLoop quit1";
@@ -1226,12 +1366,16 @@ void MessageWidget::removeLoadingWidget()
     textBoxLayout->setSpacing(0);
     textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                 textWidget->height() + funWidget->height());
-    setFixedSize(imageLabel->width() + textBoxWidget->width() + 5,
+    setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
 }
 
 void MessageWidget::onSizeFinished()
 {
+    // 外部已中止渲染（会话已清空/控件即将销毁）：跳过尺寸/布局回调，
+    // 避免子控件渲染完成回调（sizeFinishFun）在控件废弃后继续触发布局更新
+    if (renderingAborted)
+        return;
     static int i;
     i += 1;
     qDebug() << "onSizeFinished" << i << this;

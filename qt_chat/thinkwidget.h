@@ -34,6 +34,11 @@ public:
 
     void setText(const QString &text);
     QString getText();
+    // 旧控件被摘除/即将销毁前调用（新建聊天、切换记录、窗口重建）：
+    // 停止尺寸探测定时器、中止页面加载并断开 page 信号，避免其异步回调
+    // （loadFinished/contentsSizeChanged/runJavaScript 结果）在控件销毁前
+    // 进入后续事件循环（如新会话渲染的嵌套等待）中触发
+    void stopPendingWork();
     // void toggleWidget();
     bool hasSelectedText() const;
     QString getSelectedText() const;
@@ -41,6 +46,7 @@ public:
     // bool getIsEmitSizeFinish();
     void setIsSizeFinish(bool flag);
     bool getIsSizeFinish();
+    int getMaxWidth() const { return maxWidth; }
 
 protected:
     WebEngineView *webEngineView;

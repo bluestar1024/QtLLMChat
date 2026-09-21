@@ -56,6 +56,11 @@ ListWidget::~ListWidget() { }
 
 void ListWidget::scrollTo(const QModelIndex &, ScrollHint) { }
 
+void ListWidget::resetScrollAutoChange()
+{
+    scrollAutoChange = true;
+}
+
 /* 滚动条范围变化时的槽 */
 void ListWidget::onScrollBarRangeChanged(int min, int max)
 {

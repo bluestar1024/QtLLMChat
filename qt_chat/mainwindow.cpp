@@ -10,9 +10,14 @@ MainWindow::MainWindow(QWidget *parent)
       message(""),
       isShowFirst(true),
       isProcessing(false),
-      isSetTexting(false),
       isRegenerating(false),
       isRegeneratePending(false),
+      isRegenerateScheduled(false),
+      isBuildingChatRecord(false),
+      isChatRecordBuildAbandoned(false),
+      isSwitchingChatRecord(false),
+      hasPendingChatSwitch(false),
+      pendingChatSwitchIsNewChat(false),
       pushButtonIsPress(false),
       screenChanged(false),
       isSending(false),
@@ -26,6 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
       isSizeMoveDrag(false),
       dragRegenerateDone(false),
       pendingRegenerateAfterResize(false),
+      isMinimizedState(false),
       lastRegenerateWidth(-1),
       lastRegenerateHeight(-1),
       isDpiChanged(false),
@@ -203,11 +209,9 @@ MainWindow::MainWindow(QWidget *parent)
     checkGraphicsBackend();
 
 #ifdef Q_OS_WIN
-    HWND hwnd = reinterpret_cast<HWND>(winId());
-    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    // 窗口创建后补齐边缘拉伸所需的样式位（Qt 按 windowFlags 生成的样式不含
+    // WS_THICKFRAME）；运行期由 ensureFrameStyle/scheduleFrameStyleEnsure 兜底
+    ensureFrameStyle("constructor");
 
     // HWND hwnd = reinterpret_cast<HWND>(winId());
     // DWORD style = GetWindowLong(hwnd, GWL_STYLE);
@@ -324,6 +328,104 @@ void MainWindow::applyDWMShadow()
 #endif
 }
 
+#ifdef Q_OS_WIN
+HWND MainWindow::nativeHandle() const
+{
+    // windowHandle()/QWindow::handle() 均为纯读取接口，不会触发窗口创建，
+    // 可在窗口创建过程中的消息处理里安全调用；handle() 非空说明平台窗口
+    // （QWindowsWindow）已完整创建，其 winId() 为纯 getter 不会再创建窗口
+    if (QWindow *qwin = windowHandle()) {
+        if (qwin->handle()) {
+            return reinterpret_cast<HWND>(qwin->winId());
+        }
+    }
+    return nullptr;
+}
+#endif
+
+void MainWindow::ensureFrameStyle(const char *reason)
+{
+#ifdef Q_OS_WIN
+    // 优先取已创建的平台窗口句柄（不触发创建）；仅当原生窗口尚不存在
+    // （构造函数首次调用）时才通过 winId() 创建原生窗口
+    HWND hwnd = nativeHandle();
+    if (!hwnd) {
+        hwnd = reinterpret_cast<HWND>(winId());
+    }
+    if (!hwnd || !IsWindow(hwnd)) {
+        return;
+    }
+
+    // 窗口边缘拖拽拉伸依赖 WS_THICKFRAME：Windows 只对含该样式位的窗口执行
+    // WM_NCHITTEST 返回 HTxxx 后的缩放；WS_CAPTION 等位同时支撑贴靠布局。
+    // Qt 平台层在部分路径会按 windowFlags 重算样式并整体写回 GWL_STYLE
+    // （FramelessWindowHint 窗口不含这些位），丢失后拖拽窗口边缘将完全失效，
+    // 在此检测并补齐，使样式在任意路径下都能自愈
+    constexpr DWORD needStyle = WS_OVERLAPPEDWINDOW;
+    const DWORD style = static_cast<DWORD>(GetWindowLongPtrW(hwnd, GWL_STYLE));
+    if ((style & needStyle) == needStyle) {
+        return;
+    }
+
+    const DWORD fixedStyle = style | needStyle;
+    qDebug().nospace() << "ensureFrameStyle(" << reason << ") style: 0x" << Qt::hex << style
+                       << " -> 0x" << fixedStyle;
+    SetWindowLongPtrW(hwnd, GWL_STYLE, fixedStyle);
+    SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
+                         | SWP_NOACTIVATE);
+#else
+    Q_UNUSED(reason);
+#endif
+}
+
+void MainWindow::scheduleFrameStyleEnsure()
+{
+#ifdef Q_OS_WIN
+    if (styleEnsurePosted) {
+        return;
+    }
+
+    // 只处理已创建的原生窗口：本函数会在窗口创建过程中（WM_NCCALCSIZE 等在
+    // CreateWindowEx 内分发）被调用，此处绝不能调用 winId()——它会触发窗口
+    // 创建流程重入，导致 CreateWindowEx 失败、主窗口创建崩溃
+    HWND hwnd = nativeHandle();
+    if (!hwnd || !IsWindow(hwnd)) {
+        return; // 原生窗口尚未创建：由构造函数末尾的 ensureFrameStyle 兜底
+    }
+
+    constexpr DWORD needStyle = WS_OVERLAPPEDWINDOW;
+    if ((static_cast<DWORD>(GetWindowLongPtrW(hwnd, GWL_STYLE)) & needStyle) == needStyle) {
+        return;
+    }
+
+    // 不在消息处理/拖拽模态循环内同步重写样式：排队到事件循环空闲时补齐
+    styleEnsurePosted = true;
+    QTimer::singleShot(0, this, [this]() {
+        styleEnsurePosted = false;
+        ensureFrameStyle("scheduled");
+    });
+#endif
+}
+
+void MainWindow::logHitTestRegion(const char *region)
+{
+    if (lastHitTestRegion == region) {
+        return;
+    }
+    lastHitTestRegion = region;
+
+#ifdef Q_OS_WIN
+    // 用 nativeHandle() 而非 winId()：WM_NCHITTEST 可能在窗口创建过程中被
+    // 分发，winId() 会触发创建重入（详见 scheduleFrameStyleEnsure 注释）
+    HWND hwnd = nativeHandle();
+    qDebug().nospace() << "WM_NCHITTEST region: " << region << " style: 0x" << Qt::hex
+                       << (hwnd ? static_cast<DWORD>(GetWindowLongPtrW(hwnd, GWL_STYLE)) : 0);
+#else
+    qDebug() << "WM_NCHITTEST region:" << region;
+#endif
+}
+
 void MainWindow::showEvent(QShowEvent *event)
 {
     QMainWindow::showEvent(event);
@@ -357,6 +459,8 @@ void MainWindow::showEvent(QShowEvent *event)
     //     applyDWMShadow();
     // }
     applyDWMShadow();
+    // 首次显示后确认窗口样式：显示路径上 Qt 可能重算样式丢失边缘拉伸位
+    ensureFrameStyle("showEvent");
 #endif
 }
 
@@ -370,7 +474,12 @@ void MainWindow::changeEvent(QEvent *event)
 
         if ((oldState & Qt::WindowMinimized) && !(newState & Qt::WindowMinimized)) {
             qDebug() << "从最小化恢复";
+            // 兜底清除最小化标记：正常路径下 WM_SIZE(SIZE_RESTORED) 已消费该标记
+            isMinimizedState = false;
             QTimer::singleShot(10, this, [this]() { applyDWMShadow(); });
+        } else if (!(oldState & Qt::WindowMinimized) && (newState & Qt::WindowMinimized)) {
+            // 兜底记录最小化状态：恢复时的 WM_SIZE 据此跳过重建
+            isMinimizedState = true;
         }
         // if ((newState & Qt::WindowMaximized) && !(oldState & Qt::WindowMaximized)) {
         if (!(oldState & Qt::WindowMaximized) && (newState & Qt::WindowMaximized)) {
@@ -383,6 +492,9 @@ void MainWindow::changeEvent(QEvent *event)
             titleWidget->maxButtonToggleIcon(true);
             QTimer::singleShot(10, this, [this]() { applyDWMShadow(); });
         }
+        // 状态切换（最大化/还原/最小化/恢复）后确认样式：Qt 状态切换路径
+        // 可能重写 GWL_STYLE 丢失边缘拉伸位
+        ensureFrameStyle("windowStateChange");
     }
 #endif
 
@@ -400,11 +512,18 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
     switch (msg->message) {
     case WM_NCCALCSIZE: {
+        // 窗口尺寸/位置变化都会经过这里：顺带检查样式，缺失时延迟补齐
+        // （不在 NcCalcSize 处理中同步重写样式，避免重入）
+        scheduleFrameStyleEnsure();
         *result = 0;
         return true;
     }
 
     case WM_NCHITTEST: {
+        // 命中测试期间顺带检查样式：Qt 平台层可能已把 GWL_STYLE 重写为不含
+        // WS_THICKFRAME 的版本，缺失时延迟补齐，恢复鼠标拖拽边缘拉伸的能力
+        scheduleFrameStyleEnsure();
+
         POINT pt;
         pt.x = GET_X_LPARAM(msg->lParam);
         pt.y = GET_Y_LPARAM(msg->lParam);
@@ -418,6 +537,14 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         int nY = pt.y;
         int w = rcClient.right;
         int h = rcClient.bottom;
+
+        // 统一收敛命中返回值：鼠标在拉伸边缘/非拉伸区之间切换时打印一次
+        // 命中的区域与当前窗口样式，便于诊断边缘拖拽问题
+        auto hitTestReturn = [&](LRESULT hit, const char *region) {
+            logHitTestRegion(region);
+            *result = hit;
+            return true;
+        };
 
         WINDOWPLACEMENT wp = { sizeof(wp) };
         bool isMaximized = GetWindowPlacement(hwnd, &wp) && wp.showCmd == SW_MAXIMIZE;
@@ -436,14 +563,11 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                     btnLeft = 0;
 
                 if (nX >= btnLeft && nX < btnRight) {
-                    *result = HTCLIENT;
-                    return true;
+                    return hitTestReturn(HTCLIENT, "CLIENT(maximized button)");
                 }
-                *result = HTCAPTION;
-                return true;
+                return hitTestReturn(HTCAPTION, "CAPTION(maximized)");
             }
-            *result = HTCLIENT;
-            return true;
+            return hitTestReturn(HTCLIENT, "CLIENT(maximized)");
         }
 
         const int detectBorder = 8;
@@ -458,53 +582,41 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             btnLeft = detectBorder;
 
         if (nX >= 0 && nX < detectBorder && nY >= 0 && nY < detectBorder) {
-            *result = HTTOPLEFT;
-            return true;
+            return hitTestReturn(HTTOPLEFT, "HTTOPLEFT");
         }
         if (nX >= w - detectBorder && nX < w && nY >= 0 && nY < detectBorder) {
-            *result = HTTOPRIGHT;
-            return true;
+            return hitTestReturn(HTTOPRIGHT, "HTTOPRIGHT");
         }
         if (nX >= 0 && nX < detectBorder && nY >= h - detectBorder && nY < h) {
-            *result = HTBOTTOMLEFT;
-            return true;
+            return hitTestReturn(HTBOTTOMLEFT, "HTBOTTOMLEFT");
         }
         if (nX >= w - detectBorder && nX < w && nY >= h - detectBorder && nY < h) {
-            *result = HTBOTTOMRIGHT;
-            return true;
+            return hitTestReturn(HTBOTTOMRIGHT, "HTBOTTOMRIGHT");
         }
 
         if (nY >= 0 && nY < detectBorder && nX >= detectBorder && nX < w - detectBorder) {
-            *result = HTTOP;
-            return true;
+            return hitTestReturn(HTTOP, "HTTOP");
         }
         if (nY >= h - detectBorder && nY < h && nX >= detectBorder && nX < w - detectBorder) {
-            *result = HTBOTTOM;
-            return true;
+            return hitTestReturn(HTBOTTOM, "HTBOTTOM");
         }
         if (nX >= 0 && nX < detectBorder && nY >= detectBorder && nY < h - detectBorder) {
-            *result = HTLEFT;
-            return true;
+            return hitTestReturn(HTLEFT, "HTLEFT");
         }
         if (nX >= w - detectBorder && nX < w && nY >= detectBorder && nY < h - detectBorder) {
-            *result = HTRIGHT;
-            return true;
+            return hitTestReturn(HTRIGHT, "HTRIGHT");
         }
 
         if (nY >= detectBorder && nY < titleHeight) {
             if (nX >= btnLeft && nX < btnRight) {
-                *result = HTCLIENT;
-                return true;
+                return hitTestReturn(HTCLIENT, "CLIENT(button)");
             }
             if (nX >= detectBorder && nX < btnLeft) {
-                // qDebug() << "MainWindow::nativeEvent HTCAPTION";
-                *result = HTCAPTION;
-                return true;
+                return hitTestReturn(HTCAPTION, "CAPTION(title)");
             }
         }
 
-        *result = HTCLIENT;
-        return true;
+        return hitTestReturn(HTCLIENT, "CLIENT");
     }
 
     case WM_GETMINMAXINFO: {
@@ -523,24 +635,58 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     }
 
     case WM_SIZE: {
+        // 尺寸变化（拉伸/最大化/Snap/程序化 resize 等）时顺带检查样式：
+        // 缺失时延迟补齐（拖拽期间样式必然完好，此处仅只读检查）
+        scheduleFrameStyleEnsure();
+        // 最小化：窗口会被移到屏幕外并缩成图标尺寸，该尺寸不代表恢复后的界面尺寸。
+        // 仅记录状态供恢复时识别，避免最小化/恢复被当成窗口尺寸变化而触发重建
+        if (msg->wParam == SIZE_MINIMIZED) {
+            isMinimizedState = true;
+            break;
+        }
         if (msg->wParam == SIZE_RESTORED || msg->wParam == SIZE_MAXIMIZED) {
             QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
+
+            RECT rect;
+            GetWindowRect(hwnd, &rect);
+            int w = rect.right - rect.left;
+            int h = rect.bottom - rect.top;
+
+            // 从最小化恢复：窗口恢复到最小化前的尺寸（lastRegenerateWidth 即该尺寸），
+            // 直接按最小化前的界面继续显示，不重建 MessageWidget。
+            // 最小化前若为最大化，恢复时后续还会收到 SIZE_MAXIMIZED，仍走下方宽度比较
+            if (isMinimizedState && msg->wParam == SIZE_RESTORED) {
+                isMinimizedState = false;
+                lastRegenerateHeight = h;
+                qDebug() << "WM_SIZE restore from minimized, skip regenerate" << w << h;
+                break;
+            }
+            isMinimizedState = false;
+
+            // 首次显示阶段（showEvent 之前）的 WM_SIZE：只记录初始尺寸作为重建基准。
+            // 否则 lastRegenerateWidth 始终为初值，此后任何一次 WM_SIZE（如从任务栏
+            // 恢复窗口、DWM 触发的尺寸通知）都会被误判为宽度变化并重建 MessageWidget
+            if (isShowFirst) {
+                lastRegenerateWidth = w;
+                lastRegenerateHeight = h;
+                break;
+            }
+
             // 双击标题栏/单击最大化按钮等非拖拽方式的最大化/还原：
             // 不经过 WM_ENTERSIZEMOVE/WM_EXITSIZEMOVE，只能在这里触发重建；
             // 与上次重建尺寸相同（如 Snap 后延迟到达的 WM_SIZE）则跳过
-            if (!isShowFirst && !isSizeMoveDrag) {
-                RECT rect;
-                GetWindowRect(hwnd, &rect);
-                int w = rect.right - rect.left;
-                int h = rect.bottom - rect.top;
-                if (w != lastRegenerateWidth || h != lastRegenerateHeight) {
+            if (!isSizeMoveDrag) {
+                // 仅宽度变化才重建：MessageWidget 的宽度只取决于窗口宽度，
+                // 只改变高度（上下拉伸）不影响文本换行，重建只带来无谓开销与闪烁
+                if (w != lastRegenerateWidth) {
                     lastRegenerateWidth = w;
                     lastRegenerateHeight = h;
                     qDebug() << "WM_SIZE isRegenerate" << w << h;
                     // 延迟到 Qt resizeEvent 执行后再重建，保证 chatShow 宽度已更新
-                    QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+                    scheduleMessageWidgetRegenerate();
                 } else {
-                    qDebug() << "WM_SIZE skip regenerate same size" << w << h;
+                    lastRegenerateHeight = h;
+                    qDebug() << "WM_SIZE skip regenerate, width unchanged" << w << h;
                 }
             }
         }
@@ -552,6 +698,8 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         // 区分“仅移动”与“调整大小”（仅移动不应触发聊天记录重建）
         isSizeMoveDrag = true;
         dragRegenerateDone = false;
+        // 拖拽开始前顺带检查样式（缺失时延迟补齐，恢复后续边缘拉伸能力）
+        scheduleFrameStyleEnsure();
         RECT rect;
         GetWindowRect(hwnd, &rect);
         dragStartWidth = rect.right - rect.left;
@@ -561,18 +709,18 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
     case WM_MOVING: {
         // 拖动标题栏移动/拖动还原过程中：lParam 为拖动目标矩形。
-        // 目标尺寸发生变化（最大化/半屏还原、Aero Snap）时仅标记待重建，
+        // 目标宽度发生变化（最大化/半屏还原、Aero Snap、左右拉伸）时仅标记待重建，
         // 不在这里直接重建：系统拖拽模态循环中执行耗时重建会阻塞拖拽造成卡顿，
-        // 且 Snap 时 Qt resizeEvent 尚未执行（chatShow 宽度未同步），重建会读旧宽度
+        // 且 Snap 时 Qt resizeEvent 尚未执行（chatShow 宽度未同步），重建会读旧宽度；
+        // 高度变化不影响 MessageWidget 宽度，不触发重建
         if (dragRegenerateDone)
             break;
         RECT *rc = reinterpret_cast<RECT *>(msg->lParam);
         int w = rc->right - rc->left;
-        int h = rc->bottom - rc->top;
-        if (w != dragStartWidth || h != dragStartHeight) {
+        if (w != dragStartWidth) {
             dragRegenerateDone = true;
             pendingRegenerateAfterResize = true;
-            qDebug() << "WM_MOVING size changed, pending regenerate" << w << h;
+            qDebug() << "WM_MOVING width changed, pending regenerate" << w;
         }
         break;
     }
@@ -580,6 +728,8 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
         isSizeMoveDrag = false;
+        // 拖拽结束：顺带检查样式（缺失时延迟补齐）
+        scheduleFrameStyleEnsure();
 
         RECT rect;
         GetWindowRect(hwnd, &rect);
@@ -587,34 +737,38 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         int h = rect.bottom - rect.top;
         if (pendingRegenerateAfterResize) {
             pendingRegenerateAfterResize = false;
-            if (w != dragStartWidth || h != dragStartHeight) {
+            // 只比较宽度：仅高度变化的拉伸不需要重建 MessageWidget
+            if (w != dragStartWidth) {
                 // 拖拽结束、事件循环恢复后执行：此时 Qt resizeEvent 已同步新宽度，
                 // 重建宽度正确且不阻塞拖拽过程（重建不在模态循环中执行）
                 lastRegenerateWidth = w;
                 lastRegenerateHeight = h;
                 qDebug() << "WM_EXITSIZEMOVE regenerate pending" << w << h;
-                QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+                scheduleMessageWidgetRegenerate();
             } else {
-                qDebug() << "WM_EXITSIZEMOVE pending canceled, size back to start";
+                lastRegenerateHeight = h;
+                qDebug() << "WM_EXITSIZEMOVE pending canceled, width back to start" << w << h;
             }
         } else if (dragRegenerateDone) {
-            // 拖动过程中已重建过；若最终尺寸与重建时不同（继续拉伸）则补一次
-            if (w != lastRegenerateWidth || h != lastRegenerateHeight) {
+            // 拖动过程中已标记过；若最终宽度与重建时不同（继续拉伸）则补一次
+            if (w != lastRegenerateWidth) {
                 lastRegenerateWidth = w;
                 lastRegenerateHeight = h;
-                qDebug() << "WM_EXITSIZEMOVE size still changed, regenerate" << w << h;
-                QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+                qDebug() << "WM_EXITSIZEMOVE width still changed, regenerate" << w << h;
+                scheduleMessageWidgetRegenerate();
             } else {
-                qDebug() << "WM_EXITSIZEMOVE already regenerated, skip";
+                lastRegenerateHeight = h;
+                qDebug() << "WM_EXITSIZEMOVE already regenerated, skip" << w << h;
             }
-        } else if (w != dragStartWidth || h != dragStartHeight) {
-            // 拖动中未触发（如 Snap 尺寸变化发生在最后时刻）：现在重建
+        } else if (w != dragStartWidth) {
+            // 拖动中未触发（如 Snap 宽度变化发生在最后时刻）：现在重建
             lastRegenerateWidth = w;
             lastRegenerateHeight = h;
-            qDebug() << "WM_EXITSIZEMOVE size changed, regenerate" << w << h;
-            QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+            qDebug() << "WM_EXITSIZEMOVE width changed, regenerate" << w << h;
+            scheduleMessageWidgetRegenerate();
         } else {
-            qDebug() << "WM_EXITSIZEMOVE move only, skip regenerate";
+            lastRegenerateHeight = h;
+            qDebug() << "WM_EXITSIZEMOVE move or height only, skip regenerate" << w << h;
         }
         dragRegenerateDone = false;
         break;
@@ -1143,14 +1297,20 @@ void MainWindow::resizeEvent(QResizeEvent *event)
                               mainWidget->height() - titleWidget->height());
     chatRecordsWidget->resetWidgetSize();
     if (settingWidgetIsOpen || chatRecordsWidgetIsOpen) {
-        chatFun->setFixedSize(mainWidget->width() * 2 / 3, chatFun->height());
+        // 展开态内容区宽度统一使用 mainWidget->width() - mainWidget->width() / 3：
+        // 侧栏宽度为 mainWidget->width() / 3，chatRecordsUiAnimationMove 的终态与
+        // chatShowWidth(true) 都是该表达式；若这里改用 * 2 / 3，当窗口宽度除 3 余 2 时
+        // 会比其小 1px，展开后拖拉窗口将使 AI 最大宽度的右边缘与用户 ImageLabel
+        // 的右边缘错开 1px
+        const int contentWidth = mainWidget->width() - mainWidget->width() / 3;
+        chatFun->setFixedSize(contentWidth, chatFun->height());
         chatFun->resetWidgetSize();
-        chatShow->resize(mainWidget->width() * 2 / 3 - 29, chatShow->height());
-        chatShowWidget->resize(mainWidget->width() * 2 / 3, chatShowWidget->height());
-        chatInput->resize(mainWidget->width() * 2 / 3 - 40, chatInput->height());
+        chatShow->resize(contentWidth - 30, chatShow->height());
+        chatShowWidget->resize(contentWidth, chatShowWidget->height());
+        chatInput->resize(contentWidth - 40, chatInput->height());
         chatInput->resetWidgetSize();
-        chatInputWidget->resize(mainWidget->width() * 2 / 3, chatInputWidget->height());
-        splitter->resize(mainWidget->width() * 2 / 3, splitter->height());
+        chatInputWidget->resize(contentWidth, chatInputWidget->height());
+        splitter->resize(contentWidth, splitter->height());
         contentVLayout->setContentsMargins(mainWidget->width() / 3, 0, 0, 0);
         if (settingWidgetIsOpen)
             settingWidget->move(0, titleWidget->height());
@@ -1186,7 +1346,8 @@ void MainWindow::resizeEvent(QResizeEvent *event)
             resize(qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi),
                    qRound(widgetSizeDict["MainWindow"].value<QSize>().height() * curDpi / lastDpi));
         }
-        messageWidgetRegenerate();
+        // 与上方 resize 触发的 WM_SIZE 重建请求经统一调度入口合并去重
+        scheduleMessageWidgetRegenerate();
     }
     widgetSizeDict["MainWindow"] = size();
     qDebug() << "resizeEvent MainWindow size:" << size();
@@ -1238,7 +1399,7 @@ void MainWindow::chatRecordsUiAnimationMove(const QVariant &value)
     chatFun->setFixedSize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
                           chatFun->height());
     chatFun->setSize();
-    chatShow->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width() - 29,
+    chatShow->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width() - 30,
                      chatShow->height());
     chatShowWidget->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
                            chatShowWidget->height());
@@ -1250,6 +1411,37 @@ void MainWindow::chatRecordsUiAnimationMove(const QVariant &value)
     splitter->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
                      splitter->height());
     contentVLayout->setContentsMargins(rect.x() + chatRecordsWidget->width(), 0, 0, 0);
+    const int count = qMin(chatShow->count(), messageWidgetList.size());
+    // qDebug() << "chatRecordsUiAnimationMove rect:" << rect;
+    for (int i = 0; i < count; ++i) {
+        QListWidgetItem *item = chatShow->item(i);
+        if (!item)
+            continue;
+        ItemWidget *itemWidget = qobject_cast<ItemWidget *>(chatShow->itemWidget(item));
+        MessageWidget *messageWidget = messageWidgetList.at(i);
+        if (messageWidget->getIsUser()) {
+            if (QLayout *itemLayout = itemWidget->layout()) {
+                if (chatRecordsWidgetIsOpen) {
+                    // const int w = chatShow->width();
+                    // const int h = messageWidget->height() + 10;
+                    // itemWidget->setFixedSize(w, h);
+                    itemLayout->setContentsMargins(
+                            itemWidget->width() - rect.x() - chatRecordsWidget->width()
+                                    - messageWidget->width() - itemRightMargin,
+                            itemVerticalMargin,
+                            itemRightMargin + rect.x() + chatRecordsWidget->width(),
+                            itemVerticalMargin);
+                } else {
+                    const int w = chatShow->width();
+                    const int h = messageWidget->height() + 10;
+                    itemWidget->setFixedSize(w, h);
+                    itemLayout->setContentsMargins(
+                            itemWidget->width() - messageWidget->width() - itemRightMargin,
+                            itemVerticalMargin, itemRightMargin, itemVerticalMargin);
+                }
+            }
+        }
+    }
 }
 
 void MainWindow::chatRecordsUiMoveFinished()
@@ -1257,7 +1449,10 @@ void MainWindow::chatRecordsUiMoveFinished()
     chatFun->saveWidgetSize();
     if (!chatRecordsWidgetIsOpen)
         chatRecordsWidget->delAllListItems();
-    messageWidgetRegenerate();
+    // 展开/收起只改变 chatShow 宽度：MessageWidget 的最大宽度与展开状态无关
+    // （由 messageWidgetMaxWidth() 统一计算），因此不重建控件，只按新宽度调整
+    // itemRecvHLayout 等的边距；延迟到布局激活后执行，保证读到最终的 chatShow 宽度
+    // QTimer::singleShot(0, this, &MainWindow::messageWidgetItemRelayout);
 }
 
 void MainWindow::onBaseUrlTextChanged(const QString &text)
@@ -1632,6 +1827,76 @@ void MainWindow::onTemperatureSliderValueChanged(int i)
     settingWidget->temperatureBoxSetValue(i / 100.0 + 0.01);
 }
 
+int MainWindow::chatShowWidth(bool recordsExpanded) const
+{
+    // 按展开状态计算而不是读取 chatShow->width()：展开/收起动画过程中、
+    // 以及动画刚结束时布局尚未激活的情况下，读到的宽度并不一致，
+    // 会导致同一窗口宽度下创建的 MessageWidget 宽度不同
+    int left = 0, top = 0, right = 0, bottom = 0;
+    if (chatShowVLayout)
+        chatShowVLayout->getContentsMargins(&left, &top, &right, &bottom);
+    // 聊天记录部件（或设置部件）展开时内容区只占 mainWidget 宽度的 2/3，
+    // 与 resizeEvent 中 contentVLayout 的左边距保持一致
+    const int contentWidth =
+            recordsExpanded ? mainWidget->width() - mainWidget->width() / 3 : mainWidget->width();
+    return contentWidth - left - right;
+}
+
+int MainWindow::messageWidgetMaxWidth() const
+{
+    // 最大宽度与聊天记录部件的展开状态无关（否则展开前后创建的 MessageWidget
+    // 宽度不一致），取下列两者的较小值：
+    // 1）未展开时 chatShow 宽度的 2/3；
+    // 2）展开后 chatShow 宽度 - itemRightMargin：保证展开后 AI 消息达到最大宽度时，
+    //    其右边缘（左边距 0 + 最大宽度）正好落在 chatShow 宽度 - itemRightMargin 处，
+    //    与用户消息 ImageLabel 的右边缘在垂直方向上对齐，
+    //    因此展开/收起只需调整 itemRecvHLayout 的边距，MessageWidget 不用重建
+    const int maxWidth = qMin(chatShowWidth(false) * 2 / 3, chatShowWidth(true) - itemRightMargin);
+    qDebug() << "minMessageWidgetMaxWidth:" << minMessageWidgetMaxWidth << "maxWidth:" << maxWidth;
+    return qMax(minMessageWidgetMaxWidth, maxWidth);
+}
+
+void MainWindow::updateItemLayout(QWidget *itemWidget, MessageWidget *messageWidget,
+                                  QListWidgetItem *item)
+{
+    if (!itemWidget || !messageWidget)
+        return;
+    const int w = chatShow->width();
+    const int h = messageWidget->height() + 10;
+    itemWidget->setFixedSize(w, h);
+    if (QLayout *itemLayout = itemWidget->layout()) {
+        if (messageWidget->getIsUser())
+            // 用户消息右对齐：ImageLabel 右边缘固定在 chatShow 宽度 - itemRightMargin 处
+            itemLayout->setContentsMargins(itemWidget->width() - messageWidget->width()
+                                                   - itemRightMargin,
+                                           itemVerticalMargin, itemRightMargin, itemVerticalMargin);
+        else
+            // AI 消息左边距恒为 0：达到最大宽度时右边缘与用户消息 ImageLabel 右边缘对齐，
+            // 未达到最大宽度时同样使用该边距公式（不强制右对齐）
+            itemLayout->setContentsMargins(0, itemVerticalMargin,
+                                           itemWidget->width() - messageWidget->width(),
+                                           itemVerticalMargin);
+    }
+    if (item)
+        item->setSizeHint(QSize(w, h));
+}
+
+void MainWindow::messageWidgetItemRelayout()
+{
+    // 聊天记录部件展开/收起只改变 chatShow 宽度，而 MessageWidget 的最大宽度
+    // 与展开状态无关，因此无需重建控件（重建耗时且会与流式追加的文本竞争），
+    // 只需按新宽度同步各 item 部件的尺寸与布局边距
+    const int count = qMin(chatShow->count(), messageWidgetList.size());
+    for (int i = 0; i < count; ++i) {
+        QListWidgetItem *item = chatShow->item(i);
+        if (!item)
+            continue;
+        updateItemLayout(chatShow->itemWidget(item), messageWidgetList.at(i), item);
+    }
+    qDebug() << "messageWidgetItemRelayout chatShow width:" << chatShow->width()
+             << "messageWidget maxWidth:" << messageWidgetMaxWidth() << "count:" << count;
+}
+
 void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
 {
     qDebug() << "messageWidgetResize start";
@@ -1642,25 +1907,11 @@ void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
             break;
     }
     for (; i < count; ++i) {
-        MessageWidget *messageWidget = messageWidgetList.at(i);
-        // messageWidget->setSize();
         QListWidgetItem *item = chatShow->item(i);
         QWidget *itemWidget = chatShow->itemWidget(item);
         if (!itemWidget)
             return;
-        const int w = chatShow->width();
-        const int h = messageWidget->height() + 10;
-        itemWidget->setFixedSize(w, h);
-        QLayout *itemLayout = itemWidget->layout();
-        if (itemLayout) {
-            if (messageWidget->getIsUser())
-                itemLayout->setContentsMargins(itemWidget->width() - messageWidget->width() - 25, 5,
-                                               25, 5);
-            else
-                itemLayout->setContentsMargins(0, 5, itemWidget->width() - messageWidget->width(),
-                                               5);
-        }
-        item->setSizeHint(QSize(w, h));
+        updateItemLayout(itemWidget, messageWidgetList.at(i), item);
     }
     qDebug() << "messageWidgetResize end";
 }
@@ -1671,6 +1922,9 @@ void MainWindow::sendMessage()
         QList<QVariantMap> context = {};
         QString text = chatInput->toPlainText().trimmed();
         if (!text.isEmpty()) {
+            // 用户主动发送消息：恢复滚动条自动跟随，避免之前滚动查看历史关闭的
+            // 自动跟随（scrollAutoChange=false）残留使本轮新消息不再滚动到底部
+            chatShow->resetScrollAutoChange();
             for (auto *w : messageWidgetList) {
                 QVariantMap m;
                 m["role"] = w->getIsUser() ? "user" : "assistant";
@@ -1679,13 +1933,14 @@ void MainWindow::sendMessage()
             }
             thinkTimeLengthList.append(0);
             messageSendWidget = new MessageWidget(
-                    appContext, text, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
+                    appContext, text, [this]() { textCopy(); },
+                    [this]() { messageRenewResponse(); },
                     [this](MessageWidget *selfMessageWidget) {
                         messageWidgetResize(selfMessageWidget);
                     },
                     [this](bool state) { getSetTexting(state); }, [this]() { onExecuteNext(); },
                     chatShow, thinkTimeLengthList, messageWidgetList.size(), true, true,
-                    chatShow->width() * 3 / 4);
+                    messageWidgetMaxWidth());
             messageSendWidget->hide();
             messageSendWidget->updateFunWidgetSize(curDpi, initDpi);
             // messageSendWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
@@ -1698,12 +1953,11 @@ void MainWindow::sendMessage()
             itemSendHLayout = new QHBoxLayout(itemSendWidget);
             itemSendHLayout->addWidget(messageSendWidget);
             itemSendWidget->setFixedSize(chatShow->width(), messageSendWidget->height() + 10);
-            itemSendHLayout->setContentsMargins(
-                    itemSendWidget->width() - messageSendWidget->width() - 25, 5, 25, 5);
 
             sendItem = new QListWidgetItem(chatShow);
             sendItem->setSizeHint(QSize(chatShow->width(), messageSendWidget->height() + 10));
             chatShow->setItemWidget(sendItem, itemSendWidget);
+            updateItemLayout(itemSendWidget, messageSendWidget, sendItem);
 
             thread = new MessageThread(text, context);
             chatInput->clearText();
@@ -1728,6 +1982,9 @@ void MainWindow::sendMessage()
 void MainWindow::onExecuteNext()
 {
     qDebug() << "onExecuteNext";
+    // 会话切换后旧发送控件已销毁（resetRecvChain 已置空）：跳过，避免悬空访问
+    if (!messageSendWidget)
+        return;
     messageSendWidget->show();
     QTimer::singleShot(50, this, &MainWindow::startThread);
 }
@@ -1746,6 +2003,9 @@ void MainWindow::startThread()
 void MainWindow::messageStart()
 {
     message.clear();
+    // 新接收开始：会话切换时 resetRecvChain 置 false 的渲染开关在此恢复，
+    // 否则切换后新发送的流式文本不会渲染
+    isContinueShow = true;
     int i = messageWidgetList.size() - 1;
     if (i != 0) {
         if (messageWidgetList[i]->getIsUser())
@@ -1759,7 +2019,7 @@ void MainWindow::messageStart()
             appContext, message, [this]() { textCopy(); }, [this]() { messageRenewResponse(); },
             [this](MessageWidget *selfMessageWidget) { messageWidgetResize(selfMessageWidget); },
             [this](bool state) { getSetTexting(state); }, nullptr, chatShow, thinkTimeLengthList,
-            messageWidgetList.size(), false, true, chatShow->width() * 3 / 4);
+            messageWidgetList.size(), false, true, messageWidgetMaxWidth());
     // messageRecvWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
     // messageRecvWidget->connectSetTexting(this, &MainWindow::getSetTexting);
     messageWidgetList.append(messageRecvWidget);
@@ -1768,21 +2028,16 @@ void MainWindow::messageStart()
     itemRecvHLayout = new QHBoxLayout(itemRecvWidget);
     itemRecvHLayout->addWidget(messageRecvWidget);
     itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
-    itemRecvHLayout->setContentsMargins(0, 5, itemRecvWidget->width() - messageRecvWidget->width(),
-                                        5);
 
     recvItem = new QListWidgetItem(chatShow);
     recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
     chatShow->setItemWidget(recvItem, itemRecvWidget);
+    updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
 
     first = true;
     qDebug() << "messageStart";
 
-    HWND hwnd = reinterpret_cast<HWND>(winId());
-    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    ensureFrameStyle("messageStart");
 }
 
 void MainWindow::queueMessage(const QString &text)
@@ -1810,6 +2065,12 @@ void MainWindow::recvMessage(const QString &text)
         isProcessing = false;
         return;
     }
+    // 会话切换/新建聊天已清空队列：挂起的排队回调（singleShot）在切换后仍可能执行，
+    // 此时无待渲染文本，直接退出，避免后续对空队列 dequeue 的未定义行为
+    if (messageQueue.isEmpty()) {
+        isProcessing = false;
+        return;
+    }
     qDebug() << "recvMessage:" << text;
     // QSignalBlocker blocker(thread);
     // isProcessing = true;
@@ -1825,20 +2086,16 @@ void MainWindow::recvMessage(const QString &text)
 
     if (isContinueShow && messageRecvWidget) {
         messageRecvWidget->setText(message);
-        itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
-        itemRecvHLayout->setContentsMargins(
-                0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
-        recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
+        updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
     }
 
-    HWND hwnd = reinterpret_cast<HWND>(winId());
-    DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    ensureFrameStyle("recvMessage");
 
     qDebug() << "recvMessage: setText finish";
-    messageQueue.dequeue();
+    // setText 内部嵌套事件循环可能已触发会话切换（用户点击聊天记录）：
+    // 队列已被 resetRecvChain 清空时跳过 dequeue
+    if (!messageQueue.isEmpty())
+        messageQueue.dequeue();
     qDebug() << "recvMessage: messageQueue dequeue";
     if (!messageQueue.isEmpty()) {
         QString next = messageQueue.head();
@@ -1856,6 +2113,10 @@ void MainWindow::recvMessage(const QString &text)
 
 void MainWindow::onThreadFinished()
 {
+    // 仅处理当前线程：会话切换后旧线程的 finished 信号可能迟到（thread 已指向新对象），
+    // 忽略旧线程的完成信号，避免误触发收尾破坏新接收状态
+    if (sender() != thread)
+        return;
     // 线程完成信号到来后不能立即收尾：messageQueue 可能仍有未渲染的文本
     // （AI 输出速度大于渲染速度，或重建期间队列冻结）。仅标记线程已完成，
     // 待 recvMessage 处理完最后一条（队列为空）时再触发 messageFinish
@@ -1867,22 +2128,22 @@ void MainWindow::onThreadFinished()
 
 void MainWindow::messageFinish()
 {
+    // 切换聊天记录/新建聊天/重建进行中不执行收尾：MessageThread::stop()
+    // （terminate+wait）会同步派发 finished 信号，使本函数在
+    // applyChatRecordSwitch 中途被提前调用，此时旧控件尚未中止渲染，
+    // 收尾操作（补全 setText/布局更新）会与随后的清空销毁流程交错
+    if (isSwitchingChatRecord || isRegenerating) {
+        if (isRegenerating)
+            isSending = false;
+        return;
+    }
     // 接收真正结束（本函数由线程 finished 信号触发，是补全缺失文本的合适时机）：
     // 重建期间到达的追加文本只累积在 message 未渲染，重建完成后控件会缺少尾部文本，
     // 此处统一补全；此时接收已停止，不会与增量 setText 交错
     if (messageRecvWidget && isContinueShow && messageRecvWidget->getText() != message) {
         messageRecvWidget->setText(message);
-        if (itemRecvWidget && itemRecvHLayout && recvItem) {
-            itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
-            itemRecvHLayout->setContentsMargins(
-                    0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
-            recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
-        }
-        HWND hwnd = reinterpret_cast<HWND>(winId());
-        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-        SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+        updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
+        ensureFrameStyle("messageFinish");
     }
 
     if (messageRecvWidget) {
@@ -1892,14 +2153,20 @@ void MainWindow::messageFinish()
     }
 
     if (messageRecvWidget && itemRecvWidget && itemRecvHLayout && recvItem) {
-        itemRecvWidget->setFixedSize(chatShow->width(), messageRecvWidget->height() + 10);
-        itemRecvHLayout->setContentsMargins(
-                0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
-        recvItem->setSizeHint(QSize(chatShow->width(), messageRecvWidget->height() + 10));
+        updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
     }
 
-    if (message.isEmpty() && !messageWidgetList.isEmpty() && chatShow->count() > 0) {
-        delete messageWidgetList.takeLast();
+    // 空回复置占位移除：仅在接收控件与本轮 item 上有效。会话切换后这些指针已置空
+    // （resetRecvChain），此时 message 必然被清空，若不加限制会误删新会话的最后一条消息
+    if (message.isEmpty() && messageRecvWidget && itemRecvWidget && recvItem
+        && !messageWidgetList.isEmpty() && chatShow->count() > 0) {
+        // 不能同步 delete：本函数可能被渲染期间到达的线程完成信号触发，控件仍停留在
+        // setText/buildAiUi 的嵌套事件循环（loop.exec）中，同步销毁会使其渲染栈访问
+        // 已释放成员。改用 abortRendering：中止渲染等待、摘除父级并接管销毁时机
+        // （渲染栈已退出则立即 deleteLater，否则推迟到渲染栈退出后）
+        MessageWidget *lastMessageWidget = messageWidgetList.takeLast();
+        if (lastMessageWidget)
+            lastMessageWidget->abortRendering();
         int last = chatShow->count() - 1;
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
         if (itemWidget)
@@ -1917,6 +2184,39 @@ void MainWindow::messageFinish()
     //     MessageWidget *messageWidget = messageWidgetList.at(i);
     //     qDebug() << i << "messageWidget size:" << messageWidget->size();
     // }
+}
+
+void MainWindow::resetRecvChain()
+{
+    // 切换聊天记录/新建聊天时调用：旧消息控件随后会被 deleteLater/chatShow->clear()
+    // 销毁，但排队的 recvMessage 回调（singleShot）与尚未返回的 setText 调用栈
+    // （流式渲染中嵌套事件循环内触发的切换）仍持有旧控件指针。这里清空积压队列、
+    // 复位流式状态并断开接收链上的裸指针：
+    // - recvMessage 通过 isContinueShow/messageRecvWidget 判断跳过对旧控件的渲染；
+    // - 队列清空后，recvMessage 的空队列检查使挂起回调安全退出
+    //   （避免对空队列 dequeue 的未定义行为）；
+    // - messageFinish 通过 messageRecvWidget 判断避免误收尾
+    // 先中止各控件的渲染等待栈：用户点击发生在旧控件的嵌套事件循环（loop.exec）内时，
+    // 其 setText/buildAiUi 仍在同步等待子控件渲染（子控件随后的销毁会使等待条件
+    // 永远无法满足，且渲染栈继续访问已销毁成员会悬空崩溃），使其在销毁前安全退出
+    for (MessageWidget *messageWidget : messageWidgetList) {
+        if (messageWidget)
+            messageWidget->abortRendering();
+    }
+    messageQueue.clear();
+    isProcessing = false;
+    isContinueShow = false;
+    isThreadFinished = false;
+    first = true;
+    message.clear();
+    messageRecvWidget = nullptr;
+    itemRecvWidget = nullptr;
+    itemRecvHLayout = nullptr;
+    recvItem = nullptr;
+    messageSendWidget = nullptr;
+    itemSendWidget = nullptr;
+    itemSendHLayout = nullptr;
+    sendItem = nullptr;
 }
 
 void MainWindow::textCopy() { }
@@ -1966,6 +2266,13 @@ void MainWindow::writeToChatRecordFile(bool withholdCurChatFile)
 
 void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
 {
+    // 消息列表正在按文件构建（generateCurChatRecord 内的嵌套事件循环期间）或上一次
+    // 构建被连续点击中止时，messageWidgetList 只有部分消息，此时序列化会把当前记录
+    // 文件重写成半成品：构建期间到达的保存请求（窗口关闭、打开记录列表、窗口重建等）
+    // 一律跳过，记录文件保持上一次完整保存的内容
+    if (isBuildingChatRecord || isChatRecordBuildAbandoned)
+        return;
+
     if (messageWidgetList.size() != 0) {
         if (curChatFile.isEmpty()) {
             writeToChatRecordFile(withholdCurChatFile);
@@ -2028,16 +2335,68 @@ void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
 
 void MainWindow::chatRecordsGenerateItem(QString searchText)
 {
-    Q_UNUSED(searchText);
+    QDir dir(appContext->chatRecordsDir());
+    // 按文件名升序（文件名含时间戳，升序即时间序），addListItem 头部插入后最新记录在最上方
+    QStringList fileNames = dir.entryList(QStringList() << "*.txt", QDir::Files, QDir::Name);
+    for (const QString &fileName : fileNames) {
+        QString filePath = dir.filePath(fileName);
+        try {
+            QStringList lines;
+            QFile file(filePath);
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                qDebug() << "错误：文件" << filePath << "不存在";
+                continue;
+            }
+            QTextStream in(&file);
+            in.setEncoding(QStringConverter::Utf8);
+            QString content = in.readAll();
+            file.close();
+
+            // 有搜索词时先过滤，内容不含关键词的记录跳过
+            if (!searchText.isEmpty() && !content.contains(searchText))
+                continue;
+
+            lines = content.split('\n');
+            for (int i = 0; i < lines.size() - 1; i++)
+                lines[i] += '\n';
+            if (lines.last().isEmpty())
+                lines.removeLast();
+
+            // 定位首条用户消息结束标记（True\n），其后为 AI 回复首行；
+            // 若为 <think>\n 则再跳一行，取思考或正文首行
+            int index = 0;
+            for (; index < lines.size(); index++) {
+                if (lines[index] == "True\n") {
+                    if (index + 1 < lines.size() && lines[index + 1] == "<think>\n")
+                        index++;
+                    break;
+                }
+            }
+            if (lines.isEmpty() || index + 1 >= lines.size())
+                continue;
+
+            QString chatRecordStr = lines[0] + QString(lines[index + 1]).remove('\n');
+            QListWidgetItem *item = chatRecordsWidget->addListItem(chatRecordStr);
+            chatRecordsWidget->listItemSetData(item, fileName);
+        } catch (const std::exception &e) {
+            qDebug() << "发生未知错误：" << e.what();
+        }
+    }
 }
 
 void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandList)
 {
+    // 构建期间 messageWidgetList 为半成品：控件构造会进入渲染等待的嵌套事件循环，
+    // 其中的点击/关闭等事件若触发保存会把记录文件截断，此标记供 saveCurChatRecord 拦截
+    isBuildingChatRecord = true;
+
     QString text;
     bool isUser = true;
     thinkTimeLengthList.clear();
     int thinkTimeIndex = 0;
     int expandIndex = 0;
+    // 本次构建是否被待执行的切换点击或待执行的重建请求中止（列表为半成品）
+    bool buildAborted = false;
 
     QStringList lines;
     QString filePath = QDir(appContext->chatRecordsDir()).filePath(curChatFile);
@@ -2086,7 +2445,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             },
                             [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
                             thinkTimeLengthList, thinkTimeIndex, isUser, thinkExpand,
-                            chatShow->width() * 3 / 4);
+                            messageWidgetMaxWidth());
                 } else {
                     // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
                     messageWidget = new MessageWidget(
@@ -2097,7 +2456,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             },
                             [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
                             thinkTimeLengthList, thinkTimeIndex, isUser, true,
-                            chatShow->width() * 3 / 4);
+                            messageWidgetMaxWidth());
                 }
             } else {
                 // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
@@ -2108,8 +2467,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             messageWidgetResize(selfMessageWidget);
                         },
                         [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
-                        thinkTimeLengthList, thinkTimeIndex, isUser, true,
-                        chatShow->width() * 3 / 4);
+                        thinkTimeLengthList, thinkTimeIndex, isUser, true, messageWidgetMaxWidth());
             }
             // messageWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
             // messageWidget->connectSetTexting(this, &MainWindow::getSetTexting);
@@ -2132,16 +2490,10 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
             itemHLayout->addWidget(messageWidget);
             itemWidget->setLayout(itemHLayout);
             itemWidget->setFixedSize(chatShow->width(), messageWidget->height() + 10);
-            if (isUser) {
-                itemHLayout->setContentsMargins(itemWidget->width() - messageWidget->width() - 25,
-                                                5, 25, 5);
-            } else {
-                itemHLayout->setContentsMargins(0, 5, itemWidget->width() - messageWidget->width(),
-                                                5);
-            }
             item = new QListWidgetItem(chatShow);
             item->setSizeHint(QSize(chatShow->width(), messageWidget->height() + 10));
             chatShow->setItemWidget(item, itemWidget);
+            updateItemLayout(itemWidget, messageWidget, item);
 
             if (i == lines.size() - 1) {
                 if (lastIsToggle) {
@@ -2160,6 +2512,25 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                 expandIndex++;
             }
 
+            // 构建期间又收到切换点击（快速连续点击）：当前目标的列表已无展示价值，
+            // 立即中止本次构建，把剩余时间交给待执行目标（半成品列表由下方标记
+            // 阻止写回文件，由待执行切换统一清空重建）
+            if (hasPendingChatSwitch) {
+                buildAborted = true;
+                qDebug() << "generateCurChatRecord aborted, pending:" << pendingChatSwitchFile;
+                break;
+            }
+
+            // 构建期间又收到窗口尺寸变化触发的重建请求（拖拽释放/最大化等）：当前
+            // 构建的控件宽度已过期，立即中止本次构建，把剩余时间交给最新一次重建：
+            // 待重建标记由 messageWidgetRegenerate 的 do-while 在重建轮结束时消费
+            // （再执行一轮完整重建），此处即刻退出避免旧宽度列表无谓生成到底
+            if (isRegeneratePending) {
+                buildAborted = true;
+                qDebug() << "generateCurChatRecord aborted, regenerate pending";
+                break;
+            }
+
         } else if (lines[i].left(8) == QString("消息部件思考时长")) {
             QRegularExpression re("\\d+");
             QRegularExpressionMatch match = re.match(lines[i]);
@@ -2170,22 +2541,43 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
             text += lines[i];
         }
     }
+
+    isBuildingChatRecord = false;
+    // 中止的构建（列表为半成品，不代表任何文件的完整内容）：阻止 saveCurChatRecord
+    // 将其写回文件；正常构建完成时清除标记
+    isChatRecordBuildAbandoned = buildAborted;
 }
 
 void MainWindow::getSetTexting(bool state)
 {
-    isSetTexting = state;
-    // 渲染结束后若有待执行的重建，延迟到事件循环空闲时执行，避免在 setText 栈内重建
-    if (!state && isRegeneratePending && !isRegenerating) {
-        QTimer::singleShot(0, this, &MainWindow::messageWidgetRegenerate);
+    Q_UNUSED(state);
+}
+
+void MainWindow::scheduleMessageWidgetRegenerate()
+{
+    // 已有排队等待执行的重建回调：本次请求合并进去不再重复调度。
+    // 队列中堆积多个回调时，后执行的回调会在重建执行期间进入重入保护再次标记
+    // 待重建，使重建完成后被追加执行一轮（同一次窗口尺寸变化被重复完整重建）；
+    // 合并后由唯一回调在事件循环空闲时执行，重建时读取最新窗口宽度
+    if (isRegenerateScheduled) {
+        qDebug() << "scheduleMessageWidgetRegenerate merged";
+        return;
     }
+    isRegenerateScheduled = true;
+    qDebug() << "scheduleMessageWidgetRegenerate";
+    QTimer::singleShot(0, this, [this]() {
+        isRegenerateScheduled = false;
+        messageWidgetRegenerate();
+    });
 }
 
 void MainWindow::messageWidgetRegenerate()
 {
-    // 重入保护：正在重建或 AI 消息渲染中（嵌套事件循环内 WM_EXITSIZEMOVE 会被再次分发）
-    // 再次触发时仅标记待重建，避免半成品控件重复创建与悬空指针访问
-    if (isRegenerating || isSetTexting) {
+    // 重入保护：正在重建、AI 消息渲染中（嵌套事件循环内 WM_EXITSIZEMOVE 会被再次分发），
+    // 或正在切换聊天记录/新建聊天（消息列表为半成品，重建会与之交错）。
+    // 再次触发时仅标记待重建：当前重建轮由 generateCurChatRecord 的中止检查即刻
+    // 终止（不再完整生成到底），do-while 随后以最新尺寸完整重建一次
+    if (isRegenerating || isSwitchingChatRecord) {
         isRegeneratePending = true;
         return;
     }
@@ -2213,6 +2605,13 @@ void MainWindow::messageWidgetRegenerate()
             }
 
             // 重建期间置空接收指针，防止嵌套事件循环中消息回调访问旧控件
+            // 先中止各控件的渲染等待栈（同 resetRecvChain）：窗口重建由嵌套事件循环
+            // 内的 WM_EXITSIZEMOVE 触发时，旧控件的 setText/buildAiUi 仍在等待子控件
+            // 渲染，控件销毁后渲染栈继续访问悬空成员会崩溃
+            for (MessageWidget *oldMessageWidget : messageWidgetList) {
+                if (oldMessageWidget)
+                    oldMessageWidget->abortRendering();
+            }
             messageRecvWidget = nullptr;
             messageWidgetList.clear();
 
@@ -2230,6 +2629,7 @@ void MainWindow::messageWidgetRegenerate()
                 // 但重建前队列可能仍有积压（AI 输出速度大于渲染速度，thread 结束后未处理
                 // 的文本仍在队列中）：重建完成后队列恢复的 recvMessage 仍需增量渲染补全，
                 // 因此队列非空时恢复最后一条 AI 消息控件的接收指针（否则积压文本只累积
+                
                 // 到 message 不显示，最终消息缺尾部）
                 if (!messageQueue.isEmpty() && !messageWidgetList.isEmpty()
                     && !messageWidgetList.last()->getIsUser()) {
@@ -2255,36 +2655,24 @@ void MainWindow::messageWidgetRegenerate()
                 if (!isSending && messageRecvWidget) {
                     if (messageRecvWidget->getText() != message) {
                         messageRecvWidget->setText(message);
-                        if (itemRecvWidget && itemRecvHLayout && recvItem) {
-                            itemRecvWidget->setFixedSize(chatShow->width(),
-                                                         messageRecvWidget->height() + 10);
-                            itemRecvHLayout->setContentsMargins(
-                                    0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
-                            recvItem->setSizeHint(
-                                    QSize(chatShow->width(), messageRecvWidget->height() + 10));
-                        }
-                        HWND hwnd = reinterpret_cast<HWND>(winId());
-                        DWORD style = GetWindowLong(hwnd, GWL_STYLE);
-                        SetWindowLongPtr(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-                        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER
-                                             | SWP_NOOWNERZORDER);
+                        updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
+                        ensureFrameStyle("regenerate");
                     }
                     if (!messageRecvWidget->getIsRemoveloadingWidget()) {
                         messageRecvWidget->removeLoadingWidget();
                         messageRecvWidget->updateFunWidgetSize(curDpi, initDpi);
                     }
                     if (messageRecvWidget && itemRecvWidget && itemRecvHLayout && recvItem) {
-                        itemRecvWidget->setFixedSize(chatShow->width(),
-                                                     messageRecvWidget->height() + 10);
-                        itemRecvHLayout->setContentsMargins(
-                                0, 5, itemRecvWidget->width() - messageRecvWidget->width(), 5);
-                        recvItem->setSizeHint(
-                                QSize(chatShow->width(), messageRecvWidget->height() + 10));
+                        updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
                     }
                     if (message.isEmpty() && !messageWidgetList.isEmpty()
                         && chatShow->count() > 0) {
-                        delete messageWidgetList.takeLast();
+                        // 同上：不能同步 delete —— 控件可能仍停留在渲染等待的嵌套
+                        // 事件循环中，改用 abortRendering 接管销毁时机（摘除父级，
+                        // 渲染栈退出后再销毁）
+                        MessageWidget *lastMessageWidget = messageWidgetList.takeLast();
+                        if (lastMessageWidget)
+                            lastMessageWidget->abortRendering();
                         int last = chatShow->count() - 1;
                         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(last));
                         if (itemWidget)
@@ -2296,8 +2684,14 @@ void MainWindow::messageWidgetRegenerate()
                 }
             }
         }
-    } while (isRegeneratePending);
+    } while (isRegeneratePending && !hasPendingChatSwitch);
     isRegenerating = false;
+    // 重建期间被推迟的切换请求（点击落在重建的嵌套事件循环内）：重建完成后执行。
+    // 切换优先于继续重建：切换会重置接收链与当前会话，重建轮据此提前退出
+    // （待重建标记由切换收尾重新调度，在切换后的列表上再重建一次）；
+    // 切换内部会重置接收链与队列状态，下方队列恢复检查随之按新会话状态判断
+    if (hasPendingChatSwitch)
+        requestChatRecordSwitch(pendingChatSwitchFile, pendingChatSwitchIsNewChat);
     // 重建完成：恢复队列处理（重建期间 queueMessage 只入队、recvMessage 暂停，
     // 文本保留在队列中）。延迟到重建栈退出后执行：接收仍在进行（isSending）或
     // 接收已结束但队列仍有积压（AI 输出完毕时未渲染的尾部文本）时，逐条增量渲染
@@ -2332,7 +2726,35 @@ void MainWindow::setScrollValue()
     }
 }
 
-void MainWindow::showChatRecords() { }
+void MainWindow::showChatRecords()
+{
+    if (!chatRecordsWidgetIsOpen) {
+        saveCurChatRecord();
+        chatRecordsGenerateItem();
+        chatRecordsWidget->raise();
+        chatRecordsAnimationMove->setStartValue(chatRecordsWidget->geometry());
+        chatRecordsAnimationMove->setEndValue(QRect(
+                0, titleWidget->height(), chatRecordsWidget->width(), chatRecordsWidget->height()));
+        chatRecordsAnimationMove->start();
+        chatRecordsWidgetIsOpen = true;
+    } else {
+        if (settingWidgetIsOpen) {
+            settingAnimationMove->setStartValue(settingWidget->geometry());
+            settingAnimationMove->setEndValue(QRect(-settingWidget->width(), titleWidget->height(),
+                                                    settingWidget->width(),
+                                                    settingWidget->height()));
+            settingAnimationMove->start();
+            settingWidgetIsOpen = false;
+        }
+        chatRecordsAnimationMove->setStartValue(chatRecordsWidget->geometry());
+        chatRecordsAnimationMove->setEndValue(
+                QRect(-chatRecordsWidget->width(), titleWidget->height(),
+                      chatRecordsWidget->width(), chatRecordsWidget->height()));
+        chatRecordsAnimationMove->start();
+        chatRecordsWidgetIsOpen = false;
+    }
+    pushButtonIsPress = true;
+}
 
 void MainWindow::showSearchRecords()
 {
@@ -2341,9 +2763,60 @@ void MainWindow::showSearchRecords()
     chatRecordsGenerateItem(text);
 }
 
-void MainWindow::clearAllChatRecords() { }
+void MainWindow::clearAllChatRecords()
+{
+    chatRecordsWidget->delAllListItems();
+    QDir dir(appContext->chatRecordsDir());
+    const QStringList fileNames = dir.entryList(QStringList() << "*.txt", QDir::Files);
+    for (const QString &fileName : fileNames) {
+        if (!QFile::remove(dir.filePath(fileName)))
+            qDebug() << "删除聊天记录文件失败：" << fileName;
+    }
+}
 
 void MainWindow::generateChatRecord(QListWidgetItem *item)
+{
+    // 点击瞬间取值：item 可能随记录列表刷新失效，后续只使用文件名
+    requestChatRecordSwitch(chatRecordsWidget->listItemToString(item), false);
+}
+
+void MainWindow::newChat()
+{
+    // 新建聊天：带上重入保护，构建/重建期间点击同样只记录目标待执行
+    requestChatRecordSwitch(QString(), true);
+}
+
+void MainWindow::requestChatRecordSwitch(const QString &fileName, bool isNewChat)
+{
+    pendingChatSwitchFile = fileName;
+    pendingChatSwitchIsNewChat = isNewChat;
+    hasPendingChatSwitch = true;
+
+    // 已有切换流程或消息列表重建（窗口尺寸变化触发）在进行：本次点击只排队。
+    // 构建消息列表期间会进入控件渲染的嵌套事件循环，快速连点即在此时重入：
+    // 若立即执行，半成品列表会被保存回文件（记录被截断），且正在构建的旧流程
+    // 会把剩余消息追加到新列表里（显示与文件不符）
+    if (isSwitchingChatRecord || isRegenerating) {
+        qDebug() << "requestChatRecordSwitch pending:" << fileName << isNewChat;
+        return;
+    }
+
+    isSwitchingChatRecord = true;
+    // 连续快速点击只保留最后一次目标：每轮先清待执行标记，本轮结束后若期间
+    // 又收到点击则继续执行（同 messageWidgetRegenerate 的待重建处理）
+    do {
+        hasPendingChatSwitch = false;
+        qDebug() << "applyChatRecordSwitch:" << pendingChatSwitchFile << pendingChatSwitchIsNewChat;
+        applyChatRecordSwitch(pendingChatSwitchFile, pendingChatSwitchIsNewChat);
+    } while (hasPendingChatSwitch);
+    isSwitchingChatRecord = false;
+    // 切换/构建期间被推迟的窗口重建请求（WM_EXITSIZEMOVE 等触发的 messageWidgetRegenerate）：
+    // 此时消息列表已构建完成，延迟到事件循环空闲时执行（经统一调度入口合并去重）
+    if (isRegeneratePending && !isRegenerating)
+        scheduleMessageWidgetRegenerate();
+}
+
+void MainWindow::applyChatRecordSwitch(const QString &fileName, bool isNewChat)
 {
     if (isSending) {
         thread->stop();
@@ -2354,7 +2827,15 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
             messageRecvWidget->breakHandle();
     }
     saveCurChatRecord();
+    // 旧消息控件即将被销毁：停止接收链并断开裸指针，防止流式渲染中的
+    // setText 调用栈或排队的 recvMessage 回调在控件销毁后继续访问（悬空崩溃）
+    resetRecvChain();
     messageWidgetList.clear();
+    // 列表已清空：中止构建的半成品状态随之结束（清空后的保存本身无内容可写）。
+    // 必须放在上方 saveCurChatRecord 之后：切换前的保存仍需拦截半成品列表
+    isChatRecordBuildAbandoned = false;
+    if (isNewChat)
+        thinkTimeLengthList.clear();
 
     for (int i = 0; i < chatShow->count(); ++i) {
         QWidget *itemWidget = chatShow->itemWidget(chatShow->item(i));
@@ -2362,8 +2843,15 @@ void MainWindow::generateChatRecord(QListWidgetItem *item)
             itemWidget->deleteLater();
     }
     chatShow->clear();
-    curChatFile = chatRecordsWidget->listItemToString(item);
-    generateCurChatRecord();
+    // 切换聊天记录/新建聊天：恢复自动跟随，保证加载完成与后续追加都显示最新内容（底部）；
+    // 新建时还避免上一会话中滚动查看历史关闭的自动跟随残留（清空时 value 本就为 0，
+    // 不触发 valueChanged 恢复）导致新会话不滚动
+    chatShow->resetScrollAutoChange();
+    if (isNewChat) {
+        curChatFile = "";
+        pushButtonIsPress = true;
+    } else {
+        curChatFile = fileName;
+        generateCurChatRecord();
+    }
 }
-
-void MainWindow::newChat() { }

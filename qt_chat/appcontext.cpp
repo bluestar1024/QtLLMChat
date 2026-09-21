@@ -1,5 +1,6 @@
 #include "appcontext.h"
 
+#include <QtGui/QFontDatabase>
 #include <QtWebEngineCore/QWebEngineProfile>
 
 AppContext::AppContext()
@@ -11,6 +12,7 @@ AppContext::AppContext()
       codeThemeFilePath_(":/config/dark_theme.xml"),
       webEngineCacheDir_("../../webengine_cache"),
       webEngineProfile_(nullptr),
+      fontFamilyLoaded_(false),
       windowFontPointSize_(10),
       windowFontPixelSize_(20),
       titleFontPointSize_(14),
@@ -45,6 +47,23 @@ const QString &AppContext::imagesDir() const
 const QString &AppContext::fontFilePath() const
 {
     return fontFilePath_;
+}
+
+const QString &AppContext::fontFamily()
+{
+    // 只在首次调用时注册字体：逐控件注册会使 Qt 字体数据库重复累积
+    if (!fontFamilyLoaded_) {
+        fontFamilyLoaded_ = true;
+        int fontId = QFontDatabase::addApplicationFont(fontFilePath_);
+        if (fontId != -1) {
+            // applicationFontFamilies 可能返回空列表（字体重复注册、字体数据库
+            // 重建等情况），取用时必须判空，否则 at(0) 越界读取直接崩溃
+            const QStringList families = QFontDatabase::applicationFontFamilies(fontId);
+            if (!families.isEmpty())
+                fontFamily_ = families.at(0);
+        }
+    }
+    return fontFamily_;
 }
 
 const QString &AppContext::configFilePath() const

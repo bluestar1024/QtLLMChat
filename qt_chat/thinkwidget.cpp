@@ -8,7 +8,8 @@
 
 ThinkWidget::ThinkWidget(AppContext *appContext, const QString &text,
                          std::function<void()> sizeFinishFun, int maxWidth, QWidget *parent)
-    : QWidget(parent), appContext(appContext),
+    : QWidget(parent),
+      appContext(appContext),
       text(text.trimmed()),
       sizeFinishFun(sizeFinishFun),
       maxWidth(maxWidth - 10),
@@ -20,14 +21,13 @@ ThinkWidget::ThinkWidget(AppContext *appContext, const QString &text,
     connect(this, &ThinkWidget::setSizeFinished, this->sizeFinishFun);
 
     bool fontLoaded = false;
-    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
-    if (fontId != -1) {
-        QStringList families = QFontDatabase::applicationFontFamilies(fontId);
-        if (!families.isEmpty()) {
-            font = QFont(families.first());
-            font.setPixelSize(this->appContext->windowFontPixelSize());
-            fontLoaded = true;
-        }
+    // 字体族由 AppContext 统一注册缓存：ThinkWidget 在会话切换/窗口重建中
+    // 大量创建，逐个自行 addApplicationFont 会使字体数据库重复累积
+    const QString &fontFamily = this->appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        font = QFont(fontFamily);
+        font.setPixelSize(this->appContext->windowFontPixelSize());
+        fontLoaded = true;
     }
     // label = new CustomLabel();
     // label->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -44,7 +44,9 @@ ThinkWidget::ThinkWidget(AppContext *appContext, const QString &text,
     updateSizeTimer->setSingleShot(true);
     connect(updateSizeTimer, &QTimer::timeout, this, &ThinkWidget::onUpdateSize);
 
-    webEngineView = new WebEngineView(this->appContext);
+    // 构造时即建立父子链（不依赖后续 addWidget）：控件随父销毁时 view 必然在内；
+    // 若视图游离（无父）期间父链被摘除/销毁，view 会以顶层窗口存活并继续产生事件
+    webEngineView = new WebEngineView(this->appContext, this);
     webEngineView->setMaximumWidth(this->maxWidth);
     connect(webEngineView->page(), &QWebEnginePage::loadFinished, this,
             &ThinkWidget::onPageLoadFinished);
@@ -198,6 +200,18 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 }
 
 ThinkWidget::~ThinkWidget() { }
+
+// 旧控件被摘除/即将销毁前调用（新建聊天、切换记录、窗口重建）：
+// 停止尺寸探测定时器、中止页面加载并断开 page 信号，使其不再产生新的
+// 异步回调。销毁前的窗口期内（deleteLater 尚未执行），旧的加载/尺寸回调
+// 若进入后续事件循环会在新会话渲染的嵌套等待中被处理，与新控件活动叠加
+void ThinkWidget::stopPendingWork()
+{
+    updateSizeTimer->stop();
+    webEngineView->stop();
+    if (webEngineView->page())
+        webEngineView->page()->disconnect(this);
+}
 
 void ThinkWidget::setText(const QString &text)
 {
@@ -551,6 +565,7 @@ getPageSize();
             self->updateSizeTimer->start(10);
             return;
         }
+        w = qMin(w, self->getMaxWidth());
         if (self->webEngineSize == QSize(w, h)) {
             if (self->isSetTextEnd) {
                 self->isSetTextEnd = false;

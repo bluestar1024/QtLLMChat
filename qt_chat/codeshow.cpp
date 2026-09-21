@@ -17,7 +17,7 @@ CodeShow::CodeShow(AppContext *appContext, const QString &codeText, const QStrin
       isLightThemeStyle(false),
       isWordWrap(true)
 {
-    resize(this->maxWidth + 2, 40);
+    resize(this->maxWidth, 40);
     connect(this, &CodeShow::setSizeFinished, this->sizeFinishFun);
     qDebug() << "connect CodeShow";
     setupUI();
@@ -34,9 +34,12 @@ void CodeShow::setupUI()
 
     qDebug() << "CodeShow setupUI ing0" << this;
     label = new QLabel(lexerName);
-    int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
-    if (fontId != -1) {
-        QString fontFamily = QFontDatabase::applicationFontFamilies(fontId).at(0);
+    // 字体族由 AppContext 统一注册缓存（原先每个 CodeShow 都自行 addApplicationFont，
+    // 会话切换/窗口重建时大量创建会使字体数据库重复累积，
+    // applicationFontFamilies 返回空列表后 at(0) 越界读取引发崩溃）；
+    // 返回空串表示字体不可用，跳过设置使用默认字体
+    const QString &fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
         QFont font(fontFamily, appContext->windowFontPointSize());
         label->setFont(font);
     }
@@ -104,7 +107,7 @@ void CodeShow::setupUI()
     topHLayout->setContentsMargins(10, 0, 10, 0);
 
     qDebug() << "CodeShow setupUI ing6" << this;
-    codeEdit = new CodeEditor(appContext, maxWidth);
+    codeEdit = new CodeEditor(appContext, maxWidth - 2);
     qDebug() << "CodeShow setupUI ing9" << this;
     // lambda 捕获 QPointer 而非裸 this：CodeEditor 析构链中可能仍触发此连接
     // （CodeShow 的 disconnectAll 尚未执行），对象已销毁时必须安全跳过，
@@ -113,7 +116,7 @@ void CodeShow::setupUI()
     connect(codeEdit, &CodeEditor::setSizeFinished, [self]() {
         if (!self)
             return;
-        self->setFixedSize(self->maxWidth + 2,
+        self->setFixedSize(self->maxWidth,
                            self->codeEdit->height() + self->topWidget->height() + 2);
         emit self->setSizeFinished();
     });
@@ -155,7 +158,7 @@ void CodeShow::setText(const QString &codeText, const QString &lexerName)
     this->codeText = codeText;
     this->lexerName = lexerName;
     codeEdit->highlightCode(codeText, lexerName);
-    codeEdit->setFixedWidth(maxWidth);
+    codeEdit->setFixedWidth(maxWidth - 2);
 }
 
 bool CodeShow::hasSelectedText() const

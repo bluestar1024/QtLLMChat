@@ -34,13 +34,12 @@ class MessageWidget : public QWidget
     Q_OBJECT
 public:
     explicit MessageWidget(AppContext *appContext, const QString &text,
-                           std::function<void()> copyFun,
-                           std::function<void()> renewResponseFun,
+                           std::function<void()> copyFun, std::function<void()> renewResponseFun,
                            std::function<void(MessageWidget *)> widgetResizeFun,
                            std::function<void(bool)> getSetTextingFun,
                            std::function<void()> executeNextFun, ListWidget *listWidget,
                            QList<int> &thinkTimeLengthList, int thinkTimeIndex, bool isUser = true,
-                           bool thinkIsExpand = true, int textMaxWidth = 877,
+                           bool thinkIsExpand = true, int maxWidth = 745,
                            QWidget *parent = nullptr);
     ~MessageWidget();
 
@@ -52,6 +51,7 @@ public:
     // void connectExecuteNext(T *receiver, void (T::*slot)());
     // void toggleWidget();
     void breakHandle();
+    void abortRendering();
     void removeRenewResponseButton();
     void removeLoadingWidget();
     void updateFunWidgetSize(qreal curDpi, qreal initDpi);
@@ -91,6 +91,8 @@ private:
 
     void buildUserUi();
     void buildAiUi();
+    void buildAiUiImpl();
+    void setTextImpl(const QString &text);
     QList<CodeBlock> extractCodeBlocks(const QString &text);
     void parseThinkAndResult(const QString &txt, QString &think, QString &result, bool &thinkEnd);
     void adjustAiTextWidgetSize();
@@ -111,7 +113,7 @@ private:
     int thinkTimeIndex;
     bool isUser;
     bool thinkIsExpand;
-    int textMaxWidth;
+    int maxWidth;
 
     ImageLabel *imageLabel;
     TextShow *textShow;
@@ -139,6 +141,14 @@ private:
     bool funWidgetIsShow;
     bool loadingWidgetIsRemove;
     bool renewResponseButtonIsRemove;
+    // 外部清空/销毁本控件前（新建聊天、切换聊天记录、窗口重建）置位：
+    // 渲染等待循环立即退出，且 setText/buildAiUi 不再访问随后会被销毁的成员控件
+    bool renderingAborted;
+    // 渲染栈深度（setText/buildAiUi 运行期间 > 0）与待销毁标记：
+    // abortRendering 只标记不销毁，待渲染栈完全退出后才 deleteLater，
+    // 保证嵌套事件循环（loop.exec）与其后续渲染代码执行期间本控件不被销毁
+    int renderDepth;
+    bool destroyPending;
 
     QEventLoop loop;
     QTimer checkTimer;
