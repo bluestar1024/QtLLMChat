@@ -2128,6 +2128,15 @@ void MainWindow::onThreadFinished()
 
 void MainWindow::messageFinish()
 {
+    // 切换聊天记录/新建聊天/重建进行中不执行收尾：MessageThread::stop()
+    // （terminate+wait）会同步派发 finished 信号，使本函数在
+    // applyChatRecordSwitch 中途被提前调用，此时旧控件尚未中止渲染，
+    // 收尾操作（补全 setText/布局更新）会与随后的清空销毁流程交错
+    if (isSwitchingChatRecord || isRegenerating) {
+        if (isRegenerating)
+            isSending = false;
+        return;
+    }
     // 接收真正结束（本函数由线程 finished 信号触发，是补全缺失文本的合适时机）：
     // 重建期间到达的追加文本只累积在 message 未渲染，重建完成后控件会缺少尾部文本，
     // 此处统一补全；此时接收已停止，不会与增量 setText 交错

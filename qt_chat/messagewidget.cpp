@@ -25,6 +25,23 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       isUser(isUser),
       thinkIsExpand(thinkIsExpand),
       maxWidth(maxWidth),
+      imageLabel(nullptr),
+      textShow(nullptr),
+      textWidget(nullptr),
+      textLayout(nullptr),
+      textBoxWidget(nullptr),
+      textBoxLayout(nullptr),
+      thinkButton(nullptr),
+      thinkBackWidget(nullptr),
+      thinkBackVLayout(nullptr),
+      subVLayout1(nullptr),
+      subVLayout2(nullptr),
+      mainHLayout(nullptr),
+      loadingWidget(nullptr),
+      funWidget(nullptr),
+      funHLayout(nullptr),
+      copyButton(nullptr),
+      renewResponseButton(nullptr),
       thinkButtonHaveCreated(false),
       thinkText(""),
       resultText(""),
@@ -579,6 +596,10 @@ void MessageWidget::syncThinkTimeLength()
     qDebug() << "syncThinkTimeLength before";
     if (!thinkText.isEmpty() && !QString("</think>").contains(thinkText)) {
         qDebug() << "syncThinkTimeLength before1";
+        // thinkButton 在首次解析出 thinkText 时才创建：构建早期（空文本/中止渲染）
+        // 被调用时跳过，避免访问未创建的成员
+        if (!thinkButtonHaveCreated || !thinkButton)
+            return;
         // 窗口重建后本控件可能持有过期的 thinkTimeIndex，列表越界时忽略同步
         if (thinkTimeIndex < 0 || thinkTimeIndex >= thinkTimeLengthList.size()) {
             qDebug() << "syncThinkTimeLength index out of range" << thinkTimeIndex
@@ -705,10 +726,13 @@ void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
 void MessageWidget::breakHandle()
 {
     if (!thinkTextIsRecvEnd) {
-        thinkButton->setThinkEnd();
-        // 窗口重建后本控件可能持有过期的 thinkTimeIndex，列表越界时忽略同步
-        if (thinkTimeIndex >= 0 && thinkTimeIndex < thinkTimeLengthList.size())
-            thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
+        // thinkButton 尚未创建（AI 回复为空/尚未开始流式时停止发送或切换会话）：跳过
+        if (thinkButtonHaveCreated && thinkButton) {
+            thinkButton->setThinkEnd();
+            // 窗口重建后本控件可能持有过期的 thinkTimeIndex，列表越界时忽略同步
+            if (thinkTimeIndex >= 0 && thinkTimeIndex < thinkTimeLengthList.size())
+                thinkTimeLengthList[thinkTimeIndex] = thinkButton->getThinkTimeLength();
+        }
     }
 }
 
@@ -728,6 +752,17 @@ void MessageWidget::abortRendering()
     checkTimer.disconnect();
     if (loop.isRunning())
         loop.quit();
+    // 中止所有子渲染控件的 WebEngine 异步活动（尺寸定时器/页面加载/page 信号）：
+    // 它们随本控件延迟销毁，销毁前窗口期内的异步回调若进入后续事件循环
+    // （如新会话渲染的嵌套等待）会在旧控件上触发渲染完成链，与新控件活动叠加
+    for (auto *thinkWidget : thinkTextShowList)
+        if (thinkWidget)
+            thinkWidget->stopPendingWork();
+    for (auto *textShow : resultTextShowList)
+        if (textShow)
+            textShow->stopPendingWork();
+    if (textShow)
+        textShow->stopPendingWork();
     // 渲染栈被中止后不会执行到 setText 末尾的 setTexting(false)，此处补发复位
     // MainWindow 的渲染中标志，避免其重建流程被永久挂起
     emit setTexting(false);
