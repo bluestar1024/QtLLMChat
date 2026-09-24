@@ -56,6 +56,14 @@ protected:
     bool isSetTextEnd;
     // bool isEmitSizeFinish;
     bool isSizeFinish;
+    // 页面加载流程是否已结束（loadFinished 到达，无论成败）：用于区分
+    // "加载中尺寸未稳定"与"已加载但内容为空（高度 0）"两种量不到正尺寸的情形
+    bool isPageLoaded;
+    // 页面加载完成后连续量到无效尺寸（w/h <= 0）的次数：空内容块（如流式
+    // 输出中未闭合的 "**" 解析后无 HTML 输出）高度恒为 0，限次后按当前
+    // 尺寸收敛，避免渲染等待循环永远等不到 isSizeFinish 而卡死
+    int invalidSizeCount;
+    bool waitForValidSize();
 
 signals:
     void setSizeFinished();

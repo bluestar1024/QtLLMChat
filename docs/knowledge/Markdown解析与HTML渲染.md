@@ -6,7 +6,7 @@
 
 ## architecture_design
 
-- 数据模型：`MarkdownBlockElement`（`BlockType` 枚举：Paragraph / Headinglevel1-3 / HorizontalRules / CodeBlocks / BlockQuote / OrderedList / UnorderedList）内含 `std::vector<LineElement>`；`LineElement` 由文本 + `std::vector<MarkdownInlineElement>` 组成。
+- 数据模型：`MarkdownBlockElement`（`BlockType` 枚举：Paragraph / Headinglevel1-6 / HorizontalRules / CodeBlocks / BlockQuote / OrderedList / UnorderedList）内含 `std::vector<LineElement>`；`LineElement` 由文本 + `std::vector<MarkdownInlineElement>` 组成。
 - 解析流程（MarkdownParser）：
   1. `split(rawText)`：按行切分为 `rawBlock`（`std::vector<std::vector<QString>>`）。
   2. `blockParse`：识别块类型并构建 `MarkdownBlockElement` 序列。

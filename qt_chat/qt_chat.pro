@@ -1,4 +1,4 @@
-QT       += core gui 3dcore
+QT       += core gui 3dcore network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets
 

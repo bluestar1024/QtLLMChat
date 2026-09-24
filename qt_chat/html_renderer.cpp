@@ -22,6 +22,18 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
         htmlText += "<h3>" + inlineHtml(blockElem.getText()[0]) + "</h3>\n";
         break;
     }
+    case BlockType::Headinglevel4: {
+        htmlText += "<h4>" + inlineHtml(blockElem.getText()[0]) + "</h4>\n";
+        break;
+    }
+    case BlockType::Headinglevel5: {
+        htmlText += "<h5>" + inlineHtml(blockElem.getText()[0]) + "</h5>\n";
+        break;
+    }
+    case BlockType::Headinglevel6: {
+        htmlText += "<h6>" + inlineHtml(blockElem.getText()[0]) + "</h6>\n";
+        break;
+    }
     case BlockType::Paragraph: {
         for (size_t i = 0; i < blockElem.getText().size(); i++) {
             if (!blockElem.getText()[i].text.isEmpty()) {
@@ -85,7 +97,10 @@ QString HtmlRenderer::inlineHtml(LineElement line)
         ins.push_back(line.inlineElement[i].getBegin());
         ins.push_back(line.inlineElement[i].getEnd());
     }
-    for (size_t i = 0; i < line.text.size(); i++) {
+    // 循环上界取到 size()：当行内标记恰好结束于行尾时（如标题 "### 1. **xxx**"
+    // 解析后粗体 end == 文本长度），结束标签应插入的位置等于文本长度，
+    // 若上界仍为 size() 之前，则 </strong> 等结束标签永远不会被写入
+    for (size_t i = 0; i <= line.text.size(); i++) {
         for (size_t j = 0; j < ins.size(); j++) {
             if (ins[j] == i && (j % 2 == 0)) {
                 switch (line.inlineElement[j / 2].getType()) {
@@ -142,6 +157,9 @@ QString HtmlRenderer::inlineHtml(LineElement line)
                 }
             }
         }
+        // i == size() 仅用于补写位于行尾的结束标签，没有对应字符可输出
+        if (i == line.text.size())
+            break;
         if (isContinue) {
             if (i >= ins[jBegin + 1]) {
                 isContinue = false;

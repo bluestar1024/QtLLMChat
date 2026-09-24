@@ -8,6 +8,78 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QRegularExpressionMatch>
 
+// 行首至多 3 个空格属于缩进（AI 输出的列表项常带三个空格缩进）：
+// 去掉缩进用于块类型识别，避免 "   - xxx" 落入普通段落分支渲染出字面 "- "
+static QString stripLeadSpaces(const QString &line)
+{
+    int lead = 0;
+    while (lead < line.size() && lead < 3 && line[lead] == ' ')
+        ++lead;
+    if (lead == 0)
+        return line;
+    if (lead < line.size() && line[lead] == ' ')
+        return line;
+    QString stripped = line.mid(lead);
+    // 全空白行与代码围栏行保持原样，防止误判为其它块或丢失空行
+    if (stripped.isEmpty() || stripped.startsWith("```"))
+        return line;
+    return stripped;
+}
+
+// 行首 ATX 标题层级："#"（1-6 个）后跟空格时返回层级（1-6），否则返回 0。
+// split 与 blockParse 共用此判定：此前只识别 1-3 级标题，
+// "#### xxx" 等 4-6 级标题不匹配任何分支，被当作普通段落渲染出字面 "#"
+static int headingLevelOf(const QString &line)
+{
+    int level = 0;
+    while (level < line.size() && level < 6 && line[level] == '#')
+        ++level;
+    if (level == 0 || level >= line.size() || line[level] != ' ')
+        return 0;
+    return level;
+}
+
+// 剥离有序列表标记（"数字. "，允许至多 3 个前导空格）；未匹配时返回原行
+static QString stripOrderedMark(const QString &line)
+{
+    int p = 0;
+    while (p < line.size() && p < 3 && line[p] == ' ')
+        ++p;
+    int numEnd = p;
+    while (numEnd < line.size() && line[numEnd].isDigit())
+        ++numEnd;
+    if (numEnd > p && numEnd + 1 < line.size() && line[numEnd] == '.'
+        && line[numEnd + 1] == ' ') {
+        return line.mid(numEnd + 2);
+    }
+    return line;
+}
+
+// 剥离无序列表标记（"- "、"* "、"+ "，允许至多 3 个前导空格）；未匹配时返回原行
+static QString stripUnorderedMark(const QString &line)
+{
+    int p = 0;
+    while (p < line.size() && p < 3 && line[p] == ' ')
+        ++p;
+    if (p + 1 < line.size() && (line[p] == '-' || line[p] == '*' || line[p] == '+')
+        && line[p + 1] == ' ') {
+        return line.mid(p + 2);
+    }
+    return line;
+}
+
+// 剥离引用标记（"> "，允许至多 3 个前导空格）；未匹配时返回原行
+static QString stripQuoteMark(const QString &line)
+{
+    int p = 0;
+    while (p < line.size() && p < 3 && line[p] == ' ')
+        ++p;
+    if (p + 1 < line.size() && line[p] == '>' && line[p + 1] == ' ') {
+        return line.mid(p + 2);
+    }
+    return line;
+}
+
 void MarkdownParser::split(const QString &rawText)
 {
     rawBlock.clear();
@@ -136,10 +208,9 @@ void MarkdownParser::split(const QString &rawText)
                 continue;
             }
         }
-        if ((curr.size() >= 2 && curr[0] == '#' && curr[1] == ' ')
-            || (curr.size() >= 3 && curr[0] == '#' && curr[1] == '#' && curr[2] == ' ')
-            || (curr.size() >= 4 && curr[0] == '#' && curr[1] == '#' && curr[2] == '#'
-                && curr[3] == ' ')) {
+        // 标题行独立成块；判定与 blockParse 一致（同一辅助函数），
+        // 并覆盖 4-6 级标题
+        if (headingLevelOf(stripLeadSpaces(curr)) > 0) {
             if (!blockText.empty()) {
                 rawBlock.push_back(blockText);
                 blockText.clear();
@@ -341,10 +412,10 @@ void MarkdownParser::blockParse(const QString &rawText,
     split(rawText);
     for (size_t i = 0; i < rawBlock.size(); i++) {
         BlockType type;
-        QString token = rawBlock[i][0].mid(0, 3);
-        QString token1 = "";
-        if (rawBlock[i][0].size() > 3)
-            token1 = rawBlock[i][0].mid(3, 2);
+        // 行首至多 3 个空格视为缩进，识别块类型前先剥离
+        QString head = stripLeadSpaces(rawBlock[i][0]);
+        QString token = head.mid(0, 3);
+        int headLevel = headingLevelOf(head);
         if (token == "```") {
             type = BlockType::CodeBlocks;
             std::vector<LineElement> lines;
@@ -353,16 +424,19 @@ void MarkdownParser::blockParse(const QString &rawText,
                 lines.push_back(LineElement(rawBlock[i][j]));
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token.size() >= 2 && token[0] == '1' && token[1] == '.') {
+        } else if (token.size() >= 2 && token[0].isDigit() && token[1] == '.'
+                   && (token.size() == 2 || token[2] == ' ')) {
             type = BlockType::OrderedList;
             std::vector<LineElement> lines;
             for (const auto &line : rawBlock[i]) {
+                if (line.isEmpty())
+                    continue;
                 QString pureText;
-                if (line.size() >= 2) {
-                    std::vector<MarkdownInlineElement> inlineElem =
-                            inlineParse(line.mid(2), pureText);
-                    lines.push_back(LineElement(pureText, inlineElem));
-                }
+                // 逐行校验并剥离 "数字. " 标记；非列表行（如游离文本）原样解析，
+                // 避免无差别 mid(2) 丢失行首字符
+                QString body = stripOrderedMark(line);
+                std::vector<MarkdownInlineElement> inlineElem = inlineParse(body, pureText);
+                lines.push_back(LineElement(pureText, inlineElem));
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if ((token.size() >= 2 && token.mid(0, 2) == "* ")
@@ -371,51 +445,56 @@ void MarkdownParser::blockParse(const QString &rawText,
             type = BlockType::UnorderedList;
             std::vector<LineElement> lines;
             for (const auto &line : rawBlock[i]) {
+                if (line.isEmpty())
+                    continue;
                 QString pureText;
-                if (line.size() >= 2) {
-                    std::vector<MarkdownInlineElement> inlineElem =
-                            inlineParse(line.mid(2), pureText);
-                    lines.push_back(LineElement(pureText, inlineElem));
-                }
+                QString body = stripUnorderedMark(line);
+                std::vector<MarkdownInlineElement> inlineElem = inlineParse(body, pureText);
+                lines.push_back(LineElement(pureText, inlineElem));
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token.size() >= 2 && token[0] == '>' && token[1] == ' ') {
             type = BlockType::BlockQuote;
             std::vector<LineElement> lines;
             for (const auto &line : rawBlock[i]) {
+                if (line.isEmpty())
+                    continue;
                 QString pureText;
-                if (line.size() >= 2) {
-                    std::vector<MarkdownInlineElement> inlineElem =
-                            inlineParse(line.mid(2), pureText);
-                    lines.push_back(LineElement(pureText, inlineElem));
-                }
+                QString body = stripQuoteMark(line);
+                std::vector<MarkdownInlineElement> inlineElem = inlineParse(body, pureText);
+                lines.push_back(LineElement(pureText, inlineElem));
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token == "###" && token1.size() > 1 && token1[0] == ' ') {
-            type = BlockType::Headinglevel3;
+        } else if (headLevel > 0) {
+            // 1-6 级 ATX 标题统一处理：层级决定渲染标签，正文为
+            // "标记 + 空格" 之后的内容（headLevel + 1 个字符）
+            switch (headLevel) {
+            case 1:
+                type = BlockType::Headinglevel1;
+                break;
+            case 2:
+                type = BlockType::Headinglevel2;
+                break;
+            case 3:
+                type = BlockType::Headinglevel3;
+                break;
+            case 4:
+                type = BlockType::Headinglevel4;
+                break;
+            case 5:
+                type = BlockType::Headinglevel5;
+                break;
+            default:
+                type = BlockType::Headinglevel6;
+                break;
+            }
             std::vector<LineElement> lines;
             QString pureText;
             std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(rawBlock[i][0].mid(4), pureText);
+                    inlineParse(head.mid(headLevel + 1), pureText);
             lines.push_back(LineElement(pureText, inlineElem));
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token == "## " && token1.size() > 0) {
-            type = BlockType::Headinglevel2;
-            std::vector<LineElement> lines;
-            QString pureText;
-            std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(rawBlock[i][0].mid(3), pureText);
-            lines.push_back(LineElement(pureText, inlineElem));
-            blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token.size() > 2 && token[0] == '#' && token[1] == ' ') {
-            type = BlockType::Headinglevel1;
-            std::vector<LineElement> lines;
-            QString pureText;
-            std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(rawBlock[i][0].mid(2), pureText);
-            lines.push_back(LineElement(pureText, inlineElem));
-            blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (isHorizontalRules(rawBlock[i][0], i ? &rawBlock[i - 1].back() : nullptr)) {
+        } else if (isHorizontalRules(head, i ? &rawBlock[i - 1].back() : nullptr)) {
             type = BlockType::HorizontalRules;
             std::vector<LineElement> lines;
             lines.push_back(LineElement(""));

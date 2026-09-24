@@ -1959,7 +1959,7 @@ void MainWindow::sendMessage()
             chatShow->setItemWidget(sendItem, itemSendWidget);
             updateItemLayout(itemSendWidget, messageSendWidget, sendItem);
 
-            thread = new MessageThread(text, context);
+            thread = new MessageThread(appContext, text, context);
             chatInput->clearText();
             chatInput->setSending(true);
             isSending = true;
