@@ -118,7 +118,8 @@ void MessageThread::run()
     QNetworkReply *reply =
             manager.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
 
-    QByteArray buffer;
+    QByteArray buffer;        // 流式 SSE 行缓冲（不完整的残行留存至下次 readyRead）
+    QByteArray responseData;  // 非流式响应体累积（自有缓冲，reply 设备关闭后仍可用）
     // 解析一行 SSE 事件（data: {json} / data: [DONE]），取 choices[0].delta.content；
     // 与 PyQt 版一致只转发 content 字段
     auto processLine = [&](const QByteArray &line) {
@@ -142,6 +143,8 @@ void MessageThread::run()
         }
     };
 
+    QEventLoop loop;
+
     if (useStream) {
         // SSE 增量到达：按行切分，不完整的残行留在 buffer 等待下次 readyRead 补齐
         QObject::connect(reply, &QNetworkReply::readyRead, reply, [&]() {
@@ -153,6 +156,21 @@ void MessageThread::run()
                 }
                 processLine(buffer.left(pos).trimmed());
                 buffer.remove(0, pos + 1);
+            }
+        });
+    } else {
+        // 非流式同样主动把数据读入自有缓冲：reply 被中止（stop()）关闭设备后
+        // readAll 会失败，只有自有缓冲能保住已到达的响应体；并且一旦能解析出
+        // 完整响应结构即提前退出事件循环——服务器不发送结束标记（无 Content-Length、
+        // 无 chunked 终止且不关闭连接）时 finished 可能永不到达，不能把"退出事件循环
+        // 并发送 newMessage"这件事绑定在 HTTP 层结束标记或外部 stop() 上
+        QObject::connect(reply, &QNetworkReply::readyRead, reply, [&]() {
+            responseData.append(reply->readAll());
+            const QJsonArray choices =
+                    QJsonDocument::fromJson(responseData).object().value("choices").toArray();
+            if (!choices.isEmpty()
+                && choices.at(0).toObject().value("message").toObject().contains("content")) {
+                loop.quit();
             }
         });
     }
@@ -167,9 +185,12 @@ void MessageThread::run()
     });
     watchdog.start(100);
 
-    QEventLoop loop;
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
+    // finished 也可能在 post() 返回前就已同步发出（Qt 内部错误路径）：此时 exec 永远
+    // 等不到退出条件，只能靠外部 stop() 中止——先检查再进入事件循环
+    if (!reply->isFinished()) {
+        loop.exec();
+    }
     watchdog.stop();
 
     if (useStream) {
@@ -184,9 +205,13 @@ void MessageThread::run()
             buffer.remove(0, pos + 1);
         }
     } else if (reply->error() == QNetworkReply::NoError) {
-        // 非流式：一次性取 choices[0].message.content 发射（与 PyQt 版一致）
-        const QJsonArray choices =
-                QJsonDocument::fromJson(reply->readAll()).object().value("choices").toArray();
+        // 非流式：一次性取 choices[0].message.content 发射（与 PyQt 版一致）。
+        // 优先用自有缓冲（提前退出事件循环时 reply 可能尚未完成，设备关闭后 readAll 不可用）
+        QByteArray data = responseData;
+        if (data.isEmpty() && reply->isOpen()) {
+            data = reply->readAll();
+        }
+        const QJsonArray choices = QJsonDocument::fromJson(data).object().value("choices").toArray();
         if (!choices.isEmpty()) {
             contentOutput = choices.at(0)
                                     .toObject()
@@ -204,6 +229,12 @@ void MessageThread::run()
         qDebug() << "错误：HTTP"
                  << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
                  << reply->errorString();
+    }
+
+    // 非流式因"响应已完整"提前退出事件循环时 reply 可能仍未 finished：主动中止以释放连接
+    // （此时输出已完成，abort 触发的 finished(OperationCanceled) 已无人等待）
+    if (!reply->isFinished()) {
+        reply->abort();
     }
 
     delete reply;
