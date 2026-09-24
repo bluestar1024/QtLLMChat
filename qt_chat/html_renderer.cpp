@@ -22,6 +22,18 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
         htmlText += "<h3>" + inlineHtml(blockElem.getText()[0]) + "</h3>\n";
         break;
     }
+    case BlockType::Headinglevel4: {
+        htmlText += "<h4>" + inlineHtml(blockElem.getText()[0]) + "</h4>\n";
+        break;
+    }
+    case BlockType::Headinglevel5: {
+        htmlText += "<h5>" + inlineHtml(blockElem.getText()[0]) + "</h5>\n";
+        break;
+    }
+    case BlockType::Headinglevel6: {
+        htmlText += "<h6>" + inlineHtml(blockElem.getText()[0]) + "</h6>\n";
+        break;
+    }
     case BlockType::Paragraph: {
         for (size_t i = 0; i < blockElem.getText().size(); i++) {
             if (!blockElem.getText()[i].text.isEmpty()) {

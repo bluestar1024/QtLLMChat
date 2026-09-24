@@ -26,6 +26,19 @@ static QString stripLeadSpaces(const QString &line)
     return stripped;
 }
 
+// 行首 ATX 标题层级："#"（1-6 个）后跟空格时返回层级（1-6），否则返回 0。
+// split 与 blockParse 共用此判定：此前只识别 1-3 级标题，
+// "#### xxx" 等 4-6 级标题不匹配任何分支，被当作普通段落渲染出字面 "#"
+static int headingLevelOf(const QString &line)
+{
+    int level = 0;
+    while (level < line.size() && level < 6 && line[level] == '#')
+        ++level;
+    if (level == 0 || level >= line.size() || line[level] != ' ')
+        return 0;
+    return level;
+}
+
 // 剥离有序列表标记（"数字. "，允许至多 3 个前导空格）；未匹配时返回原行
 static QString stripOrderedMark(const QString &line)
 {
@@ -195,10 +208,9 @@ void MarkdownParser::split(const QString &rawText)
                 continue;
             }
         }
-        if ((curr.size() >= 2 && curr[0] == '#' && curr[1] == ' ')
-            || (curr.size() >= 3 && curr[0] == '#' && curr[1] == '#' && curr[2] == ' ')
-            || (curr.size() >= 4 && curr[0] == '#' && curr[1] == '#' && curr[2] == '#'
-                && curr[3] == ' ')) {
+        // 标题行独立成块；判定与 blockParse 一致（同一辅助函数），
+        // 并覆盖 4-6 级标题
+        if (headingLevelOf(stripLeadSpaces(curr)) > 0) {
             if (!blockText.empty()) {
                 rawBlock.push_back(blockText);
                 blockText.clear();
@@ -403,9 +415,7 @@ void MarkdownParser::blockParse(const QString &rawText,
         // 行首至多 3 个空格视为缩进，识别块类型前先剥离
         QString head = stripLeadSpaces(rawBlock[i][0]);
         QString token = head.mid(0, 3);
-        QString token1 = "";
-        if (head.size() > 3)
-            token1 = head.mid(3, 2);
+        int headLevel = headingLevelOf(head);
         if (token == "```") {
             type = BlockType::CodeBlocks;
             std::vector<LineElement> lines;
@@ -455,28 +465,33 @@ void MarkdownParser::blockParse(const QString &rawText,
                 lines.push_back(LineElement(pureText, inlineElem));
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token == "###" && token1.size() >= 1 && token1[0] == ' ') {
-            type = BlockType::Headinglevel3;
+        } else if (headLevel > 0) {
+            // 1-6 级 ATX 标题统一处理：层级决定渲染标签，正文为
+            // "标记 + 空格" 之后的内容（headLevel + 1 个字符）
+            switch (headLevel) {
+            case 1:
+                type = BlockType::Headinglevel1;
+                break;
+            case 2:
+                type = BlockType::Headinglevel2;
+                break;
+            case 3:
+                type = BlockType::Headinglevel3;
+                break;
+            case 4:
+                type = BlockType::Headinglevel4;
+                break;
+            case 5:
+                type = BlockType::Headinglevel5;
+                break;
+            default:
+                type = BlockType::Headinglevel6;
+                break;
+            }
             std::vector<LineElement> lines;
             QString pureText;
             std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(head.mid(4), pureText);
-            lines.push_back(LineElement(pureText, inlineElem));
-            blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token == "## ") {
-            type = BlockType::Headinglevel2;
-            std::vector<LineElement> lines;
-            QString pureText;
-            std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(head.mid(3), pureText);
-            lines.push_back(LineElement(pureText, inlineElem));
-            blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token.size() >= 2 && token[0] == '#' && token[1] == ' ') {
-            type = BlockType::Headinglevel1;
-            std::vector<LineElement> lines;
-            QString pureText;
-            std::vector<MarkdownInlineElement> inlineElem =
-                    inlineParse(head.mid(2), pureText);
+                    inlineParse(head.mid(headLevel + 1), pureText);
             lines.push_back(LineElement(pureText, inlineElem));
             blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (isHorizontalRules(head, i ? &rawBlock[i - 1].back() : nullptr)) {
