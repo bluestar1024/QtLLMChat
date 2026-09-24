@@ -16,7 +16,9 @@ ThinkWidget::ThinkWidget(AppContext *appContext, const QString &text,
       // isLabel(true),
       isSetTextEnd(false),
       // isEmitSizeFinish(false),
-      isSizeFinish(false)
+      isSizeFinish(false),
+      isPageLoaded(false),
+      invalidSizeCount(0)
 {
     connect(this, &ThinkWidget::setSizeFinished, this->sizeFinishFun);
 
@@ -523,6 +525,9 @@ void ThinkWidget::onPageLoadFinished(bool success)
     if (success)
         webEngineView->page()->runJavaScript("document.body.style.overflowY='hidden';");
     qDebug() << "onPageLoadFinished" << success << webEngineView->page()->contentsSize() << this;
+    // 加载流程已结束（无论成败）：此后若仍量不到正尺寸，视为内容为空而非未就绪
+    isPageLoaded = true;
+    invalidSizeCount = 0;
     updateSizeTimer->start(20);
 }
 
@@ -530,6 +535,27 @@ void ThinkWidget::onContentsSizeChanged(const QSizeF &)
 {
     updateSizeTimer->start(20);
     qDebug() << "onContentsSizeChanged" << this;
+}
+
+// 量到无效尺寸（w/h <= 0）时是否继续等待：返回 true 表示重启轮询等下次量测
+bool ThinkWidget::waitForValidSize()
+{
+    // 页面加载流程结束前尺寸尚不稳定：继续轮询等待
+    if (!isPageLoaded) {
+        updateSizeTimer->start(10);
+        return true;
+    }
+    // 页面已加载完成仍量不到正尺寸：空内容块（如流式输出中未闭合的 "**"，
+    // 解析后无 HTML 输出）的 .content 高度恒为 0，是合法结果而非"未就绪"。
+    // 若无限重试，MessageWidget::setText 的嵌套等待循环永远等不到
+    // isSizeFinish，整条消息渲染卡死（39.txt）。限次后按当前尺寸收敛
+    invalidSizeCount += 1;
+    if (invalidSizeCount < 5) {
+        updateSizeTimer->start(10);
+        return true;
+    }
+    invalidSizeCount = 0;
+    return false;
 }
 
 void ThinkWidget::onUpdateSize()
@@ -552,7 +578,14 @@ getPageSize();
         if (!self)
             return;
         if (res.isNull()) {
-            self->updateSizeTimer->start(10);
+            if (self->waitForValidSize())
+                return;
+            // 加载完成后 JS 仍无返回（页面异常）：放弃尺寸等待，标记完成，
+            // 避免 MessageWidget 的等待循环死锁；控件保持当前初始宽度
+            if (self->isSetTextEnd) {
+                self->isSetTextEnd = false;
+                self->isSizeFinish = true;
+            }
             return;
         }
         QList<QVariant> list = res.toList();
@@ -562,8 +595,8 @@ getPageSize();
         int h = list[1].toInt();
         qDebug() << "WebEngineView get size:" << w << h << self.data();
         if (w <= 0 || h <= 0) {
-            self->updateSizeTimer->start(10);
-            return;
+            if (self->waitForValidSize())
+                return;
         }
         w = qMin(w, self->getMaxWidth());
         if (self->webEngineSize == QSize(w, h)) {

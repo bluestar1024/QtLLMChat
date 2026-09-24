@@ -32,7 +32,14 @@ getPageSize();
         if (!self)
             return;
         if (res.isNull()) {
-            self->updateSizeTimer->start(10);
+            if (self->waitForValidSize())
+                return;
+            // 加载完成后 JS 仍无返回（页面异常）：放弃尺寸等待，标记完成，
+            // 避免 MessageWidget 的等待循环死锁；控件保持当前初始宽度
+            if (self->isSetTextEnd) {
+                self->isSetTextEnd = false;
+                self->isSizeFinish = true;
+            }
             return;
         }
         QList<QVariant> list = res.toList();
@@ -41,9 +48,11 @@ getPageSize();
         int w = list[0].toInt();
         int h = list[1].toInt();
         qDebug() << "WebEngineView get size:" << w << h << self.data();
+        // 量不到正尺寸时由基类统一判定等待/收敛：空内容块不能无限重试，
+        // 否则 MessageWidget::setText 的嵌套等待循环永远等不到 isSizeFinish
         if (w <= 0 || h <= 0) {
-            self->updateSizeTimer->start(10);
-            return;
+            if (self->waitForValidSize())
+                return;
         }
         // JS 量测的 .content 宽度（代码长行自然宽、MathJax 展开宽等）可能超过构造时
         // 传入的最大宽度（拖窄窗口重建后尤其明显）：不夹取会把 TextShow 固定到

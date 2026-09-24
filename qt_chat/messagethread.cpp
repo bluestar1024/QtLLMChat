@@ -115,7 +115,8 @@ void MessageThread::run()
     body["presence_penalty"] = 1.1;
     body["top_p"] = topPCurrentVal;
 
-    QNetworkReply *reply = manager.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+    QNetworkReply *reply =
+            manager.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
 
     QByteArray buffer;
     // 解析一行 SSE 事件（data: {json} / data: [DONE]），取 choices[0].delta.content；
@@ -128,7 +129,8 @@ void MessageThread::run()
         if (data.isEmpty() || data == "[DONE]") {
             return;
         }
-        const QJsonArray choices = QJsonDocument::fromJson(data).object().value("choices").toArray();
+        const QJsonArray choices =
+                QJsonDocument::fromJson(data).object().value("choices").toArray();
         if (choices.isEmpty()) {
             return;
         }
@@ -186,8 +188,12 @@ void MessageThread::run()
         const QJsonArray choices =
                 QJsonDocument::fromJson(reply->readAll()).object().value("choices").toArray();
         if (!choices.isEmpty()) {
-            contentOutput =
-                    choices.at(0).toObject().value("message").toObject().value("content").toString();
+            contentOutput = choices.at(0)
+                                    .toObject()
+                                    .value("message")
+                                    .toObject()
+                                    .value("content")
+                                    .toString();
             emit newMessage(contentOutput);
         }
     }
@@ -195,7 +201,8 @@ void MessageThread::run()
     // 主动中止（stop()）不视为错误；其余异常打印日志（对应 PyQt 版的 print 错误）
     if (reply->error() != QNetworkReply::NoError
         && reply->error() != QNetworkReply::OperationCanceledError) {
-        qDebug() << "错误：HTTP" << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
+        qDebug() << "错误：HTTP"
+                 << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt()
                  << reply->errorString();
     }
 
