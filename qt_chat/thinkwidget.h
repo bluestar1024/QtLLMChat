@@ -15,6 +15,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtCore/QFileInfo>
+#include <QtCore/QVector>
 
 // extern const QString fontFilePath;
 // extern const QString mathjaxScriptPath;
@@ -80,14 +81,22 @@ private:
     QString htmlReplaceText(const QString &text) const;
     struct TableInfo
     {
-        QString tableText;
+        // 表格块在原文中的区间 [start, end)：end 指向最后一行行尾的换行符
+        // （不含），无换行时为文本末尾——切分后段文本时从该换行符起算
+        int start = -1;
+        int end = -1;
         QStringList items;
         QStringList alignList;
         int row = 0;
         int col = 0;
         bool complete = false;
     };
-    TableInfo getTable(const QString &text) const;
+    QVector<TableInfo> getTables(const QString &text) const;
+    bool isTableRow(const QString &line) const;
+    QStringList splitTableRow(const QString &row) const;
+    QString buildHtmlText(const QString &text) const;
+    QString tableToHtml(const TableInfo &tbl) const;
+    QString markdownToHtml(const QString &text) const;
     QString getAlignmentClass(const QString &fmt) const;
 
     QString text;
