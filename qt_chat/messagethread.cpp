@@ -118,8 +118,8 @@ void MessageThread::run()
     QNetworkReply *reply =
             manager.post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
 
-    QByteArray buffer;        // 流式 SSE 行缓冲（不完整的残行留存至下次 readyRead）
-    QByteArray responseData;  // 非流式响应体累积（自有缓冲，reply 设备关闭后仍可用）
+    QByteArray buffer; // 流式 SSE 行缓冲（不完整的残行留存至下次 readyRead）
+    QByteArray responseData; // 非流式响应体累积（自有缓冲，reply 设备关闭后仍可用）
     // 解析一行 SSE 事件（data: {json} / data: [DONE]），取 choices[0].delta.content；
     // 与 PyQt 版一致只转发 content 字段
     auto processLine = [&](const QByteArray &line) {
@@ -211,7 +211,8 @@ void MessageThread::run()
         if (data.isEmpty() && reply->isOpen()) {
             data = reply->readAll();
         }
-        const QJsonArray choices = QJsonDocument::fromJson(data).object().value("choices").toArray();
+        const QJsonArray choices =
+                QJsonDocument::fromJson(data).object().value("choices").toArray();
         if (!choices.isEmpty()) {
             contentOutput = choices.at(0)
                                     .toObject()

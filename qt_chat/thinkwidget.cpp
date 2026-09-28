@@ -114,64 +114,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
                          .arg(this->appContext->windowFontPixelSize());
     // ---- markdown → html ----
     if (!text.isEmpty()) {
-        TableInfo tbl = getTable(text);
-        if (tbl.complete) {
-            QStringList parts = text.split(tbl.tableText);
-            QString before = htmlReplaceText(parts.value(0));
-            QString after = htmlReplaceText(parts.value(1));
-
-            //            m_htmlText = mistune::markdown(before).toUtf8().constData();
-            MarkdownParser beforeParser;
-            std::vector<MarkdownBlockElement> beforeBlocks;
-            HtmlRenderer beforeHtml;
-            beforeParser.blockParse(before, beforeBlocks);
-            //            beforeHtml.Init();
-            for (size_t i = 0; i < beforeBlocks.size(); i++) {
-                beforeHtml.blockHtml(beforeBlocks[i]);
-            }
-            //            beforeHtml.Tail();
-            htmlText = beforeHtml.getHtml().toUtf8().constData();
-
-            htmlText += "<table><thead><tr>";
-            for (int i = 0; i < tbl.col; ++i)
-                htmlText +=
-                        QString("<th class='%1'>%2</th>")
-                                .arg(getAlignmentClass(tbl.alignList.value(i)), tbl.items.value(i));
-            htmlText += "</tr></thead><tbody>";
-            for (int r = 1; r < tbl.row; ++r) {
-                htmlText += "<tr>";
-                for (int c = 0; c < tbl.col; ++c)
-                    htmlText += QString("<td class='%1'>%2</td>")
-                                        .arg(getAlignmentClass(tbl.alignList.value(c)),
-                                             tbl.items.value(r * tbl.col + c));
-                htmlText += "</tr>";
-            }
-            htmlText += "</tbody></table>";
-            //            htmlText += mistune::markdown(after).toUtf8().constData();
-            MarkdownParser afterParser;
-            std::vector<MarkdownBlockElement> afterBlocks;
-            HtmlRenderer afterHtml;
-            afterParser.blockParse(after, afterBlocks);
-            //            afterHtml.Init();
-            for (size_t i = 0; i < afterBlocks.size(); i++) {
-                afterHtml.blockHtml(afterBlocks[i]);
-            }
-            //            afterHtml.Tail();
-            htmlText += afterHtml.getHtml().toUtf8().constData();
-        } else {
-            QString md = htmlReplaceText(text);
-            //            m_htmlText = mistune::markdown(md).toUtf8().constData();
-            MarkdownParser parser;
-            std::vector<MarkdownBlockElement> blocks;
-            HtmlRenderer html;
-            parser.blockParse(md, blocks);
-            //            html.Init();
-            for (size_t i = 0; i < blocks.size(); i++) {
-                html.blockHtml(blocks[i]);
-            }
-            //            html.Tail();
-            htmlText += html.getHtml().toUtf8().constData();
-        }
+        htmlText = buildHtmlText(text);
         fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
         QUrl base =
@@ -277,64 +220,7 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
                          .arg(appContext->windowFontPixelSize());
     // ---- markdown → html ----
     if (!text.isEmpty()) {
-        TableInfo tbl = getTable(text);
-        if (tbl.complete) {
-            QStringList parts = text.split(tbl.tableText);
-            QString before = htmlReplaceText(parts.value(0));
-            QString after = htmlReplaceText(parts.value(1));
-
-            //            m_htmlText = mistune::markdown(before).toUtf8().constData();
-            MarkdownParser beforeParser;
-            std::vector<MarkdownBlockElement> beforeBlocks;
-            HtmlRenderer beforeHtml;
-            beforeParser.blockParse(before, beforeBlocks);
-            //            beforeHtml.Init();
-            for (size_t i = 0; i < beforeBlocks.size(); i++) {
-                beforeHtml.blockHtml(beforeBlocks[i]);
-            }
-            //            beforeHtml.Tail();
-            htmlText = beforeHtml.getHtml().toUtf8().constData();
-
-            htmlText += "<table><thead><tr>";
-            for (int i = 0; i < tbl.col; ++i)
-                htmlText +=
-                        QString("<th class='%1'>%2</th>")
-                                .arg(getAlignmentClass(tbl.alignList.value(i)), tbl.items.value(i));
-            htmlText += "</tr></thead><tbody>";
-            for (int r = 1; r < tbl.row; ++r) {
-                htmlText += "<tr>";
-                for (int c = 0; c < tbl.col; ++c)
-                    htmlText += QString("<td class='%1'>%2</td>")
-                                        .arg(getAlignmentClass(tbl.alignList.value(c)),
-                                             tbl.items.value(r * tbl.col + c));
-                htmlText += "</tr>";
-            }
-            htmlText += "</tbody></table>";
-            //            htmlText += mistune::markdown(after).toUtf8().constData();
-            MarkdownParser afterParser;
-            std::vector<MarkdownBlockElement> afterBlocks;
-            HtmlRenderer afterHtml;
-            afterParser.blockParse(after, afterBlocks);
-            //            afterHtml.Init();
-            for (size_t i = 0; i < afterBlocks.size(); i++) {
-                afterHtml.blockHtml(afterBlocks[i]);
-            }
-            //            afterHtml.Tail();
-            htmlText += afterHtml.getHtml().toUtf8().constData();
-        } else {
-            QString md = htmlReplaceText(text);
-            //            m_htmlText = mistune::markdown(md).toUtf8().constData();
-            MarkdownParser parser;
-            std::vector<MarkdownBlockElement> blocks;
-            HtmlRenderer html;
-            parser.blockParse(md, blocks);
-            //            html.Init();
-            for (size_t i = 0; i < blocks.size(); i++) {
-                html.blockHtml(blocks[i]);
-            }
-            //            html.Tail();
-            htmlText += html.getHtml().toUtf8().constData();
-        }
+        htmlText = buildHtmlText(text);
         fullHtmlText = mathJaxCdn + htmlText + "</div></body></html>";
         // QUrl base = QUrl::fromLocalFile(QFileInfo(".").absolutePath() + "/");
         QUrl base =
@@ -626,48 +512,122 @@ getPageSize();
     });
 }
 
-ThinkWidget::TableInfo ThinkWidget::getTable(const QString &text) const
+// 逐行扫描文本中的全部管道符表格块：每张表格由连续多行「以 | 开头、以 | 结尾」
+// 的行组成。原实现把全文首个 | 与末个 | 之间的内容整体当作单张表格解析，
+// 多张表格并存时表间的标题、水平线会被并入单元格，行列推导错位导致提取失败；
+// 按行分块后各表格独立解析，表格之外的文本仍交由 MarkdownParser 渲染
+QVector<ThinkWidget::TableInfo> ThinkWidget::getTables(const QString &text) const
 {
-    TableInfo t;
-    int firstPipe = text.indexOf('|');
-    if (firstPipe == -1)
-        return t;
-    int lastPipe = text.lastIndexOf('|');
-    if (lastPipe == -1 || lastPipe <= firstPipe)
-        return t;
-
-    t.tableText = text.mid(firstPipe, lastPipe - firstPipe + 1);
-    QStringList segs = t.tableText.split('|');
-    segs.removeFirst();
-    segs.removeLast();
-    int row = 0, rowFull = 0, col = 0;
-    for (int i = 0; i < segs.size(); i++) {
-        if (segs[i].contains('\n'))
-            ++rowFull;
-        else {
-            if (rowFull == 0)
-                col += 1;
-            if (i == segs.size() - 1)
-                ++rowFull;
+    QVector<TableInfo> tables;
+    const int n = text.size();
+    int pos = 0;
+    while (pos < n) {
+        const int eol = text.indexOf('\n', pos);
+        const int lineEnd = (eol == -1) ? n : eol;
+        if (isTableRow(text.mid(pos, lineEnd - pos))) {
+            TableInfo t;
+            t.start = pos;
+            QStringList rows;
+            // 收集本表格块的连续表格行，pos 前进到块后的第一行
+            while (pos < n) {
+                const int e = text.indexOf('\n', pos);
+                const int le = (e == -1) ? n : e;
+                const QString line = text.mid(pos, le - pos);
+                if (!isTableRow(line))
+                    break;
+                rows << line.trimmed();
+                t.end = le;
+                pos = (e == -1) ? n : le + 1;
+            }
+            t.items = splitTableRow(rows.value(0));
+            t.col = t.items.size();
+            if (rows.size() >= 2)
+                t.alignList = splitTableRow(rows.value(1));
+            // 结构完整 = 至少「表头 + 对齐行 + 一条数据行」且各行单元格数与表头一致。
+            // 流式接收中的半截表格（如仅收到表头）判为不完整，按普通文本渲染，
+            // 待补齐后由下一轮 setText 渲染为表格
+            bool matched = t.col >= 1 && rows.size() >= 3;
+            for (int r = 1; matched && r < rows.size(); ++r) {
+                QStringList cells = splitTableRow(rows.value(r));
+                if (cells.size() != t.col)
+                    matched = false;
+                else if (r >= 2)
+                    t.items << cells;
+            }
+            t.row = matched ? rows.size() - 1 : 0;
+            t.complete = matched;
+            tables << t;
+            continue;
         }
+        pos = (eol == -1) ? n : eol + 1;
     }
-    if (rowFull > 1)
-        row = rowFull - 1;
-    else
-        row = rowFull;
-    if (row >= 1)
-        t.items << segs.mid(0, col);
-    if (rowFull >= 2)
-        t.alignList << segs.mid(col + 1, col);
-    if (row >= 2) {
-        for (int r = 1; r < row; r++)
-            t.items << segs.mid((r + 1) * (col + 1), col);
-        if (segs.size() == rowFull * (col + 1) - 1)
-            t.complete = true;
+    return tables;
+}
+
+// 表格行判定：去掉行首尾空白后以 | 开头、以 | 结尾且至少含两个 |
+bool ThinkWidget::isTableRow(const QString &line) const
+{
+    const QString trim = line.trimmed();
+    return trim.startsWith('|') && trim.endsWith('|') && trim.count('|') >= 2;
+}
+
+// 表格行按 | 拆分为单元格：行首尾的 | 使 split 结果带首尾两个空片段
+QStringList ThinkWidget::splitTableRow(const QString &row) const
+{
+    QStringList cells = row.split('|');
+    cells.removeFirst();
+    cells.removeLast();
+    return cells;
+}
+
+// 拼接全文 HTML：完整的表格块输出为表格，其余文本（含流式接收中的不完整
+// 表格块）按 Markdown 解析，与单表格时保持一致的渲染效果
+QString ThinkWidget::buildHtmlText(const QString &text) const
+{
+    QVector<TableInfo> tables = getTables(text);
+    QString html;
+    int pos = 0;
+    for (const TableInfo &tbl : tables) {
+        if (!tbl.complete)
+            continue;
+        html += markdownToHtml(text.mid(pos, tbl.start - pos));
+        html += tableToHtml(tbl);
+        pos = tbl.end;
     }
-    t.row = row;
-    t.col = col;
-    return t;
+    html += markdownToHtml(text.mid(pos));
+    return html;
+}
+
+QString ThinkWidget::tableToHtml(const TableInfo &tbl) const
+{
+    QString html = "<table><thead><tr>";
+    for (int i = 0; i < tbl.col; ++i)
+        html += QString("<th class='%1'>%2</th>")
+                        .arg(getAlignmentClass(tbl.alignList.value(i)), tbl.items.value(i));
+    html += "</tr></thead><tbody>";
+    for (int r = 1; r < tbl.row; ++r) {
+        html += "<tr>";
+        for (int c = 0; c < tbl.col; ++c)
+            html += QString("<td class='%1'>%2</td>")
+                            .arg(getAlignmentClass(tbl.alignList.value(c)),
+                                 tbl.items.value(r * tbl.col + c));
+        html += "</tr>";
+    }
+    html += "</tbody></table>";
+    return html;
+}
+
+QString ThinkWidget::markdownToHtml(const QString &text) const
+{
+    QString md = htmlReplaceText(text);
+    MarkdownParser parser;
+    std::vector<MarkdownBlockElement> blocks;
+    HtmlRenderer html;
+    parser.blockParse(md, blocks);
+    for (size_t i = 0; i < blocks.size(); i++) {
+        html.blockHtml(blocks[i]);
+    }
+    return html.getHtml().toUtf8().constData();
 }
 
 QString ThinkWidget::getAlignmentClass(const QString &fmt) const
