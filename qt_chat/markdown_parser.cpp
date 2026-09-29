@@ -39,33 +39,40 @@ static int headingLevelOf(const QString &line)
     return level;
 }
 
-// 剥离有序列表标记（"数字. "，允许至多 3 个前导空格）；未匹配时返回原行
-static QString stripOrderedMark(const QString &line)
+// 行首列表标记识别：有序（"数字." 后跟空格或行尾，数字可为多位数，如 "10."）
+// 或无序（"-"/"*"/"+" 后跟空格）；命中时返回正文起点（跳过标记与其后空格），
+// 未命中返回 -1。leadOut 输出前导空格数，orderedOut 输出是否有序标记。
+// maxLead 限制前导空格数：普通行 3（与 stripLeadSpaces 一致）；列表块内续行
+// 放宽（"1. " 的子项缩进 3 空格、"10. " 的子项缩进 4 空格、嵌套更深同理）
+static int listMarkEnd(const QString &line, int maxLead, int *leadOut = nullptr,
+                       bool *orderedOut = nullptr)
 {
     int p = 0;
-    while (p < line.size() && p < 3 && line[p] == ' ')
+    while (p < line.size() && p < maxLead && line[p] == ' ')
         ++p;
+    // 前导空格超出上限（仍停在空格上）时不视为列表标记
+    if (p == maxLead && p < line.size() && line[p] == ' ')
+        return -1;
     int numEnd = p;
     while (numEnd < line.size() && line[numEnd].isDigit())
         ++numEnd;
-    if (numEnd > p && numEnd + 1 < line.size() && line[numEnd] == '.'
-        && line[numEnd + 1] == ' ') {
-        return line.mid(numEnd + 2);
+    if (numEnd > p && numEnd < line.size() && line[numEnd] == '.'
+        && (numEnd + 1 == line.size() || line[numEnd + 1] == ' ')) {
+        if (leadOut)
+            *leadOut = p;
+        if (orderedOut)
+            *orderedOut = true;
+        return numEnd + 1 == line.size() ? numEnd + 1 : numEnd + 2;
     }
-    return line;
-}
-
-// 剥离无序列表标记（"- "、"* "、"+ "，允许至多 3 个前导空格）；未匹配时返回原行
-static QString stripUnorderedMark(const QString &line)
-{
-    int p = 0;
-    while (p < line.size() && p < 3 && line[p] == ' ')
-        ++p;
     if (p + 1 < line.size() && (line[p] == '-' || line[p] == '*' || line[p] == '+')
         && line[p + 1] == ' ') {
-        return line.mid(p + 2);
+        if (leadOut)
+            *leadOut = p;
+        if (orderedOut)
+            *orderedOut = false;
+        return p + 2;
     }
-    return line;
+    return -1;
 }
 
 // 剥离引用标记（"> "，允许至多 3 个前导空格）；未匹配时返回原行
@@ -125,35 +132,38 @@ void MarkdownParser::split(const QString &rawText)
             continue;
         }
         qDebug() << "markdown split curr:" << curr << curr.size();
-        if (curr.size() >= 3 && curr[0].isDigit() && curr[1] == '.' && curr[2] == ' ') {
-            if (!orderedListsFlag) {
+        // 列表行（列表项/缩进子项）统一处理：列表块持续到出现非列表行为止。
+        // 此前"列表项后跟空行立即结束列表"，使 1./2./3. 各成独立 <ol>，
+        // 浏览器对每个 <ol> 从 1 重新编号，整段渲染成 "1. 1. 1."；
+        // 缩进子项行也不匹配旧的行首标记判定，导致后续列表项被误并入同块
+        const bool inList = orderedListsFlag || unorderedListFlag;
+        int listLead = 0;
+        bool listOrdered = false;
+        // 块内续行放宽缩进上限：兼容 "1. " 的 3 空格与 "10. " 的 4 空格子项
+        const int listMark = listMarkEnd(curr, inList ? 8 : 3, &listLead, &listOrdered);
+        if (listMark >= 0) {
+            // 顶层的异类标记（如有序列表后紧跟 "- "）开启新列表：子项/新列表
+            // 若混入原块会占用有序编号，导致后续列表项编号错位
+            if (!inList || (listLead == 0 && listOrdered != orderedListsFlag)) {
                 if (!blockText.empty()) {
                     rawBlock.push_back(blockText);
                     blockText.clear();
                 }
-                orderedListsFlag = true;
+                orderedListsFlag = listOrdered;
+                unorderedListFlag = !listOrdered;
             }
             blockText.push_back(curr);
-            if (!next || *next == "\r" || *next == "\n" || next->isEmpty())
-                orderedListsFlag = false;
             ins++;
             continue;
         }
-        if ((curr.size() >= 2 && curr[0] == '*' && curr[1] == ' ')
-            || (curr.size() >= 2 && curr[0] == '+' && curr[1] == ' ')
-            || (curr.size() >= 2 && curr[0] == '-' && curr[1] == ' ')) {
-            if (!unorderedListFlag) {
-                if (!blockText.empty()) {
-                    rawBlock.push_back(blockText);
-                    blockText.clear();
-                }
-                unorderedListFlag = true;
+        // 非列表行到来，列表块结束；空行不断开列表（见上）
+        if (inList) {
+            orderedListsFlag = false;
+            unorderedListFlag = false;
+            if (!blockText.empty()) {
+                rawBlock.push_back(blockText);
+                blockText.clear();
             }
-            blockText.push_back(curr);
-            if (!next || *next == "\r" || *next == "\n" || next->isEmpty())
-                unorderedListFlag = false;
-            ins++;
-            continue;
         }
         if (curr.size() >= 2 && curr[0] == '>' && curr[1] == ' ') {
             if (!blockQuoteFlag) {
@@ -416,6 +426,9 @@ void MarkdownParser::blockParse(const QString &rawText,
         QString head = stripLeadSpaces(rawBlock[i][0]);
         QString token = head.mid(0, 3);
         int headLevel = headingLevelOf(head);
+        // 列表块首行标记（支持多位数有序序号 "10."）；新块开启条件与 split 一致取 maxLead = 3
+        bool headOrdered = false;
+        const int headMarkEnd = listMarkEnd(rawBlock[i][0], 3, nullptr, &headOrdered);
         if (token == "```") {
             type = BlockType::CodeBlocks;
             std::vector<LineElement> lines;
@@ -424,33 +437,38 @@ void MarkdownParser::blockParse(const QString &rawText,
                 lines.push_back(LineElement(rawBlock[i][j]));
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if (token.size() >= 2 && token[0].isDigit() && token[1] == '.'
-                   && (token.size() == 2 || token[2] == ' ')) {
-            type = BlockType::OrderedList;
+        } else if (headMarkEnd >= 0) {
+            // 列表块（有序/无序由块首行标记决定）：逐行剥离任意列表标记
+            // （块内子项标记可与块类型不同，如有序列表下的 "- "），并按相对
+            // 缩进推导嵌套级别，供渲染器生成嵌套 <ul>/<ol>
+            type = headOrdered ? BlockType::OrderedList : BlockType::UnorderedList;
             std::vector<LineElement> lines;
+            std::vector<int> indentStack;
             for (const auto &line : rawBlock[i]) {
                 if (line.isEmpty())
                     continue;
+                int lead = 0;
+                bool ordered = false;
+                // 块内行沿用放宽的缩进上限（与 split 判定一致）
+                const int mark = listMarkEnd(line, 8, &lead, &ordered);
+                QString body;
+                if (mark >= 0) {
+                    body = line.mid(mark);
+                    // 相对缩进层级：缩进变浅弹栈、变深压栈；子项缩进宽度不定
+                    // （"1. " 为 3、"10. " 为 4 等），以父级缩进为基准最稳
+                    while (indentStack.size() > 1 && lead < indentStack.back())
+                        indentStack.pop_back();
+                    if (indentStack.empty() || lead > indentStack.back())
+                        indentStack.push_back(lead);
+                } else {
+                    // 非列表行（如游离文本）原样解析，避免丢失行首字符
+                    body = line;
+                }
                 QString pureText;
-                // 逐行校验并剥离 "数字. " 标记；非列表行（如游离文本）原样解析，
-                // 避免无差别 mid(2) 丢失行首字符
-                QString body = stripOrderedMark(line);
                 std::vector<MarkdownInlineElement> inlineElem = inlineParse(body, pureText);
-                lines.push_back(LineElement(pureText, inlineElem));
-            }
-            blockElem.push_back(MarkdownBlockElement(type, lines));
-        } else if ((token.size() >= 2 && token.mid(0, 2) == "* ")
-                   || (token.size() >= 2 && token.mid(0, 2) == "+ ")
-                   || (token.size() >= 2 && token.mid(0, 2) == "- ")) {
-            type = BlockType::UnorderedList;
-            std::vector<LineElement> lines;
-            for (const auto &line : rawBlock[i]) {
-                if (line.isEmpty())
-                    continue;
-                QString pureText;
-                QString body = stripUnorderedMark(line);
-                std::vector<MarkdownInlineElement> inlineElem = inlineParse(body, pureText);
-                lines.push_back(LineElement(pureText, inlineElem));
+                lines.push_back(LineElement(pureText, inlineElem,
+                                            indentStack.empty() ? 0 : int(indentStack.size()) - 1,
+                                            ordered));
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token.size() >= 2 && token[0] == '>' && token[1] == ' ') {

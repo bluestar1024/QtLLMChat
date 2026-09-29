@@ -64,24 +64,53 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
         htmlText += "</blockquote>\n";
         break;
     }
-    case BlockType::UnorderedList: {
-        htmlText += "<ul>\n";
-        for (size_t i = 0; i < blockElem.getText().size(); i++) {
-            if (!blockElem.getText()[i].text.isEmpty()) {
-                htmlText += "\t<li>" + inlineHtml(blockElem.getText()[i]) + "</li>\n";
-            }
-        }
-        htmlText += "</ul>\n";
-        break;
-    }
+    case BlockType::UnorderedList:
     case BlockType::OrderedList: {
-        htmlText += "<ol>\n";
-        for (size_t i = 0; i < blockElem.getText().size(); i++) {
-            if (!blockElem.getText()[i].text.isEmpty()) {
-                htmlText += "\t<li>" + inlineHtml(blockElem.getText()[i]) + "</li>\n";
+        // 栈式嵌套渲染：LineElement::level 由 blockParse 按缩进推导，
+        // 加深即开启子列表（嵌在父项 <li> 内，故 <li> 延迟到下一同级项
+        // 或层级回退时才闭合）；每层标签取该层首行的标记类型
+        // （有序 "1." 渲染 <ol>，无序 "- " 渲染 <ul>）
+        struct ListLevel
+        {
+            int level;
+            QString tag;
+            bool liOpen;
+        };
+        std::vector<ListLevel> stack;
+        std::vector<LineElement> lines = blockElem.getText();
+        for (size_t i = 0; i < lines.size(); i++) {
+            const LineElement &line = lines[i];
+            if (line.text.isEmpty())
+                continue;
+            const QString tag = line.ordered ? "ol" : "ul";
+            // 回退：闭合更深的层级（先补该层未闭合的 </li>）
+            while (!stack.empty() && stack.back().level > line.level) {
+                if (stack.back().liOpen)
+                    htmlText += "</li>\n";
+                htmlText += "</" + stack.back().tag + ">\n";
+                stack.pop_back();
             }
+            // 加深：开启新的子列表层级（此时上层 <li> 保持未闭合以嵌套）
+            while (stack.empty() || stack.back().level < line.level) {
+                htmlText += "<" + tag + ">\n";
+                ListLevel lv;
+                lv.level = line.level;
+                lv.tag = tag;
+                lv.liOpen = false;
+                stack.push_back(lv);
+            }
+            // 同级列表项：闭合上一个 <li>
+            if (stack.back().liOpen)
+                htmlText += "</li>\n";
+            htmlText += "<li>" + inlineHtml(line);
+            stack.back().liOpen = true;
         }
-        htmlText += "</ol>\n";
+        while (!stack.empty()) {
+            if (stack.back().liOpen)
+                htmlText += "</li>\n";
+            htmlText += "</" + stack.back().tag + ">\n";
+            stack.pop_back();
+        }
         break;
     }
     }
@@ -100,7 +129,7 @@ QString HtmlRenderer::inlineHtml(LineElement line)
     // 循环上界取到 size()：当行内标记恰好结束于行尾时（如标题 "### 1. **xxx**"
     // 解析后粗体 end == 文本长度），结束标签应插入的位置等于文本长度，
     // 若上界仍为 size() 之前，则 </strong> 等结束标签永远不会被写入
-    for (size_t i = 0; i <= line.text.size(); i++) {
+    for (size_t i = 0; i <= size_t(line.text.size()); i++) {
         for (size_t j = 0; j < ins.size(); j++) {
             if (ins[j] == i && (j % 2 == 0)) {
                 switch (line.inlineElement[j / 2].getType()) {
