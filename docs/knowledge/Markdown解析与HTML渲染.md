@@ -9,9 +9,9 @@
 - 数据模型：`MarkdownBlockElement`（`BlockType` 枚举：Paragraph / Headinglevel1-6 / HorizontalRules / CodeBlocks / BlockQuote / OrderedList / UnorderedList）内含 `std::vector<LineElement>`；`LineElement` 由文本 + `std::vector<MarkdownInlineElement>` + 列表嵌套层级 `level`（0 为顶级，按相对缩进推导）与 `ordered`（该行标记是否有序，决定子列表标签）组成。
 - 解析流程（MarkdownParser）：
   1. `split(rawText)`：按行切分为 `rawBlock`（`std::vector<std::vector<QString>>`）。
-  2. `blockParse`：识别块类型并构建 `MarkdownBlockElement` 序列；列表块统一用 `listMarkEnd` 剥离标记（支持多位数序号与任意缩进子项），并按相对缩进栈推导 `level`。
+  2. `blockParse`：识别块类型并构建 `MarkdownBlockElement` 序列；列表块统一用 `listMarkEnd` 剥离标记（支持多位数序号；缩进上限：普通行 3 个空格、列表块内不限深度），并按相对缩进栈推导 `level`。
   3. `inlineParse`：行内元素解析（粗斜体、行内代码、链接等），`refLinks`（QHash）存放引用链接。
-- 渲染（HtmlRenderer）：`blockHtml` 输出块级标签、`inlineHtml` 输出行内标签；`setStyle` 加载 CSS；`init` / `tail` 拼装页面骨架，`getHtml` 取结果。
+- 渲染（HtmlRenderer）：`blockHtml` 输出块级标签、`inlineHtml` 输出行内标签；嵌套 `<ul>` 显式指定 `list-style-type`（第 1 级 disc / 第 2 级 circle / 第 3 级起 square，按 ul 自身嵌套深度而非浏览器默认的 ol/ul 混合深度）；`setStyle` 加载 CSS；`init` / `tail` 拼装页面骨架，`getHtml` 取结果。
 - 页面装配（ThinkWidget）：`mathJaxCdn` 模板（MathJax 3 配置：`inlineMath ["$","$"]`、`displayMath ["$$","$$"]`、SVG 输出、禁菜单）→ `fullHtmlText = 模板 + 渲染HTML + 尾部` → `webEngineView->setHtml(fullHtmlText, base)`。
 - 表格：`getTable` 解析 `|` 管道表格 → `TableInfo{items, alignList, row, col, complete}`，`getAlignmentClass` 映射对齐类。
 

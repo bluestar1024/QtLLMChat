@@ -42,17 +42,19 @@ static int headingLevelOf(const QString &line)
 // 行首列表标记识别：有序（"数字." 后跟空格或行尾，数字可为多位数，如 "10."）
 // 或无序（"-"/"*"/"+" 后跟空格）；命中时返回正文起点（跳过标记与其后空格），
 // 未命中返回 -1。leadOut 输出前导空格数，orderedOut 输出是否有序标记。
-// maxLead 限制前导空格数：普通行 3（与 stripLeadSpaces 一致）；列表块内续行
-// 放宽（"1. " 的子项缩进 3 空格、"10. " 的子项缩进 4 空格、嵌套更深同理）
+// maxLead 为前导空格数上限，负值表示不限制：普通行 3（与 stripLeadSpaces
+// 一致）；列表块内续行不限制，以支持任意深度的嵌套子项（如 9/11/13 个
+// 空格缩进的深层列表仍能识别）
 static int listMarkEnd(const QString &line, int maxLead, int *leadOut = nullptr,
                        bool *orderedOut = nullptr)
 {
     int p = 0;
-    while (p < line.size() && p < maxLead && line[p] == ' ')
+    while (p < line.size() && line[p] == ' ') {
+        // 缩进达到上限仍为空格时不视为列表标记
+        if (maxLead >= 0 && p >= maxLead)
+            return -1;
         ++p;
-    // 前导空格超出上限（仍停在空格上）时不视为列表标记
-    if (p == maxLead && p < line.size() && line[p] == ' ')
-        return -1;
+    }
     int numEnd = p;
     while (numEnd < line.size() && line[numEnd].isDigit())
         ++numEnd;
@@ -139,8 +141,9 @@ void MarkdownParser::split(const QString &rawText)
         const bool inList = orderedListsFlag || unorderedListFlag;
         int listLead = 0;
         bool listOrdered = false;
-        // 块内续行放宽缩进上限：兼容 "1. " 的 3 空格与 "10. " 的 4 空格子项
-        const int listMark = listMarkEnd(curr, inList ? 8 : 3, &listLead, &listOrdered);
+        // 列表块内续行不限制缩进深度（支持任意层嵌套子项）；
+        // 非列表上下文仍限 3 个空格，与 stripLeadSpaces 的普通行缩进判定一致
+        const int listMark = listMarkEnd(curr, inList ? -1 : 3, &listLead, &listOrdered);
         if (listMark >= 0) {
             // 顶层的异类标记（如有序列表后紧跟 "- "）开启新列表：子项/新列表
             // 若混入原块会占用有序编号，导致后续列表项编号错位
@@ -449,8 +452,8 @@ void MarkdownParser::blockParse(const QString &rawText,
                     continue;
                 int lead = 0;
                 bool ordered = false;
-                // 块内行沿用放宽的缩进上限（与 split 判定一致）
-                const int mark = listMarkEnd(line, 8, &lead, &ordered);
+                // 块内行不限制缩进深度（与 split 的列表内判定一致）
+                const int mark = listMarkEnd(line, -1, &lead, &ordered);
                 QString body;
                 if (mark >= 0) {
                     body = line.mid(mark);

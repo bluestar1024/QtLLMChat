@@ -92,7 +92,22 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
             }
             // 加深：开启新的子列表层级（此时上层 <li> 保持未闭合以嵌套）
             while (stack.empty() || stack.back().level < line.level) {
-                htmlText += "<" + tag + ">\n";
+                QString openTag = "<" + tag;
+                if (tag == "ul") {
+                    // 无序列表符号按该列表自身的嵌套深度显式指定（与 ol 无关）：
+                    // 第一级 disc（实心圆）、第二级 circle（空心圆）、第三级起
+                    // square（实心方块）。浏览器默认按 ol/ul 混合深度取符号
+                    //（ol 内首层 ul 也显示 circle），与预期不符
+                    int ulDepth = 1;
+                    for (size_t k = 0; k < stack.size(); k++) {
+                        if (stack[k].tag == "ul")
+                            ++ulDepth;
+                    }
+                    const QString marker =
+                            ulDepth >= 3 ? "square" : (ulDepth == 2 ? "circle" : "disc");
+                    openTag += " style=\"list-style-type:" + marker + "\"";
+                }
+                htmlText += openTag + ">\n";
                 ListLevel lv;
                 lv.level = line.level;
                 lv.tag = tag;
