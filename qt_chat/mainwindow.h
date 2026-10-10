@@ -11,6 +11,7 @@
 #include "frame.h"
 #include "settingwidget.h"
 #include "chatrecordswidget.h"
+#include "chatrecordstore.h"
 #include "messagethread.h"
 #include "messagewidget.h"
 #include "itemwidget.h"
@@ -107,8 +108,11 @@ private:
     void messageFinish();
     void textCopy();
     void messageRenewResponse();
-    void writeToChatRecordFile(bool withholdCurChatFile = false);
-    void saveCurChatRecord(bool withholdCurChatFile = false);
+    // 新建聊天记录会话并写入消息（对应原"新建记录文件"），withholdCurSession
+    // 为 true 时仅写库、不把新会话设为当前会话
+    void createChatRecordSession(bool withholdCurSession,
+                                 const QList<ChatMessageRecord> &messages);
+    void saveCurChatRecord(bool withholdCurSession = false);
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
     // 统一的窗口重建调度入口：合并同一时间内多个来源的重建请求（拖拽释放、setText
@@ -120,10 +124,11 @@ private:
     // 切换聊天记录/新建聊天的重入保护：generateCurChatRecord 创建 MessageWidget 时会进入
     // 渲染等待的嵌套事件循环，快速连续点击的记录列表事件会在构建中途重入本流程。
     // 重入时只记录最新目标，等当前流程（切换/重建）结束后统一执行，避免半成品列表
-    // 被写回文件（记录文件被截断）、新旧会话消息混入同一列表（显示与文件不符）
-    void requestChatRecordSwitch(const QString &fileName, bool isNewChat);
+    // 被写回数据库（会话记录被截断）、新旧会话消息混入同一列表（显示与记录不符）。
+    // sessionId 为会话 id（-1 表示新建聊天）
+    void requestChatRecordSwitch(int sessionId, bool isNewChat);
     // 真正执行一次会话切换/新建聊天：停止接收线程、保存当前记录、清空列表后重建/置空
-    void applyChatRecordSwitch(const QString &fileName, bool isNewChat);
+    void applyChatRecordSwitch(int sessionId, bool isNewChat);
     // 会话切换/新建聊天时停止接收链：清空积压队列、复位流式渲染状态、
     // 断开接收链上指向旧消息控件的裸指针（旧控件随后被 deleteLater/clear 销毁）
     void resetRecvChain();
@@ -172,7 +177,8 @@ private:
     QPropertyAnimation *chatRecordsAnimationMove;
     bool settingWidgetIsOpen;
     bool chatRecordsWidgetIsOpen;
-    QString curChatFile;
+    // 当前会话 id（-1 表示无当前会话，即新聊天）
+    int curChatSessionId = -1;
     PrintLabel *emptyTextLabel;
     PrintLabel *textCopyLabel;
 
@@ -182,16 +188,16 @@ private:
     bool isRegeneratePending;
     // 已有排队等待执行的重建回调（scheduleMessageWidgetRegenerate 去重标记）
     bool isRegenerateScheduled;
-    // generateCurChatRecord 正在按文件构建消息列表（列表为半成品，禁止序列化写回文件）
+    // generateCurChatRecord 正在按会话加载构建消息列表（列表为半成品，禁止序列化写回数据库）
     bool isBuildingChatRecord;
-    // 上一次构建被连续点击中止（列表只含部分消息，不代表任何文件的完整内容）
+    // 上一次构建被连续点击中止（列表只含部分消息，不代表任何会话的完整内容）
     bool isChatRecordBuildAbandoned;
     // 切换聊天记录/新建聊天流程执行中（含被推迟目标的执行阶段）
     bool isSwitchingChatRecord;
     // 构建/重建期间收到、等待执行的切换目标（快速连续点击只保留最后一次）
     bool hasPendingChatSwitch;
     bool pendingChatSwitchIsNewChat;
-    QString pendingChatSwitchFile;
+    int pendingChatSessionId = -1;
     bool pushButtonIsPress;
     QScreen *lastScreen;
     QScreen *curScreen;
@@ -237,7 +243,7 @@ private:
 
     int currentScrollValue = 0;
     int maxScrollValue = 0;
-    QString chatRecordFileName;
+    ChatRecordStore *chatRecordStore = nullptr;
 
     MessageWidget *messageSendWidget;
     MessageWidget *messageRecvWidget;

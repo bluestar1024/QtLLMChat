@@ -1,4 +1,4 @@
-QT       += core gui 3dcore network
+QT       += core gui 3dcore network sql
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets
 
@@ -45,6 +45,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     appcontext.cpp \
+    chatrecordstore.cpp \
     chatrecordswidget.cpp \
     codeeditor.cpp \
     codeshow.cpp \
@@ -102,6 +103,7 @@ SOURCES += \
 
 HEADERS += \
     appcontext.h \
+    chatrecordstore.h \
     chatrecordswidget.h \
     codeeditor.h \
     codeshow.h \

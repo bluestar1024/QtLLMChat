@@ -227,7 +227,11 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
 }
 
-MainWindow::~MainWindow() { }
+MainWindow::~MainWindow()
+{
+    delete chatRecordStore;
+    chatRecordStore = nullptr;
+}
 
 void MainWindow::titleWidgetInit()
 {
@@ -289,7 +293,10 @@ void MainWindow::chatRecordsWidgetInit()
     connect(chatRecordsAnimationMove, &QPropertyAnimation::finished, this,
             &MainWindow::chatRecordsUiMoveFinished);
 
-    curChatFile = "";
+    curChatSessionId = -1;
+    // 聊天记录数据库：与聊天记录同目录（chatrecords/chat_records.db）
+    chatRecordStore = new ChatRecordStore(
+            QDir(appContext->chatRecordsDir()).filePath("chat_records.db"));
     chatRecordsWidgetIsOpen = false;
 }
 
@@ -2223,171 +2230,85 @@ void MainWindow::textCopy() { }
 
 void MainWindow::messageRenewResponse() { }
 
-void MainWindow::writeToChatRecordFile(bool withholdCurChatFile)
+void MainWindow::createChatRecordSession(bool withholdCurSession,
+                                         const QList<ChatMessageRecord> &messages)
 {
-    chatRecordFileName = "chat_";
-    chatRecordFileName += QDateTime::currentDateTime().toString("yyyy_MM_dd_HH_mm_ss");
-    chatRecordFileName += ".txt";
+    if (!chatRecordStore || !chatRecordStore->isOpen())
+        return;
 
-    QString filePath = QDir(appContext->chatRecordsDir()).filePath(chatRecordFileName);
-    qDebug() << "writeToChatRecordFile filePath:" << filePath;
+    QString fileName = "chat_";
+    fileName += QDateTime::currentDateTime().toString("yyyy_MM_dd_HH_mm_ss");
+    fileName += ".txt";
 
-    try {
-        QFile file(filePath);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append)) {
-            throw std::runtime_error("无法打开文件进行写入");
-        }
-        qDebug() << "writeToChatRecordFile success open file:";
+    const int sessionId = chatRecordStore->createSession(fileName);
+    qDebug() << "createChatRecordSession sessionId:" << sessionId << fileName;
+    if (sessionId < 0)
+        return;
 
-        QTextStream out(&file);
-        out.setEncoding(QStringConverter::Utf8);
+    chatRecordStore->saveMessages(sessionId, messages);
 
+    if (!withholdCurSession) {
+        curChatSessionId = sessionId;
+    }
+}
+
+void MainWindow::saveCurChatRecord(bool withholdCurSession)
+{
+    // 消息列表正在按会话构建（generateCurChatRecord 内的嵌套事件循环期间）或上一次
+    // 构建被连续点击中止时，messageWidgetList 只有部分消息，此时序列化会把当前会话
+    // 记录重写成半成品：构建期间到达的保存请求（窗口关闭、打开记录列表、窗口重建等）
+    // 一律跳过，数据库保持上一次完整保存的内容
+    if (isBuildingChatRecord || isChatRecordBuildAbandoned)
+        return;
+
+    if (!chatRecordStore || !chatRecordStore->isOpen())
+        return;
+
+    if (messageWidgetList.size() != 0) {
+        // 生成当前应写入的完整消息列表（思考时长与消息一一对应）
+        QList<ChatMessageRecord> messages;
+        messages.reserve(messageWidgetList.size());
         for (int i = 0; i < messageWidgetList.size(); i++) {
             MessageWidget *messageWidget = messageWidgetList.at(i);
             if (!messageWidget)
                 continue;
-            QString chatRecordStr = messageWidget->getText() + '\n'
-                    + QString("消息部件思考时长:%1秒\n")
-                              .arg(i < thinkTimeLengthList.size() ? thinkTimeLengthList.at(i) : 0)
-                    + (messageWidget->getIsUser() ? "True\n" : "False\n");
-            out << chatRecordStr;
+            ChatMessageRecord record;
+            record.content = messageWidget->getText();
+            record.thinkTime = i < thinkTimeLengthList.size() ? thinkTimeLengthList.at(i) : 0;
+            record.isUser = messageWidget->getIsUser();
+            messages.append(record);
         }
+        if (messages.isEmpty())
+            return;
 
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "发生未知错误：" << e.what();
-    }
-
-    if (!withholdCurChatFile) {
-        curChatFile = chatRecordFileName;
-    }
-}
-
-void MainWindow::saveCurChatRecord(bool withholdCurChatFile)
-{
-    // 消息列表正在按文件构建（generateCurChatRecord 内的嵌套事件循环期间）或上一次
-    // 构建被连续点击中止时，messageWidgetList 只有部分消息，此时序列化会把当前记录
-    // 文件重写成半成品：构建期间到达的保存请求（窗口关闭、打开记录列表、窗口重建等）
-    // 一律跳过，记录文件保持上一次完整保存的内容
-    if (isBuildingChatRecord || isChatRecordBuildAbandoned)
-        return;
-
-    if (messageWidgetList.size() != 0) {
-        if (curChatFile.isEmpty()) {
-            writeToChatRecordFile(withholdCurChatFile);
+        // 按完整内容比较后仅从差异处重写的策略在 ChatRecordStore::saveMessages 内：
+        // 流式追加常为行内增长（消息数量不变），仅按数量判断会漏写，重建后将缺少
+        // 最后追加的文本
+        if (curChatSessionId >= 0 && chatRecordStore->sessionExists(curChatSessionId)) {
+            chatRecordStore->saveMessages(curChatSessionId, messages);
         } else {
-            QString filePath = QDir(appContext->chatRecordsDir()).filePath(curChatFile);
-            if (!QFile::exists(filePath)) {
-                writeToChatRecordFile(withholdCurChatFile);
-            } else {
-                try {
-                    // 生成当前应写入的完整内容
-                    QString newContent;
-                    for (int i = 0; i < messageWidgetList.size(); i++) {
-                        MessageWidget *messageWidget = messageWidgetList.at(i);
-                        if (!messageWidget)
-                            continue;
-                        newContent += messageWidget->getText() + '\n'
-                                + QString("消息部件思考时长:%1秒\n")
-                                          .arg(i < thinkTimeLengthList.size()
-                                                       ? thinkTimeLengthList.at(i)
-                                                       : 0)
-                                + (messageWidget->getIsUser() ? "True\n" : "False\n");
-                    }
-
-                    // 读取现有文件内容（Text 模式读自动归一化换行）用于比较
-                    QString oldContent;
-                    QFile readFile(filePath);
-                    if (readFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                        QTextStream in(&readFile);
-                        in.setEncoding(QStringConverter::Utf8);
-                        oldContent = in.readAll();
-                        readFile.close();
-                    }
-
-                    // 按完整内容比较而非行数：流式追加常为行内增长（换行数不变），
-                    // 仅按行数判断会漏写文件，重建后消息将缺少最后追加的文本
-                    if (oldContent != newContent) {
-                        QFile writeFile(filePath);
-                        if (writeFile.open(QIODevice::WriteOnly | QIODevice::Text
-                                           | QIODevice::Truncate)) {
-                            writeFile.resize(0);
-                            writeFile.close();
-                        }
-
-                        QFile appendFile(filePath);
-                        if (appendFile.open(QIODevice::WriteOnly | QIODevice::Text
-                                            | QIODevice::Append)) {
-                            QTextStream out(&appendFile);
-                            out.setEncoding(QStringConverter::Utf8);
-                            out << newContent;
-                            appendFile.close();
-                        }
-                    }
-                } catch (const std::exception &e) {
-                    qDebug() << "发生未知错误：" << e.what();
-                }
-            }
+            createChatRecordSession(withholdCurSession, messages);
         }
     }
 }
 
 void MainWindow::chatRecordsGenerateItem(QString searchText)
 {
-    QDir dir(appContext->chatRecordsDir());
-    // 按文件名升序（文件名含时间戳，升序即时间序），addListItem 头部插入后最新记录在最上方
-    QStringList fileNames = dir.entryList(QStringList() << "*.txt", QDir::Files, QDir::Name);
-    for (const QString &fileName : fileNames) {
-        QString filePath = dir.filePath(fileName);
-        try {
-            QStringList lines;
-            QFile file(filePath);
-            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                qDebug() << "错误：文件" << filePath << "不存在";
-                continue;
-            }
-            QTextStream in(&file);
-            in.setEncoding(QStringConverter::Utf8);
-            QString content = in.readAll();
-            file.close();
+    QList<ChatSessionRecord> sessions;
+    if (chatRecordStore && chatRecordStore->isOpen())
+        sessions = chatRecordStore->listSessions(searchText);
 
-            // 有搜索词时先过滤，内容不含关键词的记录跳过
-            if (!searchText.isEmpty() && !content.contains(searchText))
-                continue;
-
-            lines = content.split('\n');
-            for (int i = 0; i < lines.size() - 1; i++)
-                lines[i] += '\n';
-            if (lines.last().isEmpty())
-                lines.removeLast();
-
-            // 定位首条用户消息结束标记（True\n），其后为 AI 回复首行；
-            // 若为 <think>\n 则再跳一行，取思考或正文首行
-            int index = 0;
-            for (; index < lines.size(); index++) {
-                if (lines[index] == "True\n") {
-                    if (index + 1 < lines.size() && lines[index + 1] == "<think>\n")
-                        index++;
-                    break;
-                }
-            }
-            if (lines.isEmpty() || index + 1 >= lines.size())
-                continue;
-
-            QString chatRecordStr = lines[0] + QString(lines[index + 1]).remove('\n');
-            QListWidgetItem *item = chatRecordsWidget->addListItem(chatRecordStr);
-            chatRecordsWidget->listItemSetData(item, fileName);
-        } catch (const std::exception &e) {
-            qDebug() << "发生未知错误：" << e.what();
-        }
+    // 会话按创建时间升序返回（即时间序），addListItem 头部插入后最新记录在最上方
+    for (const ChatSessionRecord &session : sessions) {
+        QListWidgetItem *item = chatRecordsWidget->addListItem(session.title);
+        chatRecordsWidget->listItemSetData(item, QString::number(session.id));
     }
 }
 
 void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandList)
 {
     // 构建期间 messageWidgetList 为半成品：控件构造会进入渲染等待的嵌套事件循环，
-    // 其中的点击/关闭等事件若触发保存会把记录文件截断，此标记供 saveCurChatRecord 拦截
+    // 其中的点击/关闭等事件若触发保存会把会话记录截断，此标记供 saveCurChatRecord 拦截
     isBuildingChatRecord = true;
 
     QString text;
@@ -2398,66 +2319,40 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
     // 本次构建是否被待执行的切换点击或待执行的重建请求中止（列表为半成品）
     bool buildAborted = false;
 
-    QStringList lines;
-    QString filePath = QDir(appContext->chatRecordsDir()).filePath(curChatFile);
-    try {
-        QFile file(filePath);
-        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            QTextStream in(&file);
-            in.setEncoding(QStringConverter::Utf8);
-            while (!in.atEnd()) {
-                lines.append(in.readLine() + '\n');
+    // 按会话加载完整消息：数据库按 seq 顺序返回，无需再解析文本标记行
+    QList<ChatMessageRecord> messages;
+    if (chatRecordStore && chatRecordStore->isOpen() && curChatSessionId >= 0)
+        messages = chatRecordStore->loadMessages(curChatSessionId);
+
+    for (int i = 0; i < messages.size(); i++) {
+        const ChatMessageRecord &record = messages.at(i);
+        text = record.content;
+        isUser = record.isUser;
+        // 思考时长与消息一一对应，先入列表保证索引与消息序号一致（MessageWidget 构造时读取）
+        thinkTimeLengthList.append(record.thinkTime);
+
+        int j = messageWidgetList.size() - 1;
+        if (j != -1 && j != 0) {
+            if (!messageWidgetList[j]->getIsUser()) {
+                messageWidgetList[j]->removeRenewResponseButton();
             }
-            file.close();
         }
-    } catch (const std::exception &e) {
-        qDebug() << "发生未知错误：" << e.what();
-    }
 
-    for (int i = 0; i < lines.size(); i++) {
-        if (lines[i] == "True\n" || lines[i] == "False\n") {
-            if (lines[i] == "True\n") {
-                isUser = true;
-            } else {
-                isUser = false;
-            }
-
-            int j = messageWidgetList.size() - 1;
-            if (j != -1 && j != 0) {
-                if (!messageWidgetList[j]->getIsUser()) {
-                    messageWidgetList[j]->removeRenewResponseButton();
-                }
-            }
-            if (text.endsWith('\n'))
-                text.chop(1);
-
-            qDebug() << "generateCurChatRecord" << text;
-            if (useThinkExpandList) {
-                if (!isUser) {
-                    bool thinkExpand = true;
-                    if (expandIndex < thinkExpandedList.size())
-                        thinkExpand = thinkExpandedList[expandIndex];
-                    messageWidget = new MessageWidget(
-                            appContext, text, [this]() { textCopy(); },
-                            [this]() { messageRenewResponse(); },
-                            [this](MessageWidget *selfMessageWidget) {
-                                messageWidgetResize(selfMessageWidget);
-                            },
-                            [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
-                            thinkTimeLengthList, thinkTimeIndex, isUser, thinkExpand,
-                            messageWidgetMaxWidth());
-                } else {
-                    // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
-                    messageWidget = new MessageWidget(
-                            appContext, text, [this]() { textCopy(); },
-                            [this]() { messageRenewResponse(); },
-                            [this](MessageWidget *selfMessageWidget) {
-                                messageWidgetResize(selfMessageWidget);
-                            },
-                            [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
-                            thinkTimeLengthList, thinkTimeIndex, isUser, true,
-                            messageWidgetMaxWidth());
-                }
+        qDebug() << "generateCurChatRecord" << text;
+        if (useThinkExpandList) {
+            if (!isUser) {
+                bool thinkExpand = true;
+                if (expandIndex < thinkExpandedList.size())
+                    thinkExpand = thinkExpandedList[expandIndex];
+                messageWidget = new MessageWidget(
+                        appContext, text, [this]() { textCopy(); },
+                        [this]() { messageRenewResponse(); },
+                        [this](MessageWidget *selfMessageWidget) {
+                            messageWidgetResize(selfMessageWidget);
+                        },
+                        [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
+                        thinkTimeLengthList, thinkTimeIndex, isUser, thinkExpand,
+                        messageWidgetMaxWidth());
             } else {
                 // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
                 messageWidget = new MessageWidget(
@@ -2467,84 +2362,85 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             messageWidgetResize(selfMessageWidget);
                         },
                         [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
-                        thinkTimeLengthList, thinkTimeIndex, isUser, true, messageWidgetMaxWidth());
+                        thinkTimeLengthList, thinkTimeIndex, isUser, true,
+                        messageWidgetMaxWidth());
             }
-            // messageWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
-            // messageWidget->connectSetTexting(this, &MainWindow::getSetTexting);
+        } else {
+            // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
+            messageWidget = new MessageWidget(
+                    appContext, text, [this]() { textCopy(); },
+                    [this]() { messageRenewResponse(); },
+                    [this](MessageWidget *selfMessageWidget) {
+                        messageWidgetResize(selfMessageWidget);
+                    },
+                    [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
+                    thinkTimeLengthList, thinkTimeIndex, isUser, true, messageWidgetMaxWidth());
+        }
+        // messageWidget->connectResizeFinished(this, &MainWindow::messageWidgetResize);
+        // messageWidget->connectSetTexting(this, &MainWindow::getSetTexting);
 
-            qDebug() << "generateCurChatRecord" << i;
-            if (!isUser) {
-                if (i == lines.size() - 1) {
-                    if (lastIsToggle) {
-                        messageWidget->removeLoadingWidget();
-                    }
-                } else {
+        qDebug() << "generateCurChatRecord" << i;
+        if (!isUser) {
+            if (i == messages.size() - 1) {
+                if (lastIsToggle) {
                     messageWidget->removeLoadingWidget();
                 }
-            }
-
-            messageWidgetList.append(messageWidget);
-
-            itemWidget = new ItemWidget(this);
-            itemHLayout = new QHBoxLayout();
-            itemHLayout->addWidget(messageWidget);
-            itemWidget->setLayout(itemHLayout);
-            itemWidget->setFixedSize(chatShow->width(), messageWidget->height() + 10);
-            item = new QListWidgetItem(chatShow);
-            item->setSizeHint(QSize(chatShow->width(), messageWidget->height() + 10));
-            chatShow->setItemWidget(item, itemWidget);
-            updateItemLayout(itemWidget, messageWidget, item);
-
-            if (i == lines.size() - 1) {
-                if (lastIsToggle) {
-                    messageWidget->updateFunWidgetSize(curDpi, initDpi);
-                    // messageWidget->toggleWidget();
-                }
             } else {
+                messageWidget->removeLoadingWidget();
+            }
+        }
+
+        messageWidgetList.append(messageWidget);
+
+        itemWidget = new ItemWidget(this);
+        itemHLayout = new QHBoxLayout();
+        itemHLayout->addWidget(messageWidget);
+        itemWidget->setLayout(itemHLayout);
+        itemWidget->setFixedSize(chatShow->width(), messageWidget->height() + 10);
+        item = new QListWidgetItem(chatShow);
+        item->setSizeHint(QSize(chatShow->width(), messageWidget->height() + 10));
+        chatShow->setItemWidget(item, itemWidget);
+        updateItemLayout(itemWidget, messageWidget, item);
+
+        if (i == messages.size() - 1) {
+            if (lastIsToggle) {
                 messageWidget->updateFunWidgetSize(curDpi, initDpi);
                 // messageWidget->toggleWidget();
             }
-
-            text.clear();
-
-            thinkTimeIndex++;
-            if (useThinkExpandList && !isUser) {
-                expandIndex++;
-            }
-
-            // 构建期间又收到切换点击（快速连续点击）：当前目标的列表已无展示价值，
-            // 立即中止本次构建，把剩余时间交给待执行目标（半成品列表由下方标记
-            // 阻止写回文件，由待执行切换统一清空重建）
-            if (hasPendingChatSwitch) {
-                buildAborted = true;
-                qDebug() << "generateCurChatRecord aborted, pending:" << pendingChatSwitchFile;
-                break;
-            }
-
-            // 构建期间又收到窗口尺寸变化触发的重建请求（拖拽释放/最大化等）：当前
-            // 构建的控件宽度已过期，立即中止本次构建，把剩余时间交给最新一次重建：
-            // 待重建标记由 messageWidgetRegenerate 的 do-while 在重建轮结束时消费
-            // （再执行一轮完整重建），此处即刻退出避免旧宽度列表无谓生成到底
-            if (isRegeneratePending) {
-                buildAborted = true;
-                qDebug() << "generateCurChatRecord aborted, regenerate pending";
-                break;
-            }
-
-        } else if (lines[i].left(8) == QString("消息部件思考时长")) {
-            QRegularExpression re("\\d+");
-            QRegularExpressionMatch match = re.match(lines[i]);
-            if (match.hasMatch()) {
-                thinkTimeLengthList.append(match.captured(0).toInt());
-            }
         } else {
-            text += lines[i];
+            messageWidget->updateFunWidgetSize(curDpi, initDpi);
+            // messageWidget->toggleWidget();
         }
+
+        thinkTimeIndex++;
+        if (useThinkExpandList && !isUser) {
+            expandIndex++;
+        }
+
+        // 构建期间又收到切换点击（快速连续点击）：当前目标的列表已无展示价值，
+        // 立即中止本次构建，把剩余时间交给待执行目标（半成品列表由下方标记
+        // 阻止写回数据库，由待执行切换统一清空重建）
+        if (hasPendingChatSwitch) {
+            buildAborted = true;
+            qDebug() << "generateCurChatRecord aborted, pending:" << pendingChatSessionId;
+            break;
+        }
+
+        // 构建期间又收到窗口尺寸变化触发的重建请求（拖拽释放/最大化等）：当前
+        // 构建的控件宽度已过期，立即中止本次构建，把剩余时间交给最新一次重建：
+        // 待重建标记由 messageWidgetRegenerate 的 do-while 在重建轮结束时消费
+        // （再执行一轮完整重建），此处即刻退出避免旧宽度列表无谓生成到底
+        if (isRegeneratePending) {
+            buildAborted = true;
+            qDebug() << "generateCurChatRecord aborted, regenerate pending";
+            break;
+        }
+
     }
 
     isBuildingChatRecord = false;
-    // 中止的构建（列表为半成品，不代表任何文件的完整内容）：阻止 saveCurChatRecord
-    // 将其写回文件；正常构建完成时清除标记
+    // 中止的构建（列表为半成品，不代表任何会话的完整内容）：阻止 saveCurChatRecord
+    // 将其写回数据库；正常构建完成时清除标记
     isChatRecordBuildAbandoned = buildAborted;
 }
 
@@ -2691,7 +2587,7 @@ void MainWindow::messageWidgetRegenerate()
     // （待重建标记由切换收尾重新调度，在切换后的列表上再重建一次）；
     // 切换内部会重置接收链与队列状态，下方队列恢复检查随之按新会话状态判断
     if (hasPendingChatSwitch)
-        requestChatRecordSwitch(pendingChatSwitchFile, pendingChatSwitchIsNewChat);
+        requestChatRecordSwitch(pendingChatSessionId, pendingChatSwitchIsNewChat);
     // 重建完成：恢复队列处理（重建期间 queueMessage 只入队、recvMessage 暂停，
     // 文本保留在队列中）。延迟到重建栈退出后执行：接收仍在进行（isSending）或
     // 接收已结束但队列仍有积压（AI 输出完毕时未渲染的尾部文本）时，逐条增量渲染
@@ -2766,38 +2662,34 @@ void MainWindow::showSearchRecords()
 void MainWindow::clearAllChatRecords()
 {
     chatRecordsWidget->delAllListItems();
-    QDir dir(appContext->chatRecordsDir());
-    const QStringList fileNames = dir.entryList(QStringList() << "*.txt", QDir::Files);
-    for (const QString &fileName : fileNames) {
-        if (!QFile::remove(dir.filePath(fileName)))
-            qDebug() << "删除聊天记录文件失败：" << fileName;
-    }
+    if (chatRecordStore)
+        chatRecordStore->deleteAllSessions();
 }
 
 void MainWindow::generateChatRecord(QListWidgetItem *item)
 {
-    // 点击瞬间取值：item 可能随记录列表刷新失效，后续只使用文件名
-    requestChatRecordSwitch(chatRecordsWidget->listItemToString(item), false);
+    // 点击瞬间取值：item 可能随记录列表刷新失效，后续只使用会话 id
+    requestChatRecordSwitch(chatRecordsWidget->listItemToString(item).toInt(), false);
 }
 
 void MainWindow::newChat()
 {
     // 新建聊天：带上重入保护，构建/重建期间点击同样只记录目标待执行
-    requestChatRecordSwitch(QString(), true);
+    requestChatRecordSwitch(-1, true);
 }
 
-void MainWindow::requestChatRecordSwitch(const QString &fileName, bool isNewChat)
+void MainWindow::requestChatRecordSwitch(int sessionId, bool isNewChat)
 {
-    pendingChatSwitchFile = fileName;
+    pendingChatSessionId = sessionId;
     pendingChatSwitchIsNewChat = isNewChat;
     hasPendingChatSwitch = true;
 
     // 已有切换流程或消息列表重建（窗口尺寸变化触发）在进行：本次点击只排队。
     // 构建消息列表期间会进入控件渲染的嵌套事件循环，快速连点即在此时重入：
-    // 若立即执行，半成品列表会被保存回文件（记录被截断），且正在构建的旧流程
-    // 会把剩余消息追加到新列表里（显示与文件不符）
+    // 若立即执行，半成品列表会被保存回数据库（会话记录被截断），且正在构建的旧
+    // 流程会把剩余消息追加到新列表里（显示与记录不符）
     if (isSwitchingChatRecord || isRegenerating) {
-        qDebug() << "requestChatRecordSwitch pending:" << fileName << isNewChat;
+        qDebug() << "requestChatRecordSwitch pending:" << sessionId << isNewChat;
         return;
     }
 
@@ -2806,8 +2698,8 @@ void MainWindow::requestChatRecordSwitch(const QString &fileName, bool isNewChat
     // 又收到点击则继续执行（同 messageWidgetRegenerate 的待重建处理）
     do {
         hasPendingChatSwitch = false;
-        qDebug() << "applyChatRecordSwitch:" << pendingChatSwitchFile << pendingChatSwitchIsNewChat;
-        applyChatRecordSwitch(pendingChatSwitchFile, pendingChatSwitchIsNewChat);
+        qDebug() << "applyChatRecordSwitch:" << pendingChatSessionId << pendingChatSwitchIsNewChat;
+        applyChatRecordSwitch(pendingChatSessionId, pendingChatSwitchIsNewChat);
     } while (hasPendingChatSwitch);
     isSwitchingChatRecord = false;
     // 切换/构建期间被推迟的窗口重建请求（WM_EXITSIZEMOVE 等触发的 messageWidgetRegenerate）：
@@ -2816,7 +2708,7 @@ void MainWindow::requestChatRecordSwitch(const QString &fileName, bool isNewChat
         scheduleMessageWidgetRegenerate();
 }
 
-void MainWindow::applyChatRecordSwitch(const QString &fileName, bool isNewChat)
+void MainWindow::applyChatRecordSwitch(int sessionId, bool isNewChat)
 {
     if (isSending) {
         thread->stop();
@@ -2848,10 +2740,10 @@ void MainWindow::applyChatRecordSwitch(const QString &fileName, bool isNewChat)
     // 不触发 valueChanged 恢复）导致新会话不滚动
     chatShow->resetScrollAutoChange();
     if (isNewChat) {
-        curChatFile = "";
+        curChatSessionId = -1;
         pushButtonIsPress = true;
     } else {
-        curChatFile = fileName;
+        curChatSessionId = sessionId;
         generateCurChatRecord();
     }
 }
