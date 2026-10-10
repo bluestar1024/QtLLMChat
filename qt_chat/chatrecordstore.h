@@ -36,8 +36,8 @@ public:
 
     bool isOpen() const;
 
-    // 新建会话（fileName 沿用 chat_时间戳.txt 命名，仅作会话标识），返回会话 id，失败返回 -1
-    int createSession(const QString &fileName);
+    // 新建会话（仅记录创建时间），返回会话 id，失败返回 -1
+    int createSession();
 
     bool sessionExists(int sessionId) const;
 
@@ -56,8 +56,8 @@ public:
     void deleteAllSessions();
 
 private:
-    // 生成会话列表标题：首条消息首行 + 首个用户消息之后一条消息首行（首行为 <think>
-    // 时取下一行），对应原实现"文件第一行 + True 标记后一行"；任一段缺失返回空串
+    // 生成会话列表标题：前两条消息（seq 升序）首行拼接，本项目逻辑下首条必为用户消息、
+    // 第二条为 AI 回复（AI 首行为 <think> 时取下一行）；任一段缺失返回空串
     QString sessionTitle(int sessionId) const;
 
     QSqlDatabase db;

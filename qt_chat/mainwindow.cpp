@@ -2236,12 +2236,8 @@ void MainWindow::createChatRecordSession(bool withholdCurSession,
     if (!chatRecordStore || !chatRecordStore->isOpen())
         return;
 
-    QString fileName = "chat_";
-    fileName += QDateTime::currentDateTime().toString("yyyy_MM_dd_HH_mm_ss");
-    fileName += ".txt";
-
-    const int sessionId = chatRecordStore->createSession(fileName);
-    qDebug() << "createChatRecordSession sessionId:" << sessionId << fileName;
+    const int sessionId = chatRecordStore->createSession();
+    qDebug() << "createChatRecordSession sessionId:" << sessionId;
     if (sessionId < 0)
         return;
 

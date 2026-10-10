@@ -32,7 +32,6 @@ ChatRecordStore::ChatRecordStore(const QString &dbPath)
     QSqlQuery query(db);
     bool ok = query.exec("CREATE TABLE IF NOT EXISTS chat_session ("
                          "    id         INTEGER PRIMARY KEY AUTOINCREMENT,"
-                         "    file_name  TEXT NOT NULL,"
                          "    created_at TEXT NOT NULL"
                          ")");
     ok = ok
@@ -68,14 +67,13 @@ bool ChatRecordStore::isOpen() const
     return db.isOpen();
 }
 
-int ChatRecordStore::createSession(const QString &fileName)
+int ChatRecordStore::createSession()
 {
     if (!isOpen())
         return -1;
 
     QSqlQuery query(db);
-    query.prepare("INSERT INTO chat_session(file_name, created_at) VALUES(?, ?)");
-    query.addBindValue(fileName);
+    query.prepare("INSERT INTO chat_session(created_at) VALUES(?)");
     query.addBindValue(QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss"));
     if (!query.exec()) {
         qDebug() << "新建聊天记录会话失败：" << query.lastError().text();
@@ -224,30 +222,19 @@ void ChatRecordStore::deleteAllSessions()
 
 QString ChatRecordStore::sessionTitle(int sessionId) const
 {
+    // 一条查询取前两条消息（seq 升序）：本项目逻辑下首条必为用户消息、第二条为 AI
+    // 回复，两者首行拼接为标题（对应原实现"文件第一行 + True 标记后一行"）；
+    // 任一段缺失返回空串
     QSqlQuery query(db);
-
-    // 首条消息首行（对应原实现取记录文件第一行）
-    query.prepare("SELECT content FROM chat_message WHERE session_id = ? ORDER BY seq LIMIT 1");
+    query.prepare("SELECT content FROM chat_message WHERE session_id = ? ORDER BY seq LIMIT 2");
     query.addBindValue(sessionId);
     if (!query.exec() || !query.next())
         return QString();
     const QString firstLine = query.value(0).toString().section('\n', 0, 0);
 
-    // 首个用户消息之后的下一条消息首行（对应原实现 True 标记后一行；<think> 则再取下一行）
-    query.prepare("SELECT seq FROM chat_message WHERE session_id = ? AND is_user = 1 "
-                  "ORDER BY seq LIMIT 1");
-    query.addBindValue(sessionId);
-    if (!query.exec() || !query.next())
-        return QString();
-    const int userSeq = query.value(0).toInt();
-
-    query.prepare("SELECT content FROM chat_message WHERE session_id = ? AND seq > ? "
-                  "ORDER BY seq LIMIT 1");
-    query.addBindValue(sessionId);
-    query.addBindValue(userSeq);
-    if (!query.exec() || !query.next())
-        return QString();
-
+    // 第二条消息（AI 回复）：首行为 <think> 时取下一行
+    if (!query.next())
+        return firstLine + '\n';
     const QStringList lines = query.value(0).toString().split('\n');
     QString aiLine = lines.value(0);
     if (aiLine == "<think>")
