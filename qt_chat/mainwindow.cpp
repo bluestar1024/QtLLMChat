@@ -295,8 +295,8 @@ void MainWindow::chatRecordsWidgetInit()
 
     curChatSessionId = -1;
     // 聊天记录数据库：与聊天记录同目录（chatrecords/chat_records.db）
-    chatRecordStore = new ChatRecordStore(
-            QDir(appContext->chatRecordsDir()).filePath("chat_records.db"));
+    chatRecordStore =
+            new ChatRecordStore(QDir(appContext->chatRecordsDir()).filePath("chat_records.db"));
     chatRecordsWidgetIsOpen = false;
 }
 
@@ -1973,7 +1973,7 @@ void MainWindow::sendMessage()
             isThreadFinished = false;
             qDebug() << "sendMessage:" << text;
         } else {
-            //         emptyTextLabel->printStart();
+            emptyTextLabel->printStart();
         }
     } else {
         if (thread)
@@ -2358,8 +2358,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             messageWidgetResize(selfMessageWidget);
                         },
                         [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
-                        thinkTimeLengthList, thinkTimeIndex, isUser, true,
-                        messageWidgetMaxWidth());
+                        thinkTimeLengthList, thinkTimeIndex, isUser, true, messageWidgetMaxWidth());
             }
         } else {
             // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
@@ -2431,7 +2430,6 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
             qDebug() << "generateCurChatRecord aborted, regenerate pending";
             break;
         }
-
     }
 
     isBuildingChatRecord = false;
@@ -2521,7 +2519,6 @@ void MainWindow::messageWidgetRegenerate()
                 // 但重建前队列可能仍有积压（AI 输出速度大于渲染速度，thread 结束后未处理
                 // 的文本仍在队列中）：重建完成后队列恢复的 recvMessage 仍需增量渲染补全，
                 // 因此队列非空时恢复最后一条 AI 消息控件的接收指针（否则积压文本只累积
-                
                 // 到 message 不显示，最终消息缺尾部）
                 if (!messageQueue.isEmpty() && !messageWidgetList.isEmpty()
                     && !messageWidgetList.last()->getIsUser()) {
