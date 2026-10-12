@@ -2163,6 +2163,12 @@ void MainWindow::messageFinish()
         updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
     }
 
+    // 本轮接收结束：复位发送状态。必须先于下方空回复重试判断执行——重试分支
+    // （messageRenewResponse）会以新一轮开始的状态重新置位，若在其之后复位会
+    // 把重试轮的发送状态清掉
+    chatInput->setSending(false);
+    isSending = false;
+
     // 空回复置占位移除：仅在接收控件与本轮 item 上有效。会话切换后这些指针已置空
     // （resetRecvChain），此时 message 必然被清空，若不加限制会误删新会话的最后一条消息
     if (message.isEmpty() && messageRecvWidget && itemRecvWidget && recvItem
@@ -2180,10 +2186,11 @@ void MainWindow::messageFinish()
             itemWidget->deleteLater();
         QListWidgetItem *lastItem = chatShow->takeItem(last);
         delete lastItem;
-        messageRenewResponse();
+        // 用户主动停止（线程已被中断）导致的无输出不做自动重试：仅线程自然完成
+        // （AI 返回空回复）时重试，否则停止操作会立即变成重新发送
+        if (!(thread && thread->isInterruptionRequested()))
+            messageRenewResponse();
     }
-    chatInput->setSending(false);
-    isSending = false;
 
     qDebug() << "chatShow item count:" << chatShow->count();
     // const int count = chatShow->count();
@@ -2226,9 +2233,52 @@ void MainWindow::resetRecvChain()
     sendItem = nullptr;
 }
 
-void MainWindow::textCopy() { }
+void MainWindow::textCopy()
+{
+    // 显示"文本复制成功"提示（2 秒后自动隐藏）
+    textCopyLabel->printStart();
+    // 复制按钮点击的 mouse release 事件会冒泡到窗口（CopyButton 中 e->ignore()），
+    // 置标志使 mouseReleaseEvent 跳过聊天输入框的背景/焦点重置处理
+    pushButtonIsPress = true;
+}
 
-void MainWindow::messageRenewResponse() { }
+void MainWindow::messageRenewResponse()
+{
+    // 重新生成响应：从消息列表末尾向前找最后一条用户消息，以该消息文本重新
+    // 发起请求（其之前的历史作为上下文）；末尾已完成的 AI 回复仅跳过、不删除，
+    // 新接收开始时由 messageStart 移除其重新生成按钮
+    int i = messageWidgetList.size() - 1;
+    int j = 0;
+    QList<QVariantMap> context = {};
+    while (i >= j) {
+        if (messageWidgetList[i - j]->getIsUser()) {
+            for (int k = 0; k < i - j; k++) {
+                MessageWidget *messageWidget = messageWidgetList[k];
+                QVariantMap m;
+                m["role"] = messageWidget->getIsUser() ? "user" : "assistant";
+                m["content"] = messageWidget->getText();
+                context.append(m);
+            }
+
+            // create thread
+            thread = new MessageThread(appContext, messageWidgetList[i - j]->getText(), context);
+            // 新一轮接收开始：状态与 sendMessage 一致（发送按钮转为停止、复位
+            // 线程完成标志——否则首条文本渲染后队列清空会误触发上一轮收尾）
+            chatInput->setSending(true);
+            isSending = true;
+            isThreadFinished = false;
+            // 用户主动重新生成：恢复滚动条自动跟随（与 sendMessage 一致），
+            // 避免此前滚动查看历史关闭的自动跟随使新输出不滚动到底部
+            // chatShow->resetScrollAutoChange();
+            startThread();
+            break;
+        } else {
+            j += 1;
+        }
+    }
+    // 按钮点击的 mouse release 事件会冒泡到窗口：置标志跳过输入框背景处理（同 textCopy）
+    pushButtonIsPress = true;
+}
 
 void MainWindow::createChatRecordSession(bool withholdCurSession,
                                          const QList<ChatMessageRecord> &messages)
@@ -2568,7 +2618,10 @@ void MainWindow::messageWidgetRegenerate()
                             itemWidget->deleteLater();
                         QListWidgetItem *lastItem = chatShow->takeItem(last);
                         delete lastItem;
-                        messageRenewResponse();
+                        // 用户主动停止（线程已被中断）导致的无输出不做自动重试
+                        // （同 messageFinish）：否则停止会立即变成重新发送
+                        if (!(thread && thread->isInterruptionRequested()))
+                            messageRenewResponse();
                     }
                 }
             }
