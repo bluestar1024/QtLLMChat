@@ -107,7 +107,10 @@ private:
     void UiDrag(QPoint globalPos);
     void messageFinish();
     void textCopy();
-    void messageRenewResponse();
+    // 重新生成响应：从消息列表末尾向前找最后一条用户消息重新发起请求。
+    // isAutoRetry=true 表示空文本自动重试来源（AI 空回复时自动重新响应），
+    // 受 maxEmptyRenewCount 次数上限约束，且用户主动停止后立即结束重试链
+    void messageRenewResponse(bool isAutoRetry = false);
     // 新建聊天记录会话并写入消息（对应原"新建记录文件"），withholdCurSession
     // 为 true 时仅写库、不把新会话设为当前会话
     void createChatRecordSession(bool withholdCurSession,
@@ -150,6 +153,8 @@ private:
     static constexpr int itemVerticalMargin = 5;
     // MessageWidget 最大宽度下限，避免窗口过窄时算出非正值
     static constexpr int minMessageWidgetMaxWidth = 300;
+    // 空文本自动重新响应（AI 空回复自动重试）的最大次数上限
+    static constexpr int maxEmptyRenewCount = 5;
 
     AppContext *appContext;
 
@@ -207,6 +212,9 @@ private:
     bool isSending;
     bool isThreadFinished;
     bool isContinueShow;
+    // 空文本自动重新响应（AI 空回复自动重试）的已执行次数：达到
+    // maxEmptyRenewCount 上限或用户主动停止（thread->stop）后结束本次重试链
+    int emptyRenewCount = 0;
     bool isScreenMax;
     bool isScreenHalf;
     QRect lastNormalGeometry;

@@ -1971,13 +1971,18 @@ void MainWindow::sendMessage()
             chatInput->setSending(true);
             isSending = true;
             isThreadFinished = false;
+            // 用户主动发送新消息：新一轮对话重新开始，复位空文本自动重试计数
+            emptyRenewCount = 0;
             qDebug() << "sendMessage:" << text;
         } else {
             emptyTextLabel->printStart();
         }
     } else {
-        if (thread)
+        if (thread) {
             thread->stop();
+            // 用户主动停止：结束空文本自动重新响应链（即使未达次数上限）
+            emptyRenewCount = 0;
+        }
         isSending = false;
         // 主动停止线程：放弃本轮收尾，防止积压队列清空时误触发 messageFinish
         isThreadFinished = false;
@@ -2186,10 +2191,9 @@ void MainWindow::messageFinish()
             itemWidget->deleteLater();
         QListWidgetItem *lastItem = chatShow->takeItem(last);
         delete lastItem;
-        // 用户主动停止（线程已被中断）导致的无输出不做自动重试：仅线程自然完成
-        // （AI 返回空回复）时重试，否则停止操作会立即变成重新发送
-        if (!(thread && thread->isInterruptionRequested()))
-            messageRenewResponse();
+        // 空文本自动重试：次数上限与"用户主动停止即结束"的判定统一在
+        // messageRenewResponse(isAutoRetry=true) 内处理（含用户停止拦截）
+        messageRenewResponse(true);
     }
 
     qDebug() << "chatShow item count:" << chatShow->count();
@@ -2221,6 +2225,8 @@ void MainWindow::resetRecvChain()
     isProcessing = false;
     isContinueShow = false;
     isThreadFinished = false;
+    // 会话切换/新建聊天：结束上一会话的空文本自动重试链
+    emptyRenewCount = 0;
     first = true;
     message.clear();
     messageRecvWidget = nullptr;
@@ -2242,8 +2248,32 @@ void MainWindow::textCopy()
     pushButtonIsPress = true;
 }
 
-void MainWindow::messageRenewResponse()
+void MainWindow::messageRenewResponse(bool isAutoRetry)
 {
+    // 空文本自动重试（AI 返回空回复时的自动重新响应）的链控制与计数：
+    // - 自动来源：用户主动停止（线程已被中断）立即结束重试链，即使未达次数
+    //   上限；达到上限后不再重试（计数保持，待下一次用户交互入口复位）
+    // - 用户主动来源（点击重新生成按钮/外部显式调用）：复位自动重试计数
+    if (isAutoRetry) {
+        if (thread && thread->isInterruptionRequested()) {
+            // 用户主动停止：结束本轮空文本自动重试链
+            qDebug() << "messageRenewResponse: stopped by user, end empty auto renew";
+            emptyRenewCount = 0;
+            return;
+        }
+        if (emptyRenewCount >= maxEmptyRenewCount) {
+            // 达到次数上限：结束重试（保留计数，防御异常路径再次触发）
+            qDebug() << "messageRenewResponse: empty auto renew limit reached"
+                     << maxEmptyRenewCount;
+            return;
+        }
+        emptyRenewCount++;
+        qDebug() << "messageRenewResponse: empty auto renew" << emptyRenewCount << "/"
+                 << maxEmptyRenewCount;
+    } else {
+        emptyRenewCount = 0;
+    }
+
     // 重新生成响应：从消息列表末尾向前找最后一条用户消息，以该消息文本重新
     // 发起请求（其之前的历史作为上下文）；末尾已完成的 AI 回复仅跳过、不删除，
     // 新接收开始时由 messageStart 移除其重新生成按钮
@@ -2618,10 +2648,9 @@ void MainWindow::messageWidgetRegenerate()
                             itemWidget->deleteLater();
                         QListWidgetItem *lastItem = chatShow->takeItem(last);
                         delete lastItem;
-                        // 用户主动停止（线程已被中断）导致的无输出不做自动重试
-                        // （同 messageFinish）：否则停止会立即变成重新发送
-                        if (!(thread && thread->isInterruptionRequested()))
-                            messageRenewResponse();
+                        // 空文本自动重试（判定同 messageFinish 路径）：次数上限与
+                        // "用户主动停止即结束"统一在 messageRenewResponse(isAutoRetry=true) 内处理
+                        messageRenewResponse(true);
                     }
                 }
             }
