@@ -20,6 +20,12 @@ public:
                            const QList<QVariantMap> &context = {}, bool useStream = true,
                            QObject *parent = nullptr);
     void stop();
+    // 本线程是否被 stop() 主动停止过（持久记录，不受线程运行状态影响）：
+    // QThread::isInterruptionRequested() 在线程结束（finished）后恒返回 false
+    // （Qt 内部还要求 running && !finished && !isInFinish），无法用于线程结束后的
+    // 收尾判断（如空文本自动重试的停止拦截），故自记标志。仅主线程读写
+    // （stop() 与收尾逻辑均在主线程）
+    bool isStoppedByUser() const { return stoppedByUser; }
 
 signals:
     void newMessage(const QString &text);
@@ -44,6 +50,8 @@ private:
     QList<QVariantMap> context;
     bool useStream;
     QString contentOutput;
+    // stop() 被调用过（主动停止的持久记录，见 isStoppedByUser 说明）
+    bool stoppedByUser = false;
 };
 
 #endif // MESSAGETHREAD_H

@@ -1988,6 +1988,7 @@ void MainWindow::sendMessage()
         isThreadFinished = false;
         if (messageRecvWidget)
             messageRecvWidget->breakHandle();
+        qDebug() << "sendMessage isSending";
     }
 }
 
@@ -2251,11 +2252,15 @@ void MainWindow::textCopy()
 void MainWindow::messageRenewResponse(bool isAutoRetry)
 {
     // 空文本自动重试（AI 返回空回复时的自动重新响应）的链控制与计数：
-    // - 自动来源：用户主动停止（线程已被中断）立即结束重试链，即使未达次数
+    // - 自动来源：用户主动停止（stop() 已调用）立即结束重试链，即使未达次数
     //   上限；达到上限后不再重试（计数保持，待下一次用户交互入口复位）
     // - 用户主动来源（点击重新生成按钮/外部显式调用）：复位自动重试计数
     if (isAutoRetry) {
-        if (thread && thread->isInterruptionRequested()) {
+        // 用 isStoppedByUser 而非 QThread::isInterruptionRequested：后者在线程结束
+        // （finished）后恒返回 false（Qt 内部还要求 running && !finished），而本检查
+        // 恰好发生在 finished 驱动的收尾阶段（messageFinish），用中断标志会使停止
+        // 拦截永远失效（停止后仍自动重试到上限）
+        if (thread && thread->isStoppedByUser()) {
             // 用户主动停止：结束本轮空文本自动重试链
             qDebug() << "messageRenewResponse: stopped by user, end empty auto renew";
             emptyRenewCount = 0;

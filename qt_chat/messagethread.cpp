@@ -72,6 +72,12 @@ void MessageThread::stop()
     // 并让事件循环自然退出，避免 terminate 硬杀正在跑事件循环的线程可能残留
     // 网络栈/CRT 内部锁（本项目此前多次崩溃分析均指向硬杀线程的风险）；
     // 3 秒未退出再 terminate 兜底
+    //
+    // 持久记录主动停止：isInterruptionRequested() 在线程结束（finished）后恒为
+    // false（Qt 内部还要求 running && !finished && !isInFinish），收尾逻辑
+    // （messageFinish → messageRenewResponse 的停止拦截）需要在“线程已结束后”
+    // 判断停止意图，必须依赖本标志而非中断标志
+    stoppedByUser = true;
     requestInterruption();
     if (!wait(3000)) {
         terminate();
