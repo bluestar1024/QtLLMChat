@@ -2015,12 +2015,24 @@ void MainWindow::startThread()
 
 void MainWindow::messageStart()
 {
+    // 列表末尾已是本轮接收占位（文本为 null 的 AI 控件）时不重复创建：
+    // 窗口重建的补建场景（messageWidgetRegenerate 内 messageStart 调用）后，
+    // 本轮线程的 started 信号可能迟到派发到本槽。已入库过的 AI 消息文本
+    // 至少为空串（非 null），故 null 文本 AI 控件 ⟺ 未入库的本轮占位
+    if (!messageWidgetList.isEmpty()) {
+        MessageWidget *lastMessageWidget = messageWidgetList.last();
+        if (lastMessageWidget && !lastMessageWidget->getIsUser()
+            && lastMessageWidget->getText().isNull())
+            return;
+    }
     message.clear();
     // 新接收开始：会话切换时 resetRecvChain 置 false 的渲染开关在此恢复，
     // 否则切换后新发送的流式文本不会渲染
     isContinueShow = true;
     int i = messageWidgetList.size() - 1;
-    if (i != 0) {
+    // i > 0：列表为空（i = -1）或仅一项时无前置消息可处理；重建恢复接收占位
+    // （messageWidgetRegenerate）时可能在空列表上调用本函数
+    if (i > 0) {
         if (messageWidgetList[i]->getIsUser())
             messageWidgetList[i - 1]->removeRenewResponseButton();
         else
@@ -2585,6 +2597,16 @@ void MainWindow::messageWidgetRegenerate()
                 }
             }
 
+            // 重建前记录本轮接收控件（列表最后一项）是否已渲染过文本：非 null 时
+            // 占位消息已保存入库（重建后列表末尾的 AI 控件即其重建版），下方
+            // isSending 分支可恢复接收指针；null 时占位消息被保存过滤
+            // （saveCurChatRecord 跳过 null 的 AI 消息），重建后本轮控件不存在
+            bool recvWidgetHasText = false;
+            if (!messageWidgetList.isEmpty()) {
+                MessageWidget *recvWidget = messageWidgetList.last();
+                recvWidgetHasText = recvWidget && !recvWidget->getText().isNull();
+            }
+
             // 重建期间置空接收指针，防止嵌套事件循环中消息回调访问旧控件
             // 先中止各控件的渲染等待栈（同 resetRecvChain）：窗口重建由嵌套事件循环
             // 内的 WM_EXITSIZEMOVE 触发时，旧控件的 setText/buildAiUi 仍在等待子控件
@@ -2621,11 +2643,31 @@ void MainWindow::messageWidgetRegenerate()
                 }
             } else {
                 generateCurChatRecord(false, true);
-                messageRecvWidget = messageWidget;
-                itemRecvHLayout = itemHLayout;
-                itemRecvWidget = itemWidget;
-                recvItem = item;
-                isContinueShow = true;
+                // 恢复或重建接收指针（本轮 AI 控件在重建后是否存在）：
+                // - messageRecvWidget 非空：重建期间线程启动（started 信号在
+                //   嵌套事件循环中派发）已由 messageStart 创建占位，保留
+                // - 本轮接收控件已渲染过文本时，重建后列表末尾的 AI 控件即其
+                //   重建版，可恢复接收指针
+                // - 本轮占位文本为 null 时（空文本自动重试、响应首块未到、
+                //   重新生成尚无输出）占位消息被保存过滤、重建后不存在：不能
+                //   把接收指针指向列表末尾控件——它是用户消息或上一轮 AI 控件，
+                //   本轮空回复收尾会把该控件 setText 清空并从聊天区删除（用户
+                //   消息部件被误删），列表缺失还会使后续保存把数据库同步截断
+                //   （DELETE seq >= diffIndex 后按新列表重插）。此时按
+                //   messageStart 的占位创建流程重建接收占位控件，使空回复
+                //   收尾（移除占位 + 自动重试）与流式增量渲染链路保持完整
+                if (messageRecvWidget) {
+                    // 已在重建期间就绪，不处理
+                } else if (recvWidgetHasText && !messageWidgetList.isEmpty()
+                           && !messageWidgetList.last()->getIsUser()) {
+                    messageRecvWidget = messageWidget;
+                    itemRecvHLayout = itemHLayout;
+                    itemRecvWidget = itemWidget;
+                    recvItem = item;
+                    isContinueShow = true;
+                } else {
+                    messageStart();
+                }
                 // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染）。
                 // 线程完成信号到达时（onThreadFinished）messageFinish 不会提前执行：队列冻结
                 // 期间 messageQueue 必然非空（或重建前已清空），故重建期间 isSending 保持 true，
