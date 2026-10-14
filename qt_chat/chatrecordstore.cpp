@@ -224,18 +224,26 @@ void ChatRecordStore::deleteAllSessions()
 
 QString ChatRecordStore::sessionTitle(int sessionId) const
 {
-    // 一条查询取前两条消息（seq 升序）：本项目逻辑下首条必为用户消息、第二条为 AI
-    // 回复，两者首行拼接为标题（对应原实现"文件第一行 + True 标记后一行"）；
-    // 任一段缺失返回空串
+    // 会话标题由首条用户消息首行 + '\n' + 首条 AI 消息首行构成（对应原实现
+    // "文件第一行 + True 标记后一行"）。标题有效性由用户消息首行保证：项目逻辑下
+    // 用户消息首行不会为空；AI 消息首行可以为空（空文本自动重试期间的占位消息
+    // 入库后首行即为空），此时标题为"用户首行 + 换行"，会话仍正常显示。
+    // 分两次查询取首条用户消息与首条 AI 消息：首条用户消息的下一条可能还是
+    // 用户消息（连续用户消息的会话），按 seq 取"前两条"无法保证第二条是 AI 消息
     QSqlQuery query(db);
-    query.prepare("SELECT content FROM chat_message WHERE session_id = ? ORDER BY seq LIMIT 2");
+    query.prepare("SELECT content FROM chat_message "
+                  "WHERE session_id = ? AND is_user = 1 ORDER BY seq LIMIT 1");
     query.addBindValue(sessionId);
     if (!query.exec() || !query.next())
         return QString();
     const QString userLine = query.value(0).toString().section('\n', 0, 0);
 
-    // 第二条消息（AI 回复）：首行为 user<think> 时取下一行
-    if (!query.next())
+    // 第二次查询（首条 AI 消息）：首行为 <think> 时取下一行（下一行不存在时
+    // 取到空串，标题仍按"用户首行 + 换行"返回）
+    query.prepare("SELECT content FROM chat_message "
+                  "WHERE session_id = ? AND is_user = 0 ORDER BY seq LIMIT 1");
+    query.addBindValue(sessionId);
+    if (!query.exec() || !query.next())
         return userLine + '\n';
     const QStringList lines = query.value(0).toString().split('\n');
     QString aiLine = lines.value(0);

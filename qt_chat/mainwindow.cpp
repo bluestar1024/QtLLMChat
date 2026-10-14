@@ -2355,8 +2355,14 @@ void MainWindow::saveCurChatRecord(bool withholdCurSession)
                 continue;
             ChatMessageRecord record;
             record.content = messageWidget->getText();
-            record.thinkTime = i < thinkTimeLengthList.size() ? thinkTimeLengthList.at(i) : 0;
             record.isUser = messageWidget->getIsUser();
+            // null 字符串的 AI 消息是空文本自动重试期间的占位控件（文本从未接收、
+            // 从未被赋值），跳过收集不入库；显式为空字符串 "" 的消息照常收集
+            // （null 与 "" 语义不同：null 绑定 SQL NULL 会违反 content NOT NULL
+            // 约束，兜底归一化见 ChatRecordStore::saveMessages）
+            if (record.content.isNull() && !record.isUser)
+                continue;
+            record.thinkTime = i < thinkTimeLengthList.size() ? thinkTimeLengthList.at(i) : 0;
             messages.append(record);
         }
         if (messages.isEmpty())
