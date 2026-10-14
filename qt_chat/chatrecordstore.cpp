@@ -157,7 +157,9 @@ bool ChatRecordStore::saveMessages(int sessionId, const QList<ChatMessageRecord>
         const ChatMessageRecord &record = messages.at(i);
         insertQuery.addBindValue(sessionId);
         insertQuery.addBindValue(i);
-        insertQuery.addBindValue(record.content);
+        // null QString 会绑定为 SQL NULL 违反 content NOT NULL 约束（单条即导致
+        // 事务回滚、整个会话保存失败），统一归一化为空串兜底
+        insertQuery.addBindValue(record.content.isNull() ? QString("") : record.content);
         insertQuery.addBindValue(record.thinkTime);
         insertQuery.addBindValue(record.isUser ? 1 : 0);
         if (!insertQuery.exec()) {
@@ -230,17 +232,15 @@ QString ChatRecordStore::sessionTitle(int sessionId) const
     query.addBindValue(sessionId);
     if (!query.exec() || !query.next())
         return QString();
-    const QString firstLine = query.value(0).toString().section('\n', 0, 0);
+    const QString userLine = query.value(0).toString().section('\n', 0, 0);
 
-    // 第二条消息（AI 回复）：首行为 <think> 时取下一行
+    // 第二条消息（AI 回复）：首行为 user<think> 时取下一行
     if (!query.next())
-        return firstLine + '\n';
+        return userLine + '\n';
     const QStringList lines = query.value(0).toString().split('\n');
     QString aiLine = lines.value(0);
     if (aiLine == "<think>")
         aiLine = lines.value(1);
-    if (aiLine.isEmpty())
-        return QString();
 
-    return firstLine + '\n' + aiLine;
+    return userLine + '\n' + aiLine;
 }
