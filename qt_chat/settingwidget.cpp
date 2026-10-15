@@ -1,8 +1,11 @@
 #include "settingwidget.h"
 #include "appcontext.h"
 
+#include <stdexcept>
+
 SettingWidget::SettingWidget(AppContext *appContext, QWidget *parent)
-    : QWidget(parent), appContext(appContext),
+    : QWidget(parent),
+      appContext(appContext),
       maxTokensCurrentVal(0),
       topPCurrentVal(0.0),
       temperatureCurrentVal(0.0),
@@ -138,14 +141,16 @@ void SettingWidget::setupUI()
     topPBox = new DoubleSpinBox(this->appContext);
     temperatureBox = new DoubleSpinBox(this->appContext);
 
-    maxTokensBox->setRange(this->appContext->maxTokensMinimum(), this->appContext->maxTokensMaximum());
+    maxTokensBox->setRange(this->appContext->maxTokensMinimum(),
+                           this->appContext->maxTokensMaximum());
     maxTokensBox->setValue(maxTokensCurrentVal);
 
     topPBox->setRange(this->appContext->topPMinimum(), this->appContext->topPMaximum());
     topPBox->setValue(topPCurrentVal);
     topPBox->setSingleStep(this->appContext->topPSingleStep());
 
-    temperatureBox->setRange(this->appContext->temperatureMinimum(), this->appContext->temperatureMaximum());
+    temperatureBox->setRange(this->appContext->temperatureMinimum(),
+                             this->appContext->temperatureMaximum());
     temperatureBox->setValue(temperatureCurrentVal);
     temperatureBox->setSingleStep(this->appContext->temperatureSingleStep());
 
@@ -161,8 +166,10 @@ void SettingWidget::setupUI()
     topPSlider->setMaximum(static_cast<int>(this->appContext->topPMaximum() * 100));
     topPSlider->setValue(static_cast<int>(topPCurrentVal * 100));
 
-    temperatureSlider->setMinimum(static_cast<int>((this->appContext->temperatureMinimum() - 0.01) * 100));
-    temperatureSlider->setMaximum(static_cast<int>((this->appContext->temperatureMaximum() - 0.01) * 100));
+    temperatureSlider->setMinimum(
+            static_cast<int>((this->appContext->temperatureMinimum() - 0.01) * 100));
+    temperatureSlider->setMaximum(
+            static_cast<int>((this->appContext->temperatureMaximum() - 0.01) * 100));
     temperatureSlider->setValue(static_cast<int>((temperatureCurrentVal - 0.01) * 100));
 
     createModelSelectWidget();
@@ -184,22 +191,114 @@ void SettingWidget::setupUI()
 
 void SettingWidget::setupConnections()
 {
-    connect(baseUrlEdit, &QLineEdit::textChanged, this, &SettingWidget::baseUrlTextChanged);
-    connect(apiKeyEdit, &QLineEdit::textChanged, this, &SettingWidget::apiKeyTextChanged);
-    connect(modelNameEdit, &QLineEdit::textChanged, this, &SettingWidget::modelNameTextChanged);
+    connect(baseUrlEdit, &QLineEdit::textChanged, this, &SettingWidget::onBaseUrlTextChanged);
+    connect(apiKeyEdit, &QLineEdit::textChanged, this, &SettingWidget::onApiKeyTextChanged);
+    connect(modelNameEdit, &QLineEdit::textChanged, this, &SettingWidget::onModelNameTextChanged);
 
     connect(maxTokensBox, QOverload<int>::of(&QSpinBox::valueChanged), this,
-            &SettingWidget::maxTokensBoxValueChanged);
+            &SettingWidget::onMaxTokensBoxValueChanged);
     connect(topPBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-            &SettingWidget::topPBoxValueChanged);
+            &SettingWidget::onTopPBoxValueChanged);
     connect(temperatureBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this,
-            &SettingWidget::temperatureBoxValueChanged);
+            &SettingWidget::onTemperatureBoxValueChanged);
 
     connect(maxTokensSlider, &QSlider::valueChanged, this,
-            &SettingWidget::maxTokensSliderValueChanged);
-    connect(topPSlider, &QSlider::valueChanged, this, &SettingWidget::topPSliderValueChanged);
+            &SettingWidget::onMaxTokensSliderValueChanged);
+    connect(topPSlider, &QSlider::valueChanged, this, &SettingWidget::onTopPSliderValueChanged);
     connect(temperatureSlider, &QSlider::valueChanged, this,
-            &SettingWidget::temperatureSliderValueChanged);
+            &SettingWidget::onTemperatureSliderValueChanged);
+}
+
+// 将配置文件中指定行（从 0 开始计数）的内容替换为 value 后写回：行数不足时补空行
+void SettingWidget::writeConfigLine(int lineIndex, const QString &value)
+{
+    try {
+        QFile file(appContext->configFilePath());
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error("无法打开文件");
+        }
+
+        QTextStream in(&file);
+        QStringList lines;
+        while (!in.atEnd()) {
+            lines.append(in.readLine());
+        }
+        file.close();
+
+        while (lines.size() <= lineIndex) {
+            lines.append("");
+        }
+        lines[lineIndex] = value;
+
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            throw std::runtime_error("无法写入文件");
+        }
+
+        QTextStream out(&file);
+        for (int i = 0; i < lines.size(); ++i) {
+            out << lines[i];
+            if (i < lines.size() - 1) {
+                out << "\n";
+            }
+        }
+        file.close();
+
+    } catch (const std::exception &e) {
+        qDebug() << "错误：" << e.what();
+    } catch (...) {
+        qDebug() << "发生未知错误";
+    }
+}
+
+void SettingWidget::onBaseUrlTextChanged(const QString &text)
+{
+    writeConfigLine(0, text);
+}
+
+void SettingWidget::onApiKeyTextChanged(const QString &text)
+{
+    writeConfigLine(1, text);
+}
+
+void SettingWidget::onModelNameTextChanged(const QString &text)
+{
+    writeConfigLine(2, text);
+}
+
+void SettingWidget::onMaxTokensBoxValueChanged(int i)
+{
+    writeConfigLine(3, QString::number(i));
+    maxTokensSlider->setValue(i);
+}
+
+void SettingWidget::onTopPBoxValueChanged(double d)
+{
+    writeConfigLine(4, QString::number(d));
+    topPSlider->setValue(static_cast<int>(d * 100));
+}
+
+void SettingWidget::onTemperatureBoxValueChanged(double d)
+{
+    writeConfigLine(5, QString::number(d));
+    temperatureSlider->setValue(static_cast<int>((d - 0.01) * 100));
+}
+
+void SettingWidget::onMaxTokensSliderValueChanged(int i)
+{
+    writeConfigLine(3, QString::number(i));
+    maxTokensBox->setValue(i);
+}
+
+void SettingWidget::onTopPSliderValueChanged(int i)
+{
+    writeConfigLine(4, QString::number(i / 100.0));
+    topPBox->setValue(i / 100.0);
+}
+
+void SettingWidget::onTemperatureSliderValueChanged(int i)
+{
+    writeConfigLine(5, QString::number(i / 100.0 + 0.01));
+    temperatureBox->setValue(i / 100.0 + 0.01);
 }
 
 void SettingWidget::createModelSelectWidget()
@@ -401,36 +500,6 @@ void SettingWidget::createTemperatureWidget()
     temperatureVLayout->addWidget(temperatureBottomSubWidget);
     temperatureVLayout->setContentsMargins(15, 25, 15, 25);
     temperatureVLayout->setSpacing(0);
-}
-
-void SettingWidget::maxTokensBoxSetValue(int i)
-{
-    maxTokensBox->setValue(i);
-}
-
-void SettingWidget::topPBoxSetValue(double i)
-{
-    topPBox->setValue(i);
-}
-
-void SettingWidget::temperatureBoxSetValue(double i)
-{
-    temperatureBox->setValue(i);
-}
-
-void SettingWidget::maxTokensSliderSetValue(int i)
-{
-    maxTokensSlider->setValue(i);
-}
-
-void SettingWidget::topPSliderSetValue(int i)
-{
-    topPSlider->setValue(i);
-}
-
-void SettingWidget::temperatureSliderSetValue(int i)
-{
-    temperatureSlider->setValue(i);
 }
 
 void SettingWidget::setSize()

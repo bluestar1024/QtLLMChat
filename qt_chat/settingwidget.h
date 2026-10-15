@@ -29,37 +29,33 @@ public:
     explicit SettingWidget(AppContext *appContext, QWidget *parent = nullptr);
     ~SettingWidget();
 
-    void maxTokensBoxSetValue(int i);
-    void topPBoxSetValue(double i);
-    void temperatureBoxSetValue(double i);
-    void maxTokensSliderSetValue(int i);
-    void topPSliderSetValue(int i);
-    void temperatureSliderSetValue(int i);
     void setSize();
     void saveWidgetSize();
     void resetWidgetSize();
     void updateSize(qreal curDpi, qreal lastDpi);
     void updateLayoutMarginsSpacing(qreal curDpi, qreal lastDpi);
 
-signals:
-    void baseUrlTextChanged(const QString &);
-    void apiKeyTextChanged(const QString &);
-    void modelNameTextChanged(const QString &);
-    void maxTokensBoxValueChanged(int);
-    void topPBoxValueChanged(double);
-    void temperatureBoxValueChanged(double);
-    void maxTokensSliderValueChanged(int);
-    void topPSliderValueChanged(int);
-    void temperatureSliderValueChanged(int);
-
 protected:
     void paintEvent(QPaintEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
+
+private slots:
+    void onBaseUrlTextChanged(const QString &text);
+    void onApiKeyTextChanged(const QString &text);
+    void onModelNameTextChanged(const QString &text);
+    void onMaxTokensBoxValueChanged(int i);
+    void onTopPBoxValueChanged(double d);
+    void onTemperatureBoxValueChanged(double d);
+    void onMaxTokensSliderValueChanged(int i);
+    void onTopPSliderValueChanged(int i);
+    void onTemperatureSliderValueChanged(int i);
 
 private:
     AppContext *appContext;
 
     void loadConfig();
+    // 将配置文件中指定行（从 0 开始计数）的内容替换为 value 后写回：行数不足时补空行
+    void writeConfigLine(int lineIndex, const QString &value);
     void setupUI();
     void setupConnections();
     void createModelSelectWidget();

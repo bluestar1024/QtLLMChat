@@ -80,6 +80,7 @@ protected:
 
 private:
     void titleWidgetInit();
+    void funWidgetInit();
     void settingWidgetInit();
     void chatRecordsWidgetInit();
     void checkGraphicsBackend();
@@ -282,15 +283,6 @@ private slots:
     void showSearchRecords();
     void clearAllChatRecords();
     void generateChatRecord(QListWidgetItem *item);
-    void onBaseUrlTextChanged(const QString &text);
-    void onApiKeyTextChanged(const QString &text);
-    void onModelNameTextChanged(const QString &text);
-    void onMaxTokensBoxValueChanged(int i);
-    void onTopPBoxValueChanged(double d);
-    void onTemperatureBoxValueChanged(double d);
-    void onMaxTokensSliderValueChanged(int i);
-    void onTopPSliderValueChanged(int i);
-    void onTemperatureSliderValueChanged(int i);
     void messageWidgetResize(MessageWidget *selfMessageWidget);
     void sendMessage();
     void onExecuteNext();
