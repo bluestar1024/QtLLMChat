@@ -295,8 +295,8 @@ void MainWindow::chatRecordsWidgetInit()
 
     curChatSessionId = -1;
     // 聊天记录数据库：与聊天记录同目录（chatrecords/chat_records.db）
-    chatRecordStore = new ChatRecordStore(
-            QDir(appContext->chatRecordsDir()).filePath("chat_records.db"));
+    chatRecordStore =
+            new ChatRecordStore(QDir(appContext->chatRecordsDir()).filePath("chat_records.db"));
     chatRecordsWidgetIsOpen = false;
 }
 
@@ -1971,18 +1971,24 @@ void MainWindow::sendMessage()
             chatInput->setSending(true);
             isSending = true;
             isThreadFinished = false;
+            // 用户主动发送新消息：新一轮对话重新开始，复位空文本自动重试计数
+            emptyRenewCount = 0;
             qDebug() << "sendMessage:" << text;
         } else {
-            //         emptyTextLabel->printStart();
+            emptyTextLabel->printStart();
         }
     } else {
-        if (thread)
+        if (thread) {
             thread->stop();
+            // 用户主动停止：结束空文本自动重新响应链（即使未达次数上限）
+            emptyRenewCount = 0;
+        }
         isSending = false;
         // 主动停止线程：放弃本轮收尾，防止积压队列清空时误触发 messageFinish
         isThreadFinished = false;
         if (messageRecvWidget)
             messageRecvWidget->breakHandle();
+        qDebug() << "sendMessage isSending";
     }
 }
 
@@ -2009,12 +2015,24 @@ void MainWindow::startThread()
 
 void MainWindow::messageStart()
 {
+    // 列表末尾已是本轮接收占位（文本为 null 的 AI 控件）时不重复创建：
+    // 窗口重建的补建场景（messageWidgetRegenerate 内 messageStart 调用）后，
+    // 本轮线程的 started 信号可能迟到派发到本槽。已入库过的 AI 消息文本
+    // 至少为空串（非 null），故 null 文本 AI 控件 ⟺ 未入库的本轮占位
+    if (!messageWidgetList.isEmpty()) {
+        MessageWidget *lastMessageWidget = messageWidgetList.last();
+        if (lastMessageWidget && !lastMessageWidget->getIsUser()
+            && lastMessageWidget->getText().isNull())
+            return;
+    }
     message.clear();
     // 新接收开始：会话切换时 resetRecvChain 置 false 的渲染开关在此恢复，
     // 否则切换后新发送的流式文本不会渲染
     isContinueShow = true;
     int i = messageWidgetList.size() - 1;
-    if (i != 0) {
+    // i > 0：列表为空（i = -1）或仅一项时无前置消息可处理；重建恢复接收占位
+    // （messageWidgetRegenerate）时可能在空列表上调用本函数
+    if (i > 0) {
         if (messageWidgetList[i]->getIsUser())
             messageWidgetList[i - 1]->removeRenewResponseButton();
         else
@@ -2163,6 +2181,12 @@ void MainWindow::messageFinish()
         updateItemLayout(itemRecvWidget, messageRecvWidget, recvItem);
     }
 
+    // 本轮接收结束：复位发送状态。必须先于下方空回复重试判断执行——重试分支
+    // （messageRenewResponse）会以新一轮开始的状态重新置位，若在其之后复位会
+    // 把重试轮的发送状态清掉
+    chatInput->setSending(false);
+    isSending = false;
+
     // 空回复置占位移除：仅在接收控件与本轮 item 上有效。会话切换后这些指针已置空
     // （resetRecvChain），此时 message 必然被清空，若不加限制会误删新会话的最后一条消息
     if (message.isEmpty() && messageRecvWidget && itemRecvWidget && recvItem
@@ -2180,10 +2204,10 @@ void MainWindow::messageFinish()
             itemWidget->deleteLater();
         QListWidgetItem *lastItem = chatShow->takeItem(last);
         delete lastItem;
-        messageRenewResponse();
+        // 空文本自动重试：次数上限与"用户主动停止即结束"的判定统一在
+        // messageRenewResponse(isAutoRetry=true) 内处理（含用户停止拦截）
+        messageRenewResponse(true);
     }
-    chatInput->setSending(false);
-    isSending = false;
 
     qDebug() << "chatShow item count:" << chatShow->count();
     // const int count = chatShow->count();
@@ -2214,6 +2238,8 @@ void MainWindow::resetRecvChain()
     isProcessing = false;
     isContinueShow = false;
     isThreadFinished = false;
+    // 会话切换/新建聊天：结束上一会话的空文本自动重试链
+    emptyRenewCount = 0;
     first = true;
     message.clear();
     messageRecvWidget = nullptr;
@@ -2226,9 +2252,80 @@ void MainWindow::resetRecvChain()
     sendItem = nullptr;
 }
 
-void MainWindow::textCopy() { }
+void MainWindow::textCopy()
+{
+    // 显示"文本复制成功"提示（2 秒后自动隐藏）
+    textCopyLabel->printStart();
+    // 复制按钮点击的 mouse release 事件会冒泡到窗口（CopyButton 中 e->ignore()），
+    // 置标志使 mouseReleaseEvent 跳过聊天输入框的背景/焦点重置处理
+    pushButtonIsPress = true;
+}
 
-void MainWindow::messageRenewResponse() { }
+void MainWindow::messageRenewResponse(bool isAutoRetry)
+{
+    // 空文本自动重试（AI 返回空回复时的自动重新响应）的链控制与计数：
+    // - 自动来源：用户主动停止（stop() 已调用）立即结束重试链，即使未达次数
+    //   上限；达到上限后不再重试（计数保持，待下一次用户交互入口复位）
+    // - 用户主动来源（点击重新生成按钮/外部显式调用）：复位自动重试计数
+    if (isAutoRetry) {
+        // 用 isStoppedByUser 而非 QThread::isInterruptionRequested：后者在线程结束
+        // （finished）后恒返回 false（Qt 内部还要求 running && !finished），而本检查
+        // 恰好发生在 finished 驱动的收尾阶段（messageFinish），用中断标志会使停止
+        // 拦截永远失效（停止后仍自动重试到上限）
+        if (thread && thread->isStoppedByUser()) {
+            // 用户主动停止：结束本轮空文本自动重试链
+            qDebug() << "messageRenewResponse: stopped by user, end empty auto renew";
+            emptyRenewCount = 0;
+            return;
+        }
+        if (emptyRenewCount >= maxEmptyRenewCount) {
+            // 达到次数上限：结束重试（保留计数，防御异常路径再次触发）
+            qDebug() << "messageRenewResponse: empty auto renew limit reached"
+                     << maxEmptyRenewCount;
+            return;
+        }
+        emptyRenewCount++;
+        qDebug() << "messageRenewResponse: empty auto renew" << emptyRenewCount << "/"
+                 << maxEmptyRenewCount;
+    } else {
+        emptyRenewCount = 0;
+    }
+
+    // 重新生成响应：从消息列表末尾向前找最后一条用户消息，以该消息文本重新
+    // 发起请求（其之前的历史作为上下文）；末尾已完成的 AI 回复仅跳过、不删除，
+    // 新接收开始时由 messageStart 移除其重新生成按钮
+    int i = messageWidgetList.size() - 1;
+    int j = 0;
+    QList<QVariantMap> context = {};
+    while (i >= j) {
+        if (messageWidgetList[i - j]->getIsUser()) {
+            for (int k = 0; k < i - j; k++) {
+                MessageWidget *messageWidget = messageWidgetList[k];
+                QVariantMap m;
+                m["role"] = messageWidget->getIsUser() ? "user" : "assistant";
+                m["content"] = messageWidget->getText();
+                context.append(m);
+            }
+
+            // create thread
+            thread = new MessageThread(appContext, messageWidgetList[i - j]->getText(), context);
+            // 新一轮接收开始：状态与 sendMessage 一致（发送按钮转为停止、复位
+            // 线程完成标志——否则首条文本渲染后队列清空会误触发上一轮收尾）
+            chatInput->setSending(true);
+            isSending = true;
+            isThreadFinished = false;
+            // 用户主动重新生成：恢复滚动条自动跟随（与 sendMessage 一致），
+            // 避免此前滚动查看历史关闭的自动跟随使新输出不滚动到底部
+            // chatShow->resetScrollAutoChange();
+            startThread();
+            break;
+        } else {
+            j += 1;
+        }
+    }
+    // 按钮点击的 mouse release 事件会冒泡到窗口：置标志跳过输入框背景处理（同 textCopy）
+    pushButtonIsPress = true;
+}
 
 void MainWindow::createChatRecordSession(bool withholdCurSession,
                                          const QList<ChatMessageRecord> &messages)
@@ -2270,8 +2367,14 @@ void MainWindow::saveCurChatRecord(bool withholdCurSession)
                 continue;
             ChatMessageRecord record;
             record.content = messageWidget->getText();
-            record.thinkTime = i < thinkTimeLengthList.size() ? thinkTimeLengthList.at(i) : 0;
             record.isUser = messageWidget->getIsUser();
+            // null 字符串的 AI 消息是空文本自动重试期间的占位控件（文本从未接收、
+            // 从未被赋值），跳过收集不入库；显式为空字符串 "" 的消息照常收集
+            // （null 与 "" 语义不同：null 绑定 SQL NULL 会违反 content NOT NULL
+            // 约束，兜底归一化见 ChatRecordStore::saveMessages）
+            if (record.content.isNull() && !record.isUser)
+                continue;
+            record.thinkTime = i < thinkTimeLengthList.size() ? thinkTimeLengthList.at(i) : 0;
             messages.append(record);
         }
         if (messages.isEmpty())
@@ -2358,8 +2461,7 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
                             messageWidgetResize(selfMessageWidget);
                         },
                         [this](bool state) { getSetTexting(state); }, nullptr, chatShow,
-                        thinkTimeLengthList, thinkTimeIndex, isUser, true,
-                        messageWidgetMaxWidth());
+                        thinkTimeLengthList, thinkTimeIndex, isUser, true, messageWidgetMaxWidth());
             }
         } else {
             // 重建恢复历史消息，不传 executeNextFun，避免 TextShow 渲染完成后自动触发新线程
@@ -2431,7 +2533,6 @@ void MainWindow::generateCurChatRecord(bool lastIsToggle, bool useThinkExpandLis
             qDebug() << "generateCurChatRecord aborted, regenerate pending";
             break;
         }
-
     }
 
     isBuildingChatRecord = false;
@@ -2496,6 +2597,16 @@ void MainWindow::messageWidgetRegenerate()
                 }
             }
 
+            // 重建前记录本轮接收控件（列表最后一项）是否已渲染过文本：非 null 时
+            // 占位消息已保存入库（重建后列表末尾的 AI 控件即其重建版），下方
+            // isSending 分支可恢复接收指针；null 时占位消息被保存过滤
+            // （saveCurChatRecord 跳过 null 的 AI 消息），重建后本轮控件不存在
+            bool recvWidgetHasText = false;
+            if (!messageWidgetList.isEmpty()) {
+                MessageWidget *recvWidget = messageWidgetList.last();
+                recvWidgetHasText = recvWidget && !recvWidget->getText().isNull();
+            }
+
             // 重建期间置空接收指针，防止嵌套事件循环中消息回调访问旧控件
             // 先中止各控件的渲染等待栈（同 resetRecvChain）：窗口重建由嵌套事件循环
             // 内的 WM_EXITSIZEMOVE 触发时，旧控件的 setText/buildAiUi 仍在等待子控件
@@ -2521,7 +2632,6 @@ void MainWindow::messageWidgetRegenerate()
                 // 但重建前队列可能仍有积压（AI 输出速度大于渲染速度，thread 结束后未处理
                 // 的文本仍在队列中）：重建完成后队列恢复的 recvMessage 仍需增量渲染补全，
                 // 因此队列非空时恢复最后一条 AI 消息控件的接收指针（否则积压文本只累积
-                
                 // 到 message 不显示，最终消息缺尾部）
                 if (!messageQueue.isEmpty() && !messageWidgetList.isEmpty()
                     && !messageWidgetList.last()->getIsUser()) {
@@ -2533,11 +2643,31 @@ void MainWindow::messageWidgetRegenerate()
                 }
             } else {
                 generateCurChatRecord(false, true);
-                messageRecvWidget = messageWidget;
-                itemRecvHLayout = itemHLayout;
-                itemRecvWidget = itemWidget;
-                recvItem = item;
-                isContinueShow = true;
+                // 恢复或重建接收指针（本轮 AI 控件在重建后是否存在）：
+                // - messageRecvWidget 非空：重建期间线程启动（started 信号在
+                //   嵌套事件循环中派发）已由 messageStart 创建占位，保留
+                // - 本轮接收控件已渲染过文本时，重建后列表末尾的 AI 控件即其
+                //   重建版，可恢复接收指针
+                // - 本轮占位文本为 null 时（空文本自动重试、响应首块未到、
+                //   重新生成尚无输出）占位消息被保存过滤、重建后不存在：不能
+                //   把接收指针指向列表末尾控件——它是用户消息或上一轮 AI 控件，
+                //   本轮空回复收尾会把该控件 setText 清空并从聊天区删除（用户
+                //   消息部件被误删），列表缺失还会使后续保存把数据库同步截断
+                //   （DELETE seq >= diffIndex 后按新列表重插）。此时按
+                //   messageStart 的占位创建流程重建接收占位控件，使空回复
+                //   收尾（移除占位 + 自动重试）与流式增量渲染链路保持完整
+                if (messageRecvWidget) {
+                    // 已在重建期间就绪，不处理
+                } else if (recvWidgetHasText && !messageWidgetList.isEmpty()
+                           && !messageWidgetList.last()->getIsUser()) {
+                    messageRecvWidget = messageWidget;
+                    itemRecvHLayout = itemHLayout;
+                    itemRecvWidget = itemWidget;
+                    recvItem = item;
+                    isContinueShow = true;
+                } else {
+                    messageStart();
+                }
                 // 重建期间到达的追加文本只累积在 message（isContinueShow=false 时不渲染）。
                 // 线程完成信号到达时（onThreadFinished）messageFinish 不会提前执行：队列冻结
                 // 期间 messageQueue 必然非空（或重建前已清空），故重建期间 isSending 保持 true，
@@ -2571,7 +2701,9 @@ void MainWindow::messageWidgetRegenerate()
                             itemWidget->deleteLater();
                         QListWidgetItem *lastItem = chatShow->takeItem(last);
                         delete lastItem;
-                        messageRenewResponse();
+                        // 空文本自动重试（判定同 messageFinish 路径）：次数上限与
+                        // "用户主动停止即结束"统一在 messageRenewResponse(isAutoRetry=true) 内处理
+                        messageRenewResponse(true);
                     }
                 }
             }

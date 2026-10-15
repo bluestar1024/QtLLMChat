@@ -56,8 +56,9 @@ public:
     void deleteAllSessions();
 
 private:
-    // 生成会话列表标题：前两条消息（seq 升序）首行拼接，本项目逻辑下首条必为用户消息、
-    // 第二条为 AI 回复（AI 首行为 <think> 时取下一行）；任一段缺失返回空串
+    // 生成会话列表标题：首条用户消息首行 + '\n' + 首条 AI 消息首行（AI 首行为
+    // <think> 时取下一行）。无用户消息返回空串（列表跳过显示）；无 AI 消息或
+    // AI 首行为空时返回"用户首行 + 换行"（会话仍显示）
     QString sessionTitle(int sessionId) const;
 
     QSqlDatabase db;
