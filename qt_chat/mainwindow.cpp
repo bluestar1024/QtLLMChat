@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 
 #include <QtWebEngineCore/QWebEngineProfile>
+#include <QtWidgets/QApplication>
+#include <QtGui/QFont>
 #include <QQuickWindow>
 #include <QDebug>
 #include <QPointer>
@@ -39,6 +41,20 @@ MainWindow::MainWindow(QWidget *parent)
       borderLen(3)
 {
     appContext = new AppContext();
+    // ===== 应用级默认字体与 ToolTip 样式 =====
+    // 应用级默认字体：兜底未显式 setFont 的控件（QToolTip 弹窗、QMessageBox 等）；
+    // 字体族经 AppContext::fontFamily() 懒加载注册（进程内单次注册，与各控件
+    // 共享注册结果，避免重复注册使 Qt 字体数据库累积）
+    const QString &fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty())
+        QApplication::setFont(QFont(fontFamily, appContext->windowFontPointSize()));
+    // 全局样式表仅含 QToolTip 选择器：圆角深色提示样式，不影响其他控件
+    qApp->setStyleSheet(QStringLiteral("QToolTip{"
+                                       "border: none;"
+                                       "border-radius: 10px;"
+                                       "color: white;"
+                                       "background: #404040;"
+                                       "}"));
     QWebEngineProfile *profile = new QWebEngineProfile("shared");
     profile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
     profile->setCachePath(appContext->webEngineCacheDir());
