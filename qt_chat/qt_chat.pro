@@ -50,7 +50,6 @@ SOURCES += \
     codeeditor.cpp \
     codeshow.cpp \
     copybutton.cpp \
-    customlabel.cpp \
     custommenu.cpp \
     customwebengineview.cpp \
     cxxhighlighter.cpp \
@@ -58,7 +57,7 @@ SOURCES += \
     frame.cpp \
     funwidget.cpp \
     glslhighlighter.cpp \
-    html_renderer.cpp \
+    htmlrenderer.cpp \
     imagelabel.cpp \
     itemwidget.cpp \
     label.cpp \
@@ -70,9 +69,9 @@ SOURCES += \
     luahighlighter.cpp \
     main.cpp \
     mainwindow.cpp \
-    markdown_block_element.cpp \
-    markdown_inline_element.cpp \
-    markdown_parser.cpp \
+    markdownblockelement.cpp \
+    markdowninlineelement.cpp \
+    markdownparser.cpp \
     messagethread.cpp \
     messagewidget.cpp \
     printlabel.cpp \
@@ -108,7 +107,6 @@ HEADERS += \
     codeeditor.h \
     codeshow.h \
     copybutton.h \
-    customlabel.h \
     custommenu.h \
     customwebengineview.h \
     cxxhighlighter.h \
@@ -116,7 +114,7 @@ HEADERS += \
     frame.h \
     funwidget.h \
     glslhighlighter.h \
-    html_renderer.h \
+    htmlrenderer.h \
     imagelabel.h \
     itemwidget.h \
     label.h \
@@ -127,9 +125,9 @@ HEADERS += \
     loadingwidget.h \
     luahighlighter.h \
     mainwindow.h \
-    markdown_block_element.h \
-    markdown_inline_element.h \
-    markdown_parser.h \
+    markdownblockelement.h \
+    markdowninlineelement.h \
+    markdownparser.h \
     messagethread.h \
     messagewidget.h \
     printlabel.h \

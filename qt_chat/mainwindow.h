@@ -42,22 +42,23 @@
 #include <QtCore/QVariant>
 #include <QtCore/QPropertyAnimation>
 #include <QtCore/QQueue>
-#include <QtQuick/QQuickWindow>
+#include <QtGui/QWindow>
+// #include <QtQuick/QQuickWindow>
 #include <QtGui/QWindowStateChangeEvent>
 
-enum class RegionEnum : int {
-    Left = 0,
-    Right,
-    Top,
-    Bottom,
-    LeftTop,
-    LeftBottom,
-    RightTop,
-    RightBottom,
-    Title,
-    Button,
-    Middle
-};
+// enum class RegionEnum : int {
+//     Left = 0,
+//     Right,
+//     Top,
+//     Bottom,
+//     LeftTop,
+//     LeftBottom,
+//     RightTop,
+//     RightBottom,
+//     Title,
+//     Button,
+//     Middle
+// };
 
 class MainWindow : public QMainWindow
 {
@@ -80,6 +81,7 @@ protected:
 
 private:
     void titleWidgetInit();
+    void funWidgetInit();
     void settingWidgetInit();
     void chatRecordsWidgetInit();
     void checkGraphicsBackend();
@@ -102,9 +104,9 @@ private:
     void logHitTestRegion(const char *region);
     void isItemShowFull(QWidget *widget);
     bool isWindowMaximized() const;
-    void regionDivision();
-    void UiStretch();
-    void UiDrag(QPoint globalPos);
+    // void regionDivision();
+    // void UiStretch();
+    // void UiDrag(QPoint globalPos);
     void messageFinish();
     void textCopy();
     // 重新生成响应：从消息列表末尾向前找最后一条用户消息重新发起请求。
@@ -113,8 +115,7 @@ private:
     void messageRenewResponse(bool isAutoRetry = false);
     // 新建聊天记录会话并写入消息（对应原"新建记录文件"），withholdCurSession
     // 为 true 时仅写库、不把新会话设为当前会话
-    void createChatRecordSession(bool withholdCurSession,
-                                 const QList<ChatMessageRecord> &messages);
+    void createChatRecordSession(bool withholdCurSession, const QList<ChatMessageRecord> &messages);
     void saveCurChatRecord(bool withholdCurSession = false);
     void chatRecordsGenerateItem(QString searchText = "");
     void generateCurChatRecord(bool lastIsToggle = true, bool useThinkExpandList = false);
@@ -158,7 +159,7 @@ private:
 
     AppContext *appContext;
 
-    QQuickWindow *qwindow;
+    // QQuickWindow *qwindow;
 
     FunWidget *chatFun;
     ListWidget *chatShow;
@@ -215,9 +216,9 @@ private:
     // 空文本自动重新响应（AI 空回复自动重试）的已执行次数：达到
     // maxEmptyRenewCount 上限或用户主动停止（thread->stop）后结束本次重试链
     int emptyRenewCount = 0;
-    bool isScreenMax;
-    bool isScreenHalf;
-    QRect lastNormalGeometry;
+    // bool isScreenMax;
+    // bool isScreenHalf;
+    // QRect lastNormalGeometry;
     int dragStartWidth;
     int dragStartHeight;
     bool isSizeMoveDrag;
@@ -226,24 +227,24 @@ private:
     bool isMinimizedState;
     int lastRegenerateWidth;
     int lastRegenerateHeight;
-    bool isChangeRectFirst;
+    // bool isChangeRectFirst;
     QList<QScreen *> screens;
-    RegionEnum regionDir;
-    int padding;
-    int cursorGlobalX;
-    int cursorGlobalY;
-    QPoint uiGlobalTL;
-    QPoint uiGlobalBR;
-    int uiRectWidth;
-    int uiRectHeight;
-    QPoint pressPosDistanceUiGlobalTL;
+    // RegionEnum regionDir;
+    // int padding;
+    // int cursorGlobalX;
+    // int cursorGlobalY;
+    // QPoint uiGlobalTL;
+    // QPoint uiGlobalBR;
+    // int uiRectWidth;
+    // int uiRectHeight;
+    // QPoint pressPosDistanceUiGlobalTL;
     bool isDpiChanged;
     bool mouseLeftButtonIsPress;
     QMap<QString, QVariant> widgetSizeDict;
     bool avoidRepeatSelfFun;
     bool first;
-    bool messageSendWidgetIsFinished;
-    int borderLen;
+    // bool messageSendWidgetIsFinished;
+    // int borderLen;
     // 样式补齐任务已排队标记：WM_NCCALCSIZE/WM_NCHITTEST 等高频消息里避免重复入队
     bool styleEnsurePosted = false;
     // 上一次 WM_NCHITTEST 命中区域（仅变化时打印诊断日志，避免高频噪声）
@@ -282,15 +283,6 @@ private slots:
     void showSearchRecords();
     void clearAllChatRecords();
     void generateChatRecord(QListWidgetItem *item);
-    void onBaseUrlTextChanged(const QString &text);
-    void onApiKeyTextChanged(const QString &text);
-    void onModelNameTextChanged(const QString &text);
-    void onMaxTokensBoxValueChanged(int i);
-    void onTopPBoxValueChanged(double d);
-    void onTemperatureBoxValueChanged(double d);
-    void onMaxTokensSliderValueChanged(int i);
-    void onTopPSliderValueChanged(int i);
-    void onTemperatureSliderValueChanged(int i);
     void messageWidgetResize(MessageWidget *selfMessageWidget);
     void sendMessage();
     void onExecuteNext();

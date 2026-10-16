@@ -1,5 +1,5 @@
-#ifndef MARKDOWN_INLINE_ELEMENT_H
-#define MARKDOWN_INLINE_ELEMENT_H
+#ifndef MARKDOWNINLINEELEMENT_H
+#define MARKDOWNINLINEELEMENT_H
 
 #pragma once
 #include <QtCore/QString>
@@ -24,4 +24,4 @@ public:
     QString getUrl() const;
 };
 
-#endif // MARKDOWN_INLINE_ELEMENT_H
+#endif // MARKDOWNINLINEELEMENT_H

@@ -3,7 +3,6 @@
 #include <QtWebEngineCore/QWebEngineProfile>
 #include <QtWidgets/QApplication>
 #include <QtGui/QFont>
-#include <QQuickWindow>
 #include <QDebug>
 #include <QPointer>
 
@@ -25,9 +24,6 @@ MainWindow::MainWindow(QWidget *parent)
       isSending(false),
       isThreadFinished(false),
       isContinueShow(true),
-      isScreenMax(false),
-      isScreenHalf(false),
-      isChangeRectFirst(false),
       dragStartWidth(-1),
       dragStartHeight(-1),
       isSizeMoveDrag(false),
@@ -37,8 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
       lastRegenerateWidth(-1),
       lastRegenerateHeight(-1),
       isDpiChanged(false),
-      avoidRepeatSelfFun(false),
-      borderLen(3)
+      avoidRepeatSelfFun(false)
 {
     appContext = new AppContext();
     // ===== 应用级默认字体与 ToolTip 样式 =====
@@ -125,13 +120,10 @@ MainWindow::MainWindow(QWidget *parent)
     setMouseTracking(true);
 
     mouseLeftButtonIsPress = false;
-    regionDir = RegionEnum::Middle;
-    padding = 2;
+    // regionDir = RegionEnum::Middle;
+    // padding = 2;
     titleWidgetInit();
-    chatFun = new FunWidget(appContext);
-    // qDebug() << "FunWidget size:" << chatFun->size();
-    chatFun->connectChatRecordsButtonClick(this, &MainWindow::showChatRecords);
-    chatFun->connectNewChatButtonClick(this, &MainWindow::newChat);
+    funWidgetInit();
     chatShow = new ListWidget();
     chatShowWidget = new Widget();
     chatShowWidget->setMinimumHeight(244);
@@ -208,9 +200,9 @@ MainWindow::MainWindow(QWidget *parent)
     initDpi = lastDpi = curDpi = curScreen->logicalDotsPerInch();
     thinkExpandedList.clear();
     thinkTimeLengthList.clear();
-    lastNormalGeometry = geometry();
-    uiRectWidth = width();
-    uiRectHeight = height();
+    // lastNormalGeometry = geometry();
+    // uiRectWidth = width();
+    // uiRectHeight = height();
     screens = QApplication::screens();
     for (QScreen *screen : screens) {
         connect(screen, &QScreen::logicalDotsPerInchChanged, this, &MainWindow::onDpiChanged);
@@ -222,7 +214,7 @@ MainWindow::MainWindow(QWidget *parent)
     widgetSizeDict["mainWidget x"] = mainWidget->x();
     widgetSizeDict["mainWidget y"] = mainWidget->y();
 
-    checkGraphicsBackend();
+    // checkGraphicsBackend();
 
 #ifdef Q_OS_WIN
     // 窗口创建后补齐边缘拉伸所需的样式位（Qt 按 windowFlags 生成的样式不含
@@ -257,30 +249,20 @@ void MainWindow::titleWidgetInit()
     connect(titleWidget, &TitleWidget::closeClicked, this, &MainWindow::uiClose);
 }
 
+void MainWindow::funWidgetInit()
+{
+    chatFun = new FunWidget(appContext);
+    // qDebug() << "FunWidget size:" << chatFun->size();
+    chatFun->connectChatRecordsButtonClick(this, &MainWindow::showChatRecords);
+    chatFun->connectNewChatButtonClick(this, &MainWindow::newChat);
+}
+
 void MainWindow::settingWidgetInit()
 {
     settingWidget = new SettingWidget(appContext, mainWidget);
     settingWidget->setGeometry(-mainWidget->width() / 3, titleWidget->height(),
                                mainWidget->width() / 3,
                                mainWidget->height() - titleWidget->height());
-    connect(settingWidget, &SettingWidget::baseUrlTextChanged, this,
-            &MainWindow::onBaseUrlTextChanged);
-    connect(settingWidget, &SettingWidget::apiKeyTextChanged, this,
-            &MainWindow::onApiKeyTextChanged);
-    connect(settingWidget, &SettingWidget::modelNameTextChanged, this,
-            &MainWindow::onModelNameTextChanged);
-    connect(settingWidget, &SettingWidget::maxTokensBoxValueChanged, this,
-            &MainWindow::onMaxTokensBoxValueChanged);
-    connect(settingWidget, &SettingWidget::topPBoxValueChanged, this,
-            &MainWindow::onTopPBoxValueChanged);
-    connect(settingWidget, &SettingWidget::temperatureBoxValueChanged, this,
-            &MainWindow::onTemperatureBoxValueChanged);
-    connect(settingWidget, &SettingWidget::maxTokensSliderValueChanged, this,
-            &MainWindow::onMaxTokensSliderValueChanged);
-    connect(settingWidget, &SettingWidget::topPSliderValueChanged, this,
-            &MainWindow::onTopPSliderValueChanged);
-    connect(settingWidget, &SettingWidget::temperatureSliderValueChanged, this,
-            &MainWindow::onTemperatureSliderValueChanged);
 
     settingAnimationMove = new QPropertyAnimation(settingWidget, "geometry");
     settingAnimationMove->setDuration(1000);
@@ -316,19 +298,19 @@ void MainWindow::chatRecordsWidgetInit()
     chatRecordsWidgetIsOpen = false;
 }
 
-void MainWindow::checkGraphicsBackend()
-{
-    qwindow = new QQuickWindow();
-    qwindow->show();
-    QTimer::singleShot(500, [&]() {
-        qDebug() << "===== 图形后端信息 =====";
-        qDebug() << "当前渲染器:" << qwindow->rendererInterface()->graphicsApi();
-        qDebug() << "场景图后端:" << qwindow->sceneGraphBackend();
-        qDebug() << "======================";
-        qwindow->close();
-        qwindow->deleteLater();
-    });
-}
+// void MainWindow::checkGraphicsBackend()
+// {
+//     qwindow = new QQuickWindow();
+//     qwindow->show();
+//     QTimer::singleShot(500, [&]() {
+//         qDebug() << "===== 图形后端信息 =====";
+//         qDebug() << "当前渲染器:" << qwindow->rendererInterface()->graphicsApi();
+//         qDebug() << "场景图后端:" << qwindow->sceneGraphBackend();
+//         qDebug() << "======================";
+//         qwindow->close();
+//         qwindow->deleteLater();
+//     });
+// }
 
 void MainWindow::applyDWMShadow()
 {
@@ -992,164 +974,164 @@ void MainWindow::isItemShowFull(QWidget *widget)
     }
 }
 
-void MainWindow::regionDivision()
-{
-    if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)
-        && (cursorGlobalY >= uiGlobalTL.y()) && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
-        regionDir = RegionEnum::LeftTop;
-        setCursor(QCursor(Qt::SizeFDiagCursor));
-    } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())
-               && (cursorGlobalY >= uiGlobalTL.y())
-               && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
-        regionDir = RegionEnum::RightTop;
-        setCursor(QCursor(Qt::SizeBDiagCursor));
-    } else if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)
-               && (cursorGlobalY >= uiGlobalBR.y() - padding)
-               && (cursorGlobalY <= uiGlobalBR.y())) {
-        regionDir = RegionEnum::LeftBottom;
-        setCursor(QCursor(Qt::SizeBDiagCursor));
-    } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())
-               && (cursorGlobalY >= uiGlobalBR.y() - padding)
-               && (cursorGlobalY <= uiGlobalBR.y())) {
-        regionDir = RegionEnum::RightBottom;
-        setCursor(QCursor(Qt::SizeFDiagCursor));
-    } else if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)) {
-        regionDir = RegionEnum::Left;
-        setCursor(QCursor(Qt::SizeHorCursor));
-    } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())) {
-        regionDir = RegionEnum::Right;
-        setCursor(QCursor(Qt::SizeHorCursor));
-    } else if ((cursorGlobalY >= uiGlobalTL.y()) && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
-        regionDir = RegionEnum::Top;
-        setCursor(QCursor(Qt::SizeVerCursor));
-    } else if ((cursorGlobalY >= uiGlobalBR.y() - padding) && (cursorGlobalY <= uiGlobalBR.y())) {
-        regionDir = RegionEnum::Bottom;
-        setCursor(QCursor(Qt::SizeVerCursor));
-    } else if ((cursorGlobalX >= uiGlobalTL.x() + padding + 1)
-               && (cursorGlobalX <= uiGlobalBR.x() - padding - 1)
-               && (cursorGlobalY >= uiGlobalTL.y() + padding + 1)
-               && (cursorGlobalY <= uiGlobalTL.y() + titleWidget->height())) {
-        if (cursorGlobalX <= uiGlobalBR.x() - titleWidget->getMinButtonSize().width()
-                    - titleWidget->getMaxButtonSize().width()
-                    - titleWidget->getCloseButtonSize().width() - 1)
-            regionDir = RegionEnum::Title;
-        else
-            regionDir = RegionEnum::Button;
-        setCursor(QCursor(Qt::ArrowCursor));
-    } else {
-        regionDir = RegionEnum::Middle;
-        setCursor(QCursor(Qt::ArrowCursor));
-    }
-}
+// void MainWindow::regionDivision()
+// {
+//     if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)
+//         && (cursorGlobalY >= uiGlobalTL.y()) && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
+//         regionDir = RegionEnum::LeftTop;
+//         setCursor(QCursor(Qt::SizeFDiagCursor));
+//     } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())
+//                && (cursorGlobalY >= uiGlobalTL.y())
+//                && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
+//         regionDir = RegionEnum::RightTop;
+//         setCursor(QCursor(Qt::SizeBDiagCursor));
+//     } else if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)
+//                && (cursorGlobalY >= uiGlobalBR.y() - padding)
+//                && (cursorGlobalY <= uiGlobalBR.y())) {
+//         regionDir = RegionEnum::LeftBottom;
+//         setCursor(QCursor(Qt::SizeBDiagCursor));
+//     } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())
+//                && (cursorGlobalY >= uiGlobalBR.y() - padding)
+//                && (cursorGlobalY <= uiGlobalBR.y())) {
+//         regionDir = RegionEnum::RightBottom;
+//         setCursor(QCursor(Qt::SizeFDiagCursor));
+//     } else if ((cursorGlobalX >= uiGlobalTL.x()) && (cursorGlobalX <= uiGlobalTL.x() + padding)) {
+//         regionDir = RegionEnum::Left;
+//         setCursor(QCursor(Qt::SizeHorCursor));
+//     } else if ((cursorGlobalX >= uiGlobalBR.x() - padding) && (cursorGlobalX <= uiGlobalBR.x())) {
+//         regionDir = RegionEnum::Right;
+//         setCursor(QCursor(Qt::SizeHorCursor));
+//     } else if ((cursorGlobalY >= uiGlobalTL.y()) && (cursorGlobalY <= uiGlobalTL.y() + padding)) {
+//         regionDir = RegionEnum::Top;
+//         setCursor(QCursor(Qt::SizeVerCursor));
+//     } else if ((cursorGlobalY >= uiGlobalBR.y() - padding) && (cursorGlobalY <= uiGlobalBR.y())) {
+//         regionDir = RegionEnum::Bottom;
+//         setCursor(QCursor(Qt::SizeVerCursor));
+//     } else if ((cursorGlobalX >= uiGlobalTL.x() + padding + 1)
+//                && (cursorGlobalX <= uiGlobalBR.x() - padding - 1)
+//                && (cursorGlobalY >= uiGlobalTL.y() + padding + 1)
+//                && (cursorGlobalY <= uiGlobalTL.y() + titleWidget->height())) {
+//         if (cursorGlobalX <= uiGlobalBR.x() - titleWidget->getMinButtonSize().width()
+//                     - titleWidget->getMaxButtonSize().width()
+//                     - titleWidget->getCloseButtonSize().width() - 1)
+//             regionDir = RegionEnum::Title;
+//         else
+//             regionDir = RegionEnum::Button;
+//         setCursor(QCursor(Qt::ArrowCursor));
+//     } else {
+//         regionDir = RegionEnum::Middle;
+//         setCursor(QCursor(Qt::ArrowCursor));
+//     }
+// }
 
-void MainWindow::UiStretch()
-{
-    QRect uiGlobalRect(uiGlobalTL, uiGlobalBR);
-    switch (regionDir) {
-    case RegionEnum::Left:
-        if (uiGlobalBR.x() - cursorGlobalX
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-            uiGlobalRect.setX(cursorGlobalX);
-        else
-            uiGlobalRect.setX(uiGlobalBR.x()
-                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-                              + 1);
-        break;
-    case RegionEnum::Right:
-        if (cursorGlobalX - uiGlobalTL.x()
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-            uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
-        else
-            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
-        break;
-    case RegionEnum::Top:
-        if (uiGlobalBR.y() - cursorGlobalY
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-            uiGlobalRect.setY(cursorGlobalY);
-        else
-            uiGlobalRect.setY(uiGlobalBR.y()
-                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-                              + 1);
-        break;
-    case RegionEnum::Bottom:
-        if (cursorGlobalY - uiGlobalTL.y()
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-            uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
-        else
-            uiGlobalRect.setHeight(minimumHeight()
-                                   - 2 * widgetSizeDict["mainWidget y"].value<int>());
-        break;
-    case RegionEnum::LeftTop:
-        if (uiGlobalBR.x() - cursorGlobalX
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-            uiGlobalRect.setX(cursorGlobalX);
-        else
-            uiGlobalRect.setX(uiGlobalBR.x()
-                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-                              + 1);
-        if (uiGlobalBR.y() - cursorGlobalY
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-            uiGlobalRect.setY(cursorGlobalY);
-        else
-            uiGlobalRect.setY(uiGlobalBR.y()
-                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-                              + 1);
-        break;
-    case RegionEnum::RightTop:
-        if (cursorGlobalX - uiGlobalTL.x()
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-            uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
-        else
-            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
-        if (uiGlobalBR.y() - cursorGlobalY
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-            uiGlobalRect.setY(cursorGlobalY);
-        else
-            uiGlobalRect.setY(uiGlobalBR.y()
-                              - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-                              + 1);
-        break;
-    case RegionEnum::LeftBottom:
-        if (uiGlobalBR.x() - cursorGlobalX
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-            uiGlobalRect.setX(cursorGlobalX);
-        else
-            uiGlobalRect.setX(uiGlobalBR.x()
-                              - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-                              + 1);
-        if (cursorGlobalY - uiGlobalTL.y()
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-            uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
-        else
-            uiGlobalRect.setHeight(minimumHeight()
-                                   - 2 * widgetSizeDict["mainWidget y"].value<int>());
-        break;
-    case RegionEnum::RightBottom:
-        if (cursorGlobalX - uiGlobalTL.x()
-            > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
-            uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
-        else
-            uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
-        if (cursorGlobalY - uiGlobalTL.y()
-            > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
-            uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
-        else
-            uiGlobalRect.setHeight(minimumHeight()
-                                   - 2 * widgetSizeDict["mainWidget y"].value<int>());
-    default:
-        break;
-    }
-    QRect windowGlobalRect(uiGlobalRect.x() - widgetSizeDict["mainWidget x"].value<int>(),
-                           uiGlobalRect.y() - widgetSizeDict["mainWidget y"].value<int>(),
-                           uiGlobalRect.width() + 2 * widgetSizeDict["mainWidget x"].value<int>(),
-                           uiGlobalRect.height() + 2 * widgetSizeDict["mainWidget y"].value<int>());
-    setGeometry(windowGlobalRect);
-}
+// void MainWindow::UiStretch()
+// {
+//     QRect uiGlobalRect(uiGlobalTL, uiGlobalBR);
+//     switch (regionDir) {
+//     case RegionEnum::Left:
+//         if (uiGlobalBR.x() - cursorGlobalX
+//             > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//             uiGlobalRect.setX(cursorGlobalX);
+//         else
+//             uiGlobalRect.setX(uiGlobalBR.x()
+//                               - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//                               + 1);
+//         break;
+//     case RegionEnum::Right:
+//         if (cursorGlobalX - uiGlobalTL.x()
+//             > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//             uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
+//         else
+//             uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
+//         break;
+//     case RegionEnum::Top:
+//         if (uiGlobalBR.y() - cursorGlobalY
+//             > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//             uiGlobalRect.setY(cursorGlobalY);
+//         else
+//             uiGlobalRect.setY(uiGlobalBR.y()
+//                               - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//                               + 1);
+//         break;
+//     case RegionEnum::Bottom:
+//         if (cursorGlobalY - uiGlobalTL.y()
+//             > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//             uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
+//         else
+//             uiGlobalRect.setHeight(minimumHeight()
+//                                    - 2 * widgetSizeDict["mainWidget y"].value<int>());
+//         break;
+//     case RegionEnum::LeftTop:
+//         if (uiGlobalBR.x() - cursorGlobalX
+//             > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//             uiGlobalRect.setX(cursorGlobalX);
+//         else
+//             uiGlobalRect.setX(uiGlobalBR.x()
+//                               - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//                               + 1);
+//         if (uiGlobalBR.y() - cursorGlobalY
+//             > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//             uiGlobalRect.setY(cursorGlobalY);
+//         else
+//             uiGlobalRect.setY(uiGlobalBR.y()
+//                               - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//                               + 1);
+//         break;
+//     case RegionEnum::RightTop:
+//         if (cursorGlobalX - uiGlobalTL.x()
+//             > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//             uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
+//         else
+//             uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
+//         if (uiGlobalBR.y() - cursorGlobalY
+//             > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//             uiGlobalRect.setY(cursorGlobalY);
+//         else
+//             uiGlobalRect.setY(uiGlobalBR.y()
+//                               - (minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//                               + 1);
+//         break;
+//     case RegionEnum::LeftBottom:
+//         if (uiGlobalBR.x() - cursorGlobalX
+//             > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//             uiGlobalRect.setX(cursorGlobalX);
+//         else
+//             uiGlobalRect.setX(uiGlobalBR.x()
+//                               - (minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//                               + 1);
+//         if (cursorGlobalY - uiGlobalTL.y()
+//             > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//             uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
+//         else
+//             uiGlobalRect.setHeight(minimumHeight()
+//                                    - 2 * widgetSizeDict["mainWidget y"].value<int>());
+//         break;
+//     case RegionEnum::RightBottom:
+//         if (cursorGlobalX - uiGlobalTL.x()
+//             > minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>())
+//             uiGlobalRect.setWidth(cursorGlobalX - uiGlobalTL.x());
+//         else
+//             uiGlobalRect.setWidth(minimumWidth() - 2 * widgetSizeDict["mainWidget x"].value<int>());
+//         if (cursorGlobalY - uiGlobalTL.y()
+//             > minimumHeight() - 2 * widgetSizeDict["mainWidget y"].value<int>())
+//             uiGlobalRect.setHeight(cursorGlobalY - uiGlobalTL.y());
+//         else
+//             uiGlobalRect.setHeight(minimumHeight()
+//                                    - 2 * widgetSizeDict["mainWidget y"].value<int>());
+//     default:
+//         break;
+//     }
+//     QRect windowGlobalRect(uiGlobalRect.x() - widgetSizeDict["mainWidget x"].value<int>(),
+//                            uiGlobalRect.y() - widgetSizeDict["mainWidget y"].value<int>(),
+//                            uiGlobalRect.width() + 2 * widgetSizeDict["mainWidget x"].value<int>(),
+//                            uiGlobalRect.height() + 2 * widgetSizeDict["mainWidget y"].value<int>());
+//     setGeometry(windowGlobalRect);
+// }
 
-void MainWindow::UiDrag(QPoint globalPos)
-{
-    move(pressPosDistanceUiGlobalTL + globalPos);
-}
+// void MainWindow::UiDrag(QPoint globalPos)
+// {
+//     move(pressPosDistanceUiGlobalTL + globalPos);
+// }
 
 // void MainWindow::mousePressEvent(QMouseEvent *event)
 // {
@@ -1281,7 +1263,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         widgetSizeDict["MainWindow minimumSize"] = minimumSize();
     }
     // qDebug() << "resizeEvent isScreenMax" << isScreenMax;
-    if (isScreenMax)
+    if (isWindowMaximized())
         mainWidget->setGeometry(0, 0, width(), height());
     else {
         if (isDpiChanged) {
@@ -1374,7 +1356,7 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     }
     widgetSizeDict["MainWindow"] = size();
     qDebug() << "resizeEvent MainWindow size:" << size();
-    qDebug() << "resizeEvent lastNormalGeometry:" << lastNormalGeometry;
+    // qDebug() << "resizeEvent lastNormalGeometry:" << lastNormalGeometry;
 }
 
 bool MainWindow::isWindowMaximized() const
@@ -1476,378 +1458,6 @@ void MainWindow::chatRecordsUiMoveFinished()
     // （由 messageWidgetMaxWidth() 统一计算），因此不重建控件，只按新宽度调整
     // itemRecvHLayout 等的边距；延迟到布局激活后执行，保证读到最终的 chatShow 宽度
     // QTimer::singleShot(0, this, &MainWindow::messageWidgetItemRelayout);
-}
-
-void MainWindow::onBaseUrlTextChanged(const QString &text)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        if (lines.isEmpty()) {
-            lines.append("");
-        }
-        lines[0] = text;
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-}
-
-void MainWindow::onApiKeyTextChanged(const QString &text)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        while (lines.size() < 2) {
-            lines.append("");
-        }
-        lines[1] = text;
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-}
-
-void MainWindow::onModelNameTextChanged(const QString &text)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        while (lines.size() < 3) {
-            lines.append("");
-        }
-        lines[2] = text;
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-}
-
-void MainWindow::onMaxTokensBoxValueChanged(int i)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        while (lines.size() < 4) {
-            lines.append("");
-        }
-        lines[3] = QString::number(i);
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-
-    settingWidget->maxTokensSliderSetValue(i);
-}
-
-void MainWindow::onTopPBoxValueChanged(double d)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        while (lines.size() < 5) {
-            lines.append("");
-        }
-        lines[4] = QString::number(d);
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-
-    settingWidget->topPSliderSetValue(static_cast<int>(d * 100));
-}
-
-void MainWindow::onTemperatureBoxValueChanged(double d)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        while (lines.size() < 6) {
-            lines.append("");
-        }
-        lines[5] = QString::number(d);
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-
-    settingWidget->temperatureSliderSetValue(static_cast<int>((d - 0.01) * 100));
-}
-
-void MainWindow::onMaxTokensSliderValueChanged(int i)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        while (lines.size() < 4) {
-            lines.append("");
-        }
-        lines[3] = QString::number(i);
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-
-    settingWidget->maxTokensBoxSetValue(i);
-}
-
-void MainWindow::onTopPSliderValueChanged(int i)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        while (lines.size() < 5) {
-            lines.append("");
-        }
-        lines[4] = QString::number(i / 100.0);
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-
-    settingWidget->topPBoxSetValue(i / 100.0);
-}
-
-void MainWindow::onTemperatureSliderValueChanged(int i)
-{
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
-
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
-
-        while (lines.size() < 6) {
-            lines.append("");
-        }
-        lines[5] = QString::number(i / 100.0 + 0.01);
-
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
-
-        QTextStream out(&file);
-        for (int i = 0; i < lines.size(); ++i) {
-            out << lines[i];
-            if (i < lines.size() - 1) {
-                out << "\n";
-            }
-        }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
-    }
-
-    settingWidget->temperatureBoxSetValue(i / 100.0 + 0.01);
 }
 
 int MainWindow::chatShowWidth(bool recordsExpanded) const
