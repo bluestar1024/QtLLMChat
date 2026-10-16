@@ -1,8 +1,8 @@
-#ifndef MARKDOWN_BLOCK_ELEMENT_H
-#define MARKDOWN_BLOCK_ELEMENT_H
+#ifndef MARKDOWNBLOCKELEMENT_H
+#define MARKDOWNBLOCKELEMENT_H
 
 #pragma once
-#include "markdown_inline_element.h"
+#include "markdowninlineelement.h"
 
 #include <vector>
 
@@ -49,4 +49,4 @@ public:
     std::vector<LineElement> getText() const;
 };
 
-#endif // MARKDOWN_BLOCK_ELEMENT_H
+#endif // MARKDOWNBLOCKELEMENT_H

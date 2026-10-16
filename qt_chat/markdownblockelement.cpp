@@ -1,4 +1,4 @@
-#include "markdown_block_element.h"
+#include "markdownblockelement.h"
 
 MarkdownBlockElement::MarkdownBlockElement(BlockType type, std::vector<LineElement> text)
     : type(type), text(text)

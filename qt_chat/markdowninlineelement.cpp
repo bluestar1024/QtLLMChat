@@ -1,4 +1,4 @@
-#include "markdown_inline_element.h"
+#include "markdowninlineelement.h"
 
 MarkdownInlineElement::MarkdownInlineElement() : type(InlineType::Null), begin(0), end(0) { }
 MarkdownInlineElement::MarkdownInlineElement(InlineType t, size_t b, size_t e)

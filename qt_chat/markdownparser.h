@@ -1,9 +1,9 @@
-#ifndef MARKDOWN_PARSER_H
-#define MARKDOWN_PARSER_H
+#ifndef MARKDOWNPARSER_H
+#define MARKDOWNPARSER_H
 
 #pragma once
-#include "markdown_block_element.h"
-#include "markdown_inline_element.h"
+#include "markdownblockelement.h"
+#include "markdowninlineelement.h"
 
 #include <vector>
 // #include <unordered_map>
@@ -24,4 +24,4 @@ public:
     bool isHorizontalRules(const QString &lineStr, const QString *prevLine = nullptr);
 };
 
-#endif // MARKDOWN_PARSER_H
+#endif // MARKDOWNPARSER_H

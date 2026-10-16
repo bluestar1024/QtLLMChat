@@ -1,9 +1,9 @@
-#ifndef HTML_RENDERER_H
-#define HTML_RENDERER_H
+#ifndef HTMLRENDERER_H
+#define HTMLRENDERER_H
 
 #pragma once
-#include "markdown_block_element.h"
-#include "markdown_inline_element.h"
+#include "markdownblockelement.h"
+#include "markdowninlineelement.h"
 
 #include <QtCore/QString>
 
@@ -24,4 +24,4 @@ public:
     QString getHtml() const;
 };
 
-#endif // HTML_RENDERER_H
+#endif // HTMLRENDERER_H

@@ -8,11 +8,8 @@ class CustomMenu : public QMenu
 {
     Q_OBJECT
 public:
-    explicit CustomMenu(QWidget *parent = nullptr) : QMenu(parent)
-    {
-        setWindowFlags(Qt::Popup | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
-        setAttribute(Qt::WA_TranslucentBackground);
-    }
+    explicit CustomMenu(QWidget *parent = nullptr);
+    ~CustomMenu();
 };
 
 #endif // CUSTOMMENU_H
