@@ -2,7 +2,7 @@
 #define THINKWIDGET_H
 
 #pragma once
-#include "customlabel.h"
+// #include "customlabel.h"
 #include "webengineview.h"
 #include "markdown_parser.h"
 #include "html_renderer.h"
@@ -77,7 +77,7 @@ private slots:
 private:
     AppContext *appContext;
 
-    void measureText(const QString &text, int &labelWidth, int &labelHeight) const;
+    // void measureText(const QString &text, int &labelWidth, int &labelHeight) const;
     QString htmlReplaceText(const QString &text) const;
     struct TableInfo
     {
@@ -104,7 +104,7 @@ private:
     int maxWidth;
     // bool isLabel;
 
-    CustomLabel *label;
+    // CustomLabel *label;
     QFont font;
     QFontMetricsF *fontMetrics;
 

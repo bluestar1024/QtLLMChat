@@ -247,27 +247,27 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
     isSetTextEnd = true;
 }
 
-void ThinkWidget::measureText(const QString &text, int &labelWidth, int &labelHeight) const
-{
-    int textHeight = int(fontMetrics->height());
-    QStringList lines = text.split('\n');
-    int maxLineWidth = 0;
-    for (const QString &line : lines)
-        maxLineWidth = qMax(maxLineWidth, int(fontMetrics->horizontalAdvance(line)));
+// void ThinkWidget::measureText(const QString &text, int &labelWidth, int &labelHeight) const
+// {
+//     int textHeight = int(fontMetrics->height());
+//     QStringList lines = text.split('\n');
+//     int maxLineWidth = 0;
+//     for (const QString &line : lines)
+//         maxLineWidth = qMax(maxLineWidth, int(fontMetrics->horizontalAdvance(line)));
 
-    if (maxLineWidth + 4 < maxWidth) {
-        labelWidth = maxLineWidth + 4;
-        labelHeight = lines.size() * (textHeight + 3) - 3;
-    } else {
-        int totalWidth = 0;
-        for (int i = 0; i < lines.size(); ++i) {
-            qreal w = fontMetrics->horizontalAdvance(lines[i] + (i < lines.size() - 1 ? " " : ""));
-            totalWidth += std::ceil(w / (maxWidth - 24)) * (maxWidth - 24);
-        }
-        labelWidth = maxWidth;
-        labelHeight = std::ceil(totalWidth / qreal(maxWidth - 24)) * (textHeight + 3) - 3;
-    }
-}
+//     if (maxLineWidth + 4 < maxWidth) {
+//         labelWidth = maxLineWidth + 4;
+//         labelHeight = lines.size() * (textHeight + 3) - 3;
+//     } else {
+//         int totalWidth = 0;
+//         for (int i = 0; i < lines.size(); ++i) {
+//             qreal w = fontMetrics->horizontalAdvance(lines[i] + (i < lines.size() - 1 ? " " : ""));
+//             totalWidth += std::ceil(w / (maxWidth - 24)) * (maxWidth - 24);
+//         }
+//         labelWidth = maxWidth;
+//         labelHeight = std::ceil(totalWidth / qreal(maxWidth - 24)) * (textHeight + 3) - 3;
+//     }
+// }
 
 QString ThinkWidget::getText()
 {
