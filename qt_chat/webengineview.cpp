@@ -31,7 +31,6 @@ void WebEngineView::childEvent(QChildEvent *e)
 
 bool WebEngineView::eventFilter(QObject *o, QEvent *e)
 {
-    qDebug() << "WebEngineView eventFilter before:" << e->type();
     if (o == focusProxy() && e->type() == QEvent::MouseButtonRelease) {
         auto *me = static_cast<QMouseEvent *>(e);
         // QMouseEvent newMe(me->type(), me->position(), me->globalPosition(), me->button(),
@@ -43,7 +42,6 @@ bool WebEngineView::eventFilter(QObject *o, QEvent *e)
         // QCoreApplication::sendEvent(focusProxy()->parentWidget(), newMe);
         // return true;
     }
-    qDebug() << "WebEngineView eventFilter after:" << e->type();
     return QWebEngineView::eventFilter(o, e);
 }
 

@@ -1,7 +1,7 @@
 #include "listwidget.h"
 
 ListWidget::ListWidget(QWidget *parent)
-    : QListWidget(parent), scrollAutoChange(true), scrollChangeUplimit(200)
+    : QListWidget(parent), scrollAutoChange(true), scrollChangeUplimit(200), pendingSendItem(false)
 {
     resize(1170, 480);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -59,13 +59,22 @@ void ListWidget::scrollTo(const QModelIndex &, ScrollHint) { }
 void ListWidget::resetScrollAutoChange()
 {
     scrollAutoChange = true;
+    // 上次量测异常导致挂起残留时兜底恢复（正常路径由 MessageWidget::resizeFinished 解除）
+    pendingSendItem = false;
+}
+
+void ListWidget::setPendingSendItem(bool pending)
+{
+    pendingSendItem = pending;
 }
 
 /* 滚动条范围变化时的槽 */
 void ListWidget::onScrollBarRangeChanged(int min, int max)
 {
     Q_UNUSED(min);
-    if (scrollAutoChange)
+    // 新增消息量测未完成（临时高度）期间不滚动：此时 max 是"假底部"，
+    // 滚过去只会看到未显示的空白 item 区；量测完成后 rangeChanged 会再次触发
+    if (scrollAutoChange && !pendingSendItem)
         verticalScrollBar()->setValue(max);
 }
 

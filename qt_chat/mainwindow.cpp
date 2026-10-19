@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 
 #include <QtWebEngineCore/QWebEngineProfile>
+#include <QtQuickWidgets/QQuickWidget>
 #include <QtWidgets/QApplication>
 #include <QtGui/QFont>
 #include <QDebug>
@@ -54,6 +55,20 @@ MainWindow::MainWindow(QWidget *parent)
     profile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
     profile->setCachePath(appContext->webEngineCacheDir());
     appContext->setWebEngineProfile(profile);
+    // ===== 预置隐藏的 RHI 占位控件（消除首个 WebEngineView 加入时的窗口重建） =====
+    // 原生窗口由构造函数末尾的 ensureFrameStyle("constructor") 提前创建，Qt 在创建
+    // QWidgetWindow 时会评估部件树中是否存在需要 RHI 合成的控件（QQuickWidget 等）
+    // 来决定窗口的 SurfaceType。此前树内没有这类控件，窗口以 RasterSurface 出生；
+    // 之后第一个 MessageWidget 内的 WebEngineView（其内部渲染委托是 QQuickWidget，
+    // 需要 Direct3DSurface）加入部件树时，Qt 检测到 SurfaceType 不一致，会销毁并
+    // 重建原生窗口，导致整个界面消失后再出现。
+    // 预先放置一个隐藏的占位 QQuickWidget（1×1、不参与任何布局、不显示），使窗口
+    // 从创建起即为正确的 SurfaceType；后续 WebEngineView 加入时只需初始化 RHI
+    // 合成通道（createRhi + usesRhiFlush），原生窗口不再被重建。
+    // 注意：控件需保持常驻（在窗口创建前销毁会使评估落空），隐藏状态下开销可忽略。
+    QQuickWidget *rhiProbeWidget = new QQuickWidget(this);
+    rhiProbeWidget->resize(1, 1);
+    rhiProbeWidget->hide();
     QWebEngineView *dummyView = new QWebEngineView();
     // dummyView->setPage(new WebEnginePage(sharedProfile, dummyView));
     WebEnginePage *page = new WebEnginePage(appContext->webEngineProfile(), nullptr); // 无 parent
@@ -119,7 +134,7 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
     setMouseTracking(true);
 
-    mouseLeftButtonIsPress = false;
+    // mouseLeftButtonIsPress = false;
     // regionDir = RegionEnum::Middle;
     // padding = 2;
     titleWidgetInit();
@@ -1182,7 +1197,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
     // qDebug() << "mouseReleaseEvent isScreenMax" << isScreenMax;
     qDebug() << "mouseReleaseEvent MainWindow size:" << size();
     if (event->button() == Qt::LeftButton) {
-        mouseLeftButtonIsPress = false;
+        // mouseLeftButtonIsPress = false;
         // if (isScreenHalf) {
         //     QRect screenGeometry = screen()->availableGeometry();
         //     qDebug() << "mouseReleaseEvent screenGeometry:" << screenGeometry;
@@ -1496,6 +1511,8 @@ void MainWindow::updateItemLayout(QWidget *itemWidget, MessageWidget *messageWid
         return;
     const int w = chatShow->width();
     const int h = messageWidget->height() + 10;
+    qDebug() << "updateItemLayout" << itemWidget << "msg:" << messageWidget << "w:" << w
+             << "h:" << h;
     itemWidget->setFixedSize(w, h);
     if (QLayout *itemLayout = itemWidget->layout()) {
         if (messageWidget->getIsUser())
@@ -1532,7 +1549,7 @@ void MainWindow::messageWidgetItemRelayout()
 
 void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
 {
-    qDebug() << "messageWidgetResize start";
+    qDebug() << "messageWidgetResize start" << selfMessageWidget;
     const int count = qMin(chatShow->count(), messageWidgetList.size());
     int i = 0;
     for (; i < count; ++i) {
@@ -1547,6 +1564,10 @@ void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
         updateItemLayout(itemWidget, messageWidgetList.at(i), item);
     }
     qDebug() << "messageWidgetResize end";
+    // 本轮发送的消息量测完成（item 已改用真实高度）：解除自动滚动挂起，
+    // 随后 updateItemLayout 触发的真实 rangeChanged 再执行正确的自动跟随
+    if (selfMessageWidget == messageSendWidget)
+        chatShow->setPendingSendItem(false);
 }
 
 void MainWindow::sendMessage()
@@ -1558,6 +1579,9 @@ void MainWindow::sendMessage()
             // 用户主动发送消息：恢复滚动条自动跟随，避免之前滚动查看历史关闭的
             // 自动跟随（scrollAutoChange=false）残留使本轮新消息不再滚动到底部
             chatShow->resetScrollAutoChange();
+            // 新消息 item 入列时尺寸未量测（临时高度）：挂起自动滚动，
+            // 防止滚到"假底部"后视口只剩空白 item 区（消息消失再出现）
+            chatShow->setPendingSendItem(true);
             for (auto *w : messageWidgetList) {
                 QVariantMap m;
                 m["role"] = w->getIsUser() ? "user" : "assistant";

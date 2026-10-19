@@ -239,7 +239,7 @@ private:
     // int uiRectHeight;
     // QPoint pressPosDistanceUiGlobalTL;
     bool isDpiChanged;
-    bool mouseLeftButtonIsPress;
+    // bool mouseLeftButtonIsPress;
     QMap<QString, QVariant> widgetSizeDict;
     bool avoidRepeatSelfFun;
     bool first;
