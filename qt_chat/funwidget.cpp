@@ -93,17 +93,29 @@ void FunWidget::mouseMoveEvent(QMouseEvent *e)
 
 void FunWidget::setSize()
 {
-    // qDebug() << "funLeftSubWidget size:" << funLeftSubWidget->size();
-    // qDebug() << "funMidSubWidget size:" << funMidSubWidget->size();
-    // qDebug() << "funRightSubWidget size:" << funRightSubWidget->size();
+    qDebug() << "FunWidget size:" << size();
+    qDebug() << "funLeftSubWidget geometry:" << funLeftSubWidget->geometry();
+    qDebug() << "funMidSubWidget geometry:" << funMidSubWidget->geometry();
+    qDebug() << "funRightSubWidget geometry:" << funRightSubWidget->geometry();
+    qDebug() << "funLeftSubHLayout contentsmargins:" << funLeftSubHLayout->contentsMargins();
+    qDebug() << "funMidSubHLayout contentsmargins:" << funMidSubHLayout->contentsMargins();
+    qDebug() << "funRightSubHLayout contentsmargins:" << funRightSubHLayout->contentsMargins();
+    qDebug() << "chatRecordsButton geometry:" << chatRecordsButton->geometry();
+    qDebug() << "titleLabel geometry:" << titleLabel->geometry();
+    qDebug() << "newChatButton geometry:" << newChatButton->geometry();
     int side = (width() - funMidSubWidget->width()) / 2;
     funLeftSubWidget->resize(side, funLeftSubWidget->height());
     funRightSubWidget->resize(side, funRightSubWidget->height());
-    // qDebug() << "funRightSubHLayout contentsmargins:" << funRightSubHLayout->contentsMargins();
-    // qDebug() << "FunWidget size:" << size();
-    // qDebug() << "funLeftSubWidget size:" << funLeftSubWidget->size();
-    // qDebug() << "funMidSubWidget size:" << funMidSubWidget->size();
-    // qDebug() << "funRightSubWidget size:" << funRightSubWidget->size();
+    qDebug() << "FunWidget size:" << size();
+    qDebug() << "funLeftSubWidget geometry:" << funLeftSubWidget->geometry();
+    qDebug() << "funMidSubWidget geometry:" << funMidSubWidget->geometry();
+    qDebug() << "funRightSubWidget geometry:" << funRightSubWidget->geometry();
+    qDebug() << "funLeftSubHLayout contentsmargins:" << funLeftSubHLayout->contentsMargins();
+    qDebug() << "funMidSubHLayout contentsmargins:" << funMidSubHLayout->contentsMargins();
+    qDebug() << "funRightSubHLayout contentsmargins:" << funRightSubHLayout->contentsMargins();
+    qDebug() << "chatRecordsButton geometry:" << chatRecordsButton->geometry();
+    qDebug() << "titleLabel geometry:" << titleLabel->geometry();
+    qDebug() << "newChatButton geometry:" << newChatButton->geometry();
 }
 
 void FunWidget::saveWidgetSize()

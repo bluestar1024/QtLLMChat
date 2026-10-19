@@ -1,6 +1,6 @@
 QT       += core gui 3dcore network sql
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets quickwidgets
 
 CONFIG += c++11
 
