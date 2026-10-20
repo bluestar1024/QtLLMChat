@@ -6,8 +6,6 @@
 #include <QtGui/QMouseEvent>
 #include <QtCore/QEvent>
 #include <QtCore/QPoint>
-#include <QtGui/QFont>
-#include <QtGui/QFontDatabase>
 #include <QtWidgets/QToolTip>
 
 // extern const QString fontFilePath;

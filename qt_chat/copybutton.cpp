@@ -42,18 +42,8 @@ void CopyButton::mouseReleaseEvent(QMouseEvent *e)
 bool CopyButton::event(QEvent *e)
 {
     if (e->type() == QEvent::ToolTip) {
-        static int fontId = -1;
-        static QString families;
-        if (fontId == -1) {
-            fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
-            if (fontId != -1) {
-                families = QFontDatabase::applicationFontFamilies(fontId).value(0);
-            }
-        }
-        if (!families.isEmpty()) {
-            QFont font(families, appContext->buttonFontPointSize());
-            QToolTip::setFont(font);
-        }
+        // 提示字体由 MainWindow::applyToolTipFont 统一设置（像素字号），
+        // 此处不可再 setFont(pointSize)，否则提示框尺寸会大于文字所需尺寸
         QToolTip::showText(mapToGlobal(tipStartPos), tipText, this);
     }
     return QPushButton::event(e);

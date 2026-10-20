@@ -49,25 +49,8 @@ void TitleButton::mouseReleaseEvent(QMouseEvent *event)
 bool TitleButton::event(QEvent *event)
 {
     if (event->type() == QEvent::ToolTip) {
-        static bool fontLoaded = false;
-        static QString fontFamily;
-
-        if (!fontLoaded) {
-            int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
-            if (fontId != -1) {
-                QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
-                if (!fontFamilies.isEmpty()) {
-                    fontFamily = fontFamilies.first();
-                    fontLoaded = true;
-                }
-            }
-        }
-
-        if (!fontFamily.isEmpty()) {
-            QFont font(fontFamily, appContext->buttonFontPointSize());
-            QToolTip::setFont(font);
-        }
-
+        // 提示字体由 MainWindow::applyToolTipFont 统一设置（像素字号），
+        // 此处不可再 setFont(pointSize)，否则提示框尺寸会大于文字所需尺寸
         QToolTip::showText(mapToGlobal(tipStartPos), tipText, this);
     }
 

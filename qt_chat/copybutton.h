@@ -3,8 +3,6 @@
 
 #pragma once
 #include <QtWidgets/QPushButton>
-#include <QtGui/QFont>
-#include <QtGui/QFontDatabase>
 #include <QtGui/QClipboard>
 #include <QtWidgets/QToolTip>
 #include <QtCore/QEvent>

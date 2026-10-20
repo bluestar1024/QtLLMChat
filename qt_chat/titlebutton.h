@@ -6,8 +6,6 @@
 #include <QtGui/QMouseEvent>
 #include <QtCore/QEvent>
 #include <QtWidgets/QToolTip>
-#include <QtGui/QFontDatabase>
-#include <QtGui/QFont>
 #include <QtCore/QPoint>
 
 class AppContext;

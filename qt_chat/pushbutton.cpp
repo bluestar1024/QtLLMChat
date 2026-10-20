@@ -26,20 +26,9 @@ void PushButton::mouseReleaseEvent(QMouseEvent *e)
 bool PushButton::event(QEvent *e)
 {
     if (e->type() == QEvent::ToolTip) {
-        static bool fontLoaded = false;
-        static QFont customFont;
-        if (!fontLoaded) {
-            int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
-            if (fontId != -1) {
-                QStringList families = QFontDatabase::applicationFontFamilies(fontId);
-                if (!families.isEmpty()) {
-                    customFont = QFont(families.at(0), appContext->buttonFontPointSize());
-                    fontLoaded = true;
-                }
-            }
-        }
-        if (fontLoaded)
-            QToolTip::setFont(customFont);
+        // 提示字体由 MainWindow::applyToolTipFont 统一设置（像素字号）；此处
+        // 不可再 setFont(pointSize)，pointSize 的度量与绘制按不同屏 DPI 换算，
+        // 会使提示框尺寸大于文字所需尺寸
         QToolTip::showText(mapToGlobal(tipStartPos), tipText, this);
     }
     return QPushButton::event(e);

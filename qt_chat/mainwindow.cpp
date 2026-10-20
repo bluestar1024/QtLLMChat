@@ -3,6 +3,7 @@
 #include <QtWebEngineCore/QWebEngineProfile>
 #include <QtQuickWidgets/QQuickWidget>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QToolTip>
 #include <QtGui/QFont>
 #include <QDebug>
 #include <QPointer>
@@ -213,6 +214,12 @@ MainWindow::MainWindow(QWidget *parent)
     messageWidgetList.clear();
     lastScreen = curScreen = screen();
     initDpi = lastDpi = curDpi = curScreen->logicalDotsPerInch();
+    // 提示字体用像素字号：pointSize 的度量和绘制分别按不同屏的 DPI 换算，
+    // 跨 DPI 屏时会使提示框大于文字所需尺寸；像素字号与 DPI 无关，度量与
+    // 绘制始终一致（像素值仍需按当前屏 DPI 缩放，视觉字号才与按钮文字匹配）
+    appContext->setButtonFontPixelSize(
+            std::ceil(appContext->buttonFontPointSize() * (curDpi / 72)));
+    applyToolTipFont();
     thinkExpandedList.clear();
     thinkTimeLengthList.clear();
     // lastNormalGeometry = geometry();
@@ -346,6 +353,19 @@ void MainWindow::applyDWMShadow()
     //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
     //                      | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 #endif
+}
+
+void MainWindow::applyToolTipFont()
+{
+    // QTipLabel 是 QLabel 子类：sizeHint 由 QFontMetrics 按应用字体的 DPI 解析，
+    // 而提示窗口按自己所在屏的 DPI 绘制文字。若字体带 pointSize，两者换算出的
+    // 像素数可能不同（本项目关闭高 DPI 缩放，150% 缩放的屏为 144 DPI、
+    // 100% 缩放的屏为 96 DPI），提示框会按 18px/字留白、文字却按 12px/字
+    // 绘制，框明显大于文字；改用像素字号后度量与绘制使用同一字号，框体
+    // 尺寸恰好贴合文字
+    QFont font = QApplication::font();
+    font.setPixelSize(appContext->buttonFontPixelSize());
+    QToolTip::setFont(font);
 }
 
 #ifdef Q_OS_WIN
@@ -1247,6 +1267,9 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
                     std::ceil(appContext->windowFontPointSize() * (curDpi / 72)));
             appContext->setTitleFontPixelSize(
                     std::ceil(appContext->titleFontPointSize() * (curDpi / 72)));
+            appContext->setButtonFontPixelSize(
+                    std::ceil(appContext->buttonFontPointSize() * (curDpi / 72)));
+            applyToolTipFont();
             screenChanged = false;
         }
     }
@@ -1260,6 +1283,9 @@ void MainWindow::onDpiChanged()
     curDpi = curScreen->logicalDotsPerInch();
     appContext->setWindowFontPixelSize(
             std::ceil(appContext->windowFontPointSize() * (curDpi / 72)));
+    appContext->setButtonFontPixelSize(
+            std::ceil(appContext->buttonFontPointSize() * (curDpi / 72)));
+    applyToolTipFont();
     isDpiChanged = true;
 }
 

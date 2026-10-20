@@ -4,8 +4,6 @@
 #pragma once
 #include <QtWidgets/QPushButton>
 #include <QtCore/QEvent>
-#include <QtGui/QFont>
-#include <QtGui/QFontDatabase>
 #include <QtWidgets/QToolTip>
 #include <QtCore/QPoint>
 

@@ -86,6 +86,9 @@ private:
     void chatRecordsWidgetInit();
     void checkGraphicsBackend();
     void applyDWMShadow();
+    // 按当前屏 DPI 换算的像素字号应用 QToolTip 提示字体（像素字号不随 DPI
+    // 变化，保证提示框 sizeHint 与文字绘制使用同一字号，框体恰好贴合文字）
+    void applyToolTipFont();
 #ifdef Q_OS_WIN
     // 取当前原生窗口句柄：仅当平台窗口已创建完成时返回有效句柄，否则返回
     // nullptr；不做任何创建动作（对比 winId() 会触发窗口创建——在窗口创建

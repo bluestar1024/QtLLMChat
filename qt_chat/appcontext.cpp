@@ -18,6 +18,7 @@ AppContext::AppContext()
       titleFontPointSize_(14),
       titleFontPixelSize_(28),
       buttonFontPointSize_(9),
+      buttonFontPixelSize_(18),
       textEditFullBGColor_(QColor(224, 224, 224)),
       textEditFullBGTColor_(QColor(224, 224, 224, 0)),
       textEditFullBColor_(QColor(100, 100, 100)),
@@ -139,6 +140,16 @@ void AppContext::setTitleFontPixelSize(int size)
 int AppContext::buttonFontPointSize() const
 {
     return buttonFontPointSize_;
+}
+
+int AppContext::buttonFontPixelSize() const
+{
+    return buttonFontPixelSize_;
+}
+
+void AppContext::setButtonFontPixelSize(int size)
+{
+    buttonFontPixelSize_ = size;
 }
 
 const QColor &AppContext::textEditFullBGColor() const

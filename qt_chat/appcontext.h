@@ -46,6 +46,13 @@ public:
     int titleFontPixelSize() const;
     void setTitleFontPixelSize(int size);
     int buttonFontPointSize() const;
+    // QToolTip 提示文字的字号（像素）：pointSize 字体的度量按主屏 DPI 解析，
+    // 提示窗口却按自己所在屏的 DPI 绘制，跨 DPI 屏时两者不一致（本项目关闭了
+    // 高 DPI 缩放，150% 缩放的屏为 144 DPI、100% 缩放的屏为 96 DPI），会导致提示框
+    // 尺寸按 18px/字算、文字却按 12px/字画，出现"框远大于文字"；像素字号不随
+    // DPI 变化，度量与绘制始终一致
+    int buttonFontPixelSize() const;
+    void setButtonFontPixelSize(int size);
 
     // textEditFull 配色（只读）
     const QColor &textEditFullBGColor() const;
@@ -89,6 +96,7 @@ private:
     int titleFontPointSize_;
     int titleFontPixelSize_;
     int buttonFontPointSize_;
+    int buttonFontPixelSize_;
 
     QColor textEditFullBGColor_;
     QColor textEditFullBGTColor_;
