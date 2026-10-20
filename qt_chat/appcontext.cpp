@@ -1,7 +1,12 @@
 #include "appcontext.h"
 
 #include <QtGui/QFontDatabase>
+#include <QtGui/QScreen>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QToolTip>
 #include <QtWebEngineCore/QWebEngineProfile>
+
+#include <cmath>
 
 AppContext::AppContext()
     : imagesDir_(":/images"),
@@ -147,9 +152,17 @@ int AppContext::buttonFontPixelSize() const
     return buttonFontPixelSize_;
 }
 
-void AppContext::setButtonFontPixelSize(int size)
+void AppContext::applyToolTipFontForScreen(QScreen *screen)
 {
-    buttonFontPixelSize_ = size;
+    // 字号必须按提示窗口所在屏的 DPI 换算：QTipLabel 的 sizeHint 与文字绘制
+    // 若使用 pointSize，会分别按应用字体 DPI 和窗口所在屏 DPI 解析，跨 DPI
+    // 屏时算出的框体大于实际绘制的文字；像素字号与 DPI 无关，度量与绘制
+    // 始终一致，提示框尺寸恰好贴合文字
+    const qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
+    buttonFontPixelSize_ = std::ceil(buttonFontPointSize_ * dpi / 72);
+    QFont font = QApplication::font();
+    font.setPixelSize(buttonFontPixelSize_);
+    QToolTip::setFont(font);
 }
 
 const QColor &AppContext::textEditFullBGColor() const
