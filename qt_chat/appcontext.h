@@ -92,8 +92,8 @@ private:
 
     QColor textEditFullBGColor_;
     QColor textEditFullBGTColor_;
-    QColor textEditFullBTColor_;
     QColor textEditFullBColor_;
+    QColor textEditFullBTColor_;
 
     QString initBaseUrl_;
     QString initApiKey_;

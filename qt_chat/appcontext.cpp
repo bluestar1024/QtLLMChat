@@ -20,8 +20,8 @@ AppContext::AppContext()
       buttonFontPointSize_(9),
       textEditFullBGColor_(QColor(224, 224, 224)),
       textEditFullBGTColor_(QColor(224, 224, 224, 0)),
-      textEditFullBTColor_(QColor(100, 100, 100)),
-      textEditFullBColor_(QColor(100, 100, 100, 0)),
+      textEditFullBColor_(QColor(100, 100, 100)),
+      textEditFullBTColor_(QColor(100, 100, 100, 0)),
       initBaseUrl_("http://127.0.0.1:11434/v1"),
       initApiKey_("EMPTY"),
       initModel_("deepseek-r1:1.5b"),
@@ -151,14 +151,14 @@ const QColor &AppContext::textEditFullBGTColor() const
     return textEditFullBGTColor_;
 }
 
-const QColor &AppContext::textEditFullBTColor() const
-{
-    return textEditFullBTColor_;
-}
-
 const QColor &AppContext::textEditFullBColor() const
 {
     return textEditFullBColor_;
+}
+
+const QColor &AppContext::textEditFullBTColor() const
+{
+    return textEditFullBTColor_;
 }
 
 const QString &AppContext::initBaseUrl() const
