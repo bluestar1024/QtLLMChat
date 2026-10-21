@@ -156,10 +156,12 @@ int AppContext::buttonFontPixelSize() const
 
 void AppContext::applyToolTipFontForScreen(QScreen *screen)
 {
-    // 字号必须按提示窗口所在屏的 DPI 换算：QTipLabel 的 sizeHint 与文字绘制
-    // 若使用 pointSize，会分别按应用字体 DPI 和窗口所在屏 DPI 解析，跨 DPI
-    // 屏时算出的框体大于实际绘制的文字；像素字号与 DPI 无关，度量与绘制
-    // 始终一致，提示框尺寸恰好贴合文字
+    // 字号必须按提示窗口所在屏的 DPI 换算：pointSize 是磅值，换算成像素要
+    // 乘 DPI——QFontMetrics/QLabel::sizeHint 度量时用字体对象自身的 DPI 基准
+    // （QFont::dpi()，默认跟随应用字体所在屏，本程序启动时主屏为 144），
+    // 提示窗口绘制时却按窗口实际所在屏的 DPI（副屏为 96）：同一 9pt 字体
+    // 一边按 18px/字算框体、一边按 12px/字画文字，框远大于文字；像素字号
+    // 不随 DPI 变化，度量与绘制始终一致，提示框尺寸恰好贴合文字
     const qreal dpi = screen ? screen->logicalDotsPerInch() : 96.0;
     buttonFontPixelSize_ = std::ceil(buttonFontPointSize_ * dpi / 72);
     QFont font = QApplication::font();
