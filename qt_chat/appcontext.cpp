@@ -1,6 +1,8 @@
 #include "appcontext.h"
 
 #include <QtGui/QFontDatabase>
+#include <QtGui/QFontMetrics>
+#include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QToolTip>
@@ -163,6 +165,31 @@ void AppContext::applyToolTipFontForScreen(QScreen *screen)
     QFont font = QApplication::font();
     font.setPixelSize(buttonFontPixelSize_);
     QToolTip::setFont(font);
+}
+
+QPoint AppContext::toolTipPos(const QRect &buttonGlobalRect, const QString &text) const
+{
+    // 提示尺寸：QTipLabel 是 QLabel（AlignLeft、margin=1、indent=1），并应用
+    // 了 QToolTip 样式表，宽度 = 文本 advance + 11（两倍 margin + indent + 样式表
+    // 内容区，实测 96/144 DPI 下均为 11），高度 = boundingRect 高 + 2*margin
+    QFontMetrics fm(QToolTip::font());
+    const QRect textRect = fm.boundingRect(0, 0, -1, 2000,
+                                           Qt::AlignLeft | Qt::TextSingleLine, text);
+    const int tipWidth = fm.horizontalAdvance(text) + 11;
+    const int tipHeight = textRect.height() + 2;
+    // 光标高度：Windows 默认箭头光标高 16px@96dpi，随屏 DPI 线性缩放
+    const QScreen *tipScreen = QGuiApplication::screenAt(buttonGlobalRect.topLeft());
+    const qreal dpi = tipScreen ? tipScreen->logicalDotsPerInch() : 96.0;
+    const int cursorHeight = qRound(16.0 * dpi / 96.0);
+    // 提示底边与按钮顶边的间隙
+    constexpr int gap = 2;
+    // 水平：QToolTip 内部会把传入位置再偏移 2，先减去该偏移，再让提示框
+    // 水平中心与按钮水平中心重合，使提示相对按钮左右对称
+    const int centerX = buttonGlobalRect.left() + buttonGlobalRect.width() / 2;
+    const int x = centerX - tipWidth / 2 - 2;
+    // 竖直：补偿光标高度后提示底边落在按钮顶边上方 gap 处
+    const int y = buttonGlobalRect.top() - (cursorHeight + tipHeight + gap);
+    return QPoint(x, y);
 }
 
 const QColor &AppContext::textEditFullBGColor() const

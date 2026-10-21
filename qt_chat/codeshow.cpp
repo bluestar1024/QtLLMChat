@@ -55,7 +55,7 @@ void CodeShow::setupUI()
     topSubRightWidget->setFixedHeight(topHeight);
 
     qDebug() << "CodeShow setupUI ing2" << this;
-    toggleThemeButton = new PushButton(appContext, "日间主题", 15, 35);
+    toggleThemeButton = new PushButton(appContext, "日间主题");
     toggleThemeButton->setFixedSize(topHeight - 10, topHeight - 10);
     lightThemeImagesPath = appContext->imagesDir() + "/light_theme.png";
     darkThemeImagesPath = appContext->imagesDir() + "/dark_theme.png";
@@ -65,7 +65,7 @@ void CodeShow::setupUI()
     connect(toggleThemeButton, &QPushButton::clicked, this, &CodeShow::toggleThemeStyle);
 
     qDebug() << "CodeShow setupUI ing3" << this;
-    wordWrapButton = new PushButton(appContext, "折叠成单行", 15, 35);
+    wordWrapButton = new PushButton(appContext, "折叠成单行");
     wordWrapButton->setFixedSize(topHeight - 10, topHeight - 10);
     lightWordWrapImagesPath = appContext->imagesDir() + "/light_word_wrap.png";
     lightSingleLineImagesPath = appContext->imagesDir() + "/light_single_line.png";
@@ -77,7 +77,7 @@ void CodeShow::setupUI()
     connect(wordWrapButton, &QPushButton::clicked, this, &CodeShow::setLineWordWrapMode);
 
     qDebug() << "CodeShow setupUI ing4" << this;
-    codeCopyButton = new PushButton(appContext, "复制代码", 15, 35);
+    codeCopyButton = new PushButton(appContext, "复制代码");
     codeCopyButton->setFixedSize(topHeight - 10, topHeight - 10);
     lightCodeCopyImagesPath = appContext->imagesDir() + "/light_code_copy.png";
     darkCodeCopyImagesPath = appContext->imagesDir() + "/dark_code_copy.png";

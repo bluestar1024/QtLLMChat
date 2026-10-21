@@ -22,7 +22,7 @@ LineEdit::LineEdit(AppContext *appContext, QWidget *parent)
         }
     }
 
-    searchButton = new PushButton(appContext, "搜索", 5, 35, this);
+    searchButton = new PushButton(appContext, "搜索", this);
     searchButton->setFixedSize(32, 32);
     QString searchImagePath = appContext->imagesDir() + "/search.png";
     searchButton->setIcon(QIcon(searchImagePath));

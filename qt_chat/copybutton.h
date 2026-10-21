@@ -6,7 +6,6 @@
 #include <QtGui/QClipboard>
 #include <QtWidgets/QToolTip>
 #include <QtCore/QEvent>
-#include <QtCore/QPoint>
 #include <QtWidgets/QApplication>
 
 // extern const QString fontFilePath;
@@ -19,8 +18,8 @@ class CopyButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit CopyButton(AppContext *appContext, const QString &tipText = "", int tipOffsetX = 10,
-                        int tipOffsetY = 40, QWidget *parent = nullptr);
+    explicit CopyButton(AppContext *appContext, const QString &tipText = "",
+                        QWidget *parent = nullptr);
     ~CopyButton();
 
 protected:
@@ -33,7 +32,6 @@ private:
 
     AppContext *appContext;
     QString tipText;
-    QPoint tipStartPos;
 };
 
 #endif // COPYBUTTON_H

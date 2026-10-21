@@ -5,7 +5,6 @@
 #include <QtWidgets/QPushButton>
 #include <QtCore/QEvent>
 #include <QtWidgets/QToolTip>
-#include <QtCore/QPoint>
 
 // extern const QString fontFilePath;
 // extern const int buttonFontPointSize;
@@ -16,8 +15,8 @@ class SendButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit SendButton(AppContext *appContext, const QString &tipText = "", int tipOffsetX = 10,
-                        int tipOffsetY = 40, QWidget *parent = nullptr);
+    explicit SendButton(AppContext *appContext, const QString &tipText = "",
+                        QWidget *parent = nullptr);
     ~SendButton();
 
 protected:
@@ -26,7 +25,6 @@ protected:
 private:
     AppContext *appContext;
     QString tipText;
-    QPoint tipStartPos;
 };
 
 #endif // SENDBUTTON_H

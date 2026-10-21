@@ -77,7 +77,7 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
     qDebug() << "MessageWidget funWidget:" << funWidget;
     funHLayout = new QHBoxLayout(funWidget);
     funHLayout->setContentsMargins(5, 5, 5, 5);
-    copyButton = new CopyButton(this->appContext, "复制", 15, 35);
+    copyButton = new CopyButton(this->appContext, "复制");
     qDebug() << "this:" << this << "qobject_cast<MessageWidget *>(copyButton->parent()):"
              << qobject_cast<MessageWidget *>(copyButton->parent());
     copyButton->setFixedSize(16, 16);
@@ -96,7 +96,7 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
     copyButton->hide();
 
     if (!isUser) {
-        renewResponseButton = new PushButton(this->appContext, "重新生成响应", 25, 35);
+        renewResponseButton = new PushButton(this->appContext, "重新生成响应");
         renewResponseButton->setFixedSize(16, 16);
         renewResponseImagesPath = this->appContext->imagesDir() + "/renewResponse.png";
         renewResponseHoverImagesPath = this->appContext->imagesDir() + "/renewResponse_hover.png";

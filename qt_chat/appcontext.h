@@ -4,6 +4,8 @@
 
 #pragma once
 #include <QtCore/QString>
+#include <QtCore/QPoint>
+#include <QtCore/QRect>
 #include <QtGui/QColor>
 
 class QWebEngineProfile;
@@ -58,6 +60,13 @@ public:
     // 系统放到与主屏 DPI 不同的屏上，只在 DPI 变化时更新会沿用主屏算出的
     // 偏大字号
     void applyToolTipFontForScreen(QScreen *screen);
+    // 计算 QToolTip 的显示位置（QToolTip::showText 的 pos 参数）：水平使提
+    // 示框中心与按钮中心对齐（相对按钮左右对称），竖直使提示底边位于按钮
+    // 顶边上方固定间隙处。QToolTip 内部会把传入位置再偏移 (2, 光标高度)
+    // （Windows 光标高度随屏 DPI 变化：96 DPI 为 16、144 DPI 为 24），提示
+    // 尺寸也随字号变化，均按实际值补偿，避免高 DPI 屏上提示下探覆盖按钮
+    // 与鼠标
+    QPoint toolTipPos(const QRect &buttonGlobalRect, const QString &text) const;
 
     // textEditFull 配色（只读）
     const QColor &textEditFullBGColor() const;
