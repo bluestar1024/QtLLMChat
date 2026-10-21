@@ -4,7 +4,7 @@
 FunWidget::FunWidget(AppContext *appContext, QWidget *parent)
     : QWidget(parent), appContext(appContext)
 {
-    chatRecordsButton = new PushButton(this->appContext, "聊天历史", 15, 35);
+    chatRecordsButton = new PushButton(this->appContext, "聊天历史");
     chatRecordsButton->setFixedSize(44, 44);
     chatRecordsImagesPath = QDir(this->appContext->imagesDir()).filePath("chat_records.png");
     chatRecordsButton->setIcon(QIcon(chatRecordsImagesPath));
@@ -46,7 +46,7 @@ FunWidget::FunWidget(AppContext *appContext, QWidget *parent)
     funMidSubHLayout->addWidget(titleLabel);
     funMidSubHLayout->setAlignment(Qt::AlignCenter);
     funMidSubHLayout->setContentsMargins(0, 0, 0, 0);
-    newChatButton = new PushButton(this->appContext, "新聊天", 10, 35);
+    newChatButton = new PushButton(this->appContext, "新聊天");
     newChatButton->setFixedSize(44, 44);
     newChatImagesPath = QDir(this->appContext->imagesDir()).filePath("new_chat.png");
     newChatButton->setIcon(QIcon(newChatImagesPath));

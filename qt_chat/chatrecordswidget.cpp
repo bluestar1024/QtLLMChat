@@ -32,7 +32,7 @@ ChatRecordsWidget::ChatRecordsWidget(AppContext *appContext, QWidget *parent)
         }
     }
 
-    settingButton = new PushButton(this->appContext, "设置", 5, 35);
+    settingButton = new PushButton(this->appContext, "设置");
     settingButton->setFixedSize(44, 44);
     settingImagesPath = this->appContext->imagesDir() + "/setting.png";
     settingButton->setIcon(QIcon(settingImagesPath));
@@ -80,7 +80,7 @@ ChatRecordsWidget::ChatRecordsWidget(AppContext *appContext, QWidget *parent)
 
     lineEdit = new LineEdit(appContext);
 
-    clearAllButton = new PushButton(appContext, "删除所有记录", 25, 35);
+    clearAllButton = new PushButton(appContext, "删除所有记录");
     clearAllButton->setFixedSize(32, 32);
     clearAllButton->setIconSize(QSize(30, 30));
     clearAllImagesPath = appContext->imagesDir() + "/clearAll.png";

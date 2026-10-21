@@ -20,7 +20,7 @@ TextEdit::TextEdit(AppContext *appContext, QWidget *parent)
         }
     }
     setPlaceholderText("按Shift+Enter换行、按Enter提交");
-    sendButton = new SendButton(this->appContext, "发送", 10, 40);
+    sendButton = new SendButton(this->appContext, "发送");
     sendButton->setFixedSize(30, 30);
     sendButton->setIconSize(QSize(30, 30));
     gLayout = new QGridLayout();

@@ -103,7 +103,7 @@ void TitleWidget::setupLeftWidget()
 
 void TitleWidget::setupRightWidget()
 {
-    minButton = new TitleButton(appContext, "最小化", 10, 35);
+    minButton = new TitleButton(appContext, "最小化");
     minButton->setFixedSize(50, 40);
     QString minImagePath = appContext->imagesDir() + "/min.png";
     minButton->setIcon(QIcon(minImagePath));
@@ -112,7 +112,7 @@ void TitleWidget::setupRightWidget()
                              "QPushButton:hover { background: #808080; }");
     connect(minButton, &QPushButton::clicked, this, &TitleWidget::minimizeClicked);
 
-    maxButton = new TitleButton(appContext, "最大化", 10, 35);
+    maxButton = new TitleButton(appContext, "最大化");
     maxButton->setFixedSize(50, 40);
     maxImagePath = appContext->imagesDir() + "/max.png";
     normalImagePath = appContext->imagesDir() + "/normal.png";
@@ -122,7 +122,7 @@ void TitleWidget::setupRightWidget()
                              "QPushButton:hover { background: #808080; }");
     connect(maxButton, &QPushButton::clicked, this, &TitleWidget::maximizeClicked);
 
-    closeButton = new TitleButton(appContext, "关闭", 5, 35);
+    closeButton = new TitleButton(appContext, "关闭");
     closeButton->setFixedSize(50, 40);
     QString closeImagePath = appContext->imagesDir() + "/close.png";
     closeButton->setIcon(QIcon(closeImagePath));
@@ -160,11 +160,9 @@ void TitleWidget::maxButtonToggleIcon(bool isMaxIcon)
     if (isMaxIcon) {
         maxButton->setIcon(QIcon(maxImagePath));
         maxButton->setTipText("最大化");
-        maxButton->setTipOffset(10, 35);
     } else {
         maxButton->setIcon(QIcon(normalImagePath));
         maxButton->setTipText("正常");
-        maxButton->setTipOffset(5, 35);
     }
 }
 

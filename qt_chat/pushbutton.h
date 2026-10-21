@@ -5,9 +5,6 @@
 #include <QtWidgets/QPushButton>
 #include <QtGui/QMouseEvent>
 #include <QtCore/QEvent>
-#include <QtCore/QPoint>
-#include <QtGui/QFont>
-#include <QtGui/QFontDatabase>
 #include <QtWidgets/QToolTip>
 
 // extern const QString fontFilePath;
@@ -19,8 +16,8 @@ class PushButton : public QPushButton
 {
     Q_OBJECT
 public:
-    explicit PushButton(AppContext *appContext, const QString &tipText = "", int tipOffsetX = 10,
-                        int tipOffsetY = 40, QWidget *parent = nullptr);
+    explicit PushButton(AppContext *appContext, const QString &tipText = "",
+                        QWidget *parent = nullptr);
     ~PushButton();
 
     void setTipText(QString tipText);
@@ -34,7 +31,6 @@ protected:
 private:
     AppContext *appContext;
     QString tipText;
-    QPoint tipStartPos;
 };
 
 #endif // PUSHBUTTON_H

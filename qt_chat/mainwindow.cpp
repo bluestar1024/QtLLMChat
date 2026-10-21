@@ -213,6 +213,9 @@ MainWindow::MainWindow(QWidget *parent)
     messageWidgetList.clear();
     lastScreen = curScreen = screen();
     initDpi = lastDpi = curDpi = curScreen->logicalDotsPerInch();
+    // 提示字体按窗口所在屏的 DPI 换算为像素字号（详见 AppContext::
+    // applyToolTipFontForScreen）；按钮显示提示前还会按自身所在屏再校正
+    applyToolTipFont();
     thinkExpandedList.clear();
     thinkTimeLengthList.clear();
     // lastNormalGeometry = geometry();
@@ -346,6 +349,13 @@ void MainWindow::applyDWMShadow()
     //              SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER
     //                      | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 #endif
+}
+
+void MainWindow::applyToolTipFont()
+{
+    // 提示字体按窗口实际所在屏的 DPI 换算为像素字号：构造时 screen() 可能
+    // 仍是主屏，而窗口实际显示在另一块 DPI 不同的屏上，沿用主屏字号会偏大
+    appContext->applyToolTipFontForScreen(screen());
 }
 
 #ifdef Q_OS_WIN
@@ -1247,6 +1257,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
                     std::ceil(appContext->windowFontPointSize() * (curDpi / 72)));
             appContext->setTitleFontPixelSize(
                     std::ceil(appContext->titleFontPointSize() * (curDpi / 72)));
+            applyToolTipFont();
             screenChanged = false;
         }
     }
@@ -1260,6 +1271,7 @@ void MainWindow::onDpiChanged()
     curDpi = curScreen->logicalDotsPerInch();
     appContext->setWindowFontPixelSize(
             std::ceil(appContext->windowFontPointSize() * (curDpi / 72)));
+    applyToolTipFont();
     isDpiChanged = true;
 }
 

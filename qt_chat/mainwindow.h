@@ -86,6 +86,9 @@ private:
     void chatRecordsWidgetInit();
     void checkGraphicsBackend();
     void applyDWMShadow();
+    // 按窗口所在屏 DPI 换算的像素字号应用 QToolTip 提示字体（提示显示前
+    // 按钮还会按自身所在屏再校正一次，避免初始化时沿用主屏 DPI 使字号偏大）
+    void applyToolTipFont();
 #ifdef Q_OS_WIN
     // 取当前原生窗口句柄：仅当平台窗口已创建完成时返回有效句柄，否则返回
     // nullptr；不做任何创建动作（对比 winId() 会触发窗口创建——在窗口创建

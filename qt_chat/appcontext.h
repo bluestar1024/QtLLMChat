@@ -4,9 +4,12 @@
 
 #pragma once
 #include <QtCore/QString>
+#include <QtCore/QPoint>
+#include <QtCore/QRect>
 #include <QtGui/QColor>
 
 class QWebEngineProfile;
+class QScreen;
 
 // 应用上下文：收编原 globalvariables.h 中的全部全局变量，
 // 由 MainWindow 创建并通过构造函数逐层注入到各控件
@@ -46,6 +49,24 @@ public:
     int titleFontPixelSize() const;
     void setTitleFontPixelSize(int size);
     int buttonFontPointSize() const;
+    // QToolTip 提示文字的字号（像素）：pointSize 字体的度量按应用字体 DPI
+    // 解析，提示窗口却按自己所在屏的 DPI 绘制，跨 DPI 屏时两者不一致（本项
+    // 目关闭高 DPI 缩放，150% 缩放的屏为 144 DPI、100% 缩放的屏为 96 DPI），
+    // 会导致提示框尺寸按 18px/字算、文字却按 12px/字画，出现"框远大于文字"；
+    // 像素字号不随 DPI 变化，度量与绘制始终一致
+    int buttonFontPixelSize() const;
+    // 按提示所在屏的 DPI 应用 QToolTip 字体：字号以像素值与该屏 DPI 换算，
+    // 保证度量与绘制使用同一字号。每次显示提示前调用：初始化时窗口可能被
+    // 系统放到与主屏 DPI 不同的屏上，只在 DPI 变化时更新会沿用主屏算出的
+    // 偏大字号
+    void applyToolTipFontForScreen(QScreen *screen);
+    // 计算 QToolTip 的显示位置（QToolTip::showText 的 pos 参数）：水平使提
+    // 示框中心与按钮中心对齐（相对按钮左右对称），竖直使提示底边位于按钮
+    // 顶边上方固定间隙处。QToolTip 内部会把传入位置再偏移 (2, 光标高度)
+    // （Windows 光标高度随屏 DPI 变化：96 DPI 为 16、144 DPI 为 24），提示
+    // 尺寸也随字号变化，均按实际值补偿，避免高 DPI 屏上提示下探覆盖按钮
+    // 与鼠标
+    QPoint toolTipPos(const QRect &buttonGlobalRect, const QString &text) const;
 
     // textEditFull 配色（只读）
     const QColor &textEditFullBGColor() const;
@@ -89,6 +110,7 @@ private:
     int titleFontPointSize_;
     int titleFontPixelSize_;
     int buttonFontPointSize_;
+    int buttonFontPixelSize_;
 
     QColor textEditFullBGColor_;
     QColor textEditFullBGTColor_;
