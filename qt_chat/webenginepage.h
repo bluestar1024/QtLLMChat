@@ -13,7 +13,7 @@ class WebEnginePage : public QWebEnginePage
 {
     Q_OBJECT
 public:
-    explicit WebEnginePage(QWebEngineProfile *profile, QObject *parent = nullptr);
+    explicit WebEnginePage(QObject *parent = nullptr);
     ~WebEnginePage();
 
 protected:

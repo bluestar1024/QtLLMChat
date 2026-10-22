@@ -8,7 +8,6 @@
 #include <QtCore/QRect>
 #include <QtGui/QColor>
 
-class QWebEngineProfile;
 class QScreen;
 
 // 应用上下文：收编原 globalvariables.h 中的全部全局变量，
@@ -24,16 +23,10 @@ public:
     const QString &configFilePath() const;
     const QString &mathjaxScriptPath() const;
     const QString &chatRecordsDir() const;
-    const QString &webEngineCacheDir() const;
 
     // 代码主题文件（可读写，CodeEditor 切换主题时写入）
     const QString &codeThemeFilePath() const;
     void setCodeThemeFilePath(const QString &path);
-
-    // WebEngine 共享 profile：指针可写（仅 MainWindow 初始化时写入一次），
-    // 内容只读（本类不暴露任何修改 profile 内容的接口）
-    QWebEngineProfile *webEngineProfile() const;
-    void setWebEngineProfile(QWebEngineProfile *profile);
 
     // 应用字体族名：首次调用时注册字体文件并缓存结果，之后直接复用；
     // 字体不可用时返回空串（调用方应跳过 setFont）。控件在会话切换/窗口重建中
@@ -97,8 +90,6 @@ private:
     QString mathjaxScriptPath_;
     QString chatRecordsDir_;
     QString codeThemeFilePath_;
-    QString webEngineCacheDir_;
-    QWebEngineProfile *webEngineProfile_;
 
     // fontFamily() 的懒加载缓存（fontFamilyLoaded_ 标记"已尝试注册"，
     // 字体不可用时 fontFamily_ 保持空串，避免反复重试注册）

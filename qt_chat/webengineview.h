@@ -15,7 +15,6 @@
 #include <QtWidgets/QScrollBar>
 #include <QtGui/QPointingDevice>
 
-class AppContext;
 class TextShow;
 class MessageWidget;
 
@@ -23,7 +22,7 @@ class WebEngineView : public QWebEngineView
 {
     Q_OBJECT
 public:
-    explicit WebEngineView(AppContext *appContext, QWidget *parent = nullptr);
+    explicit WebEngineView(QWidget *parent = nullptr);
     ~WebEngineView();
 
     template <typename T>
@@ -40,8 +39,6 @@ protected:
     void childEvent(QChildEvent *e) override;
 
 private:
-    AppContext *appContext;
-
     ListWidget *findListWidget();
 };
 

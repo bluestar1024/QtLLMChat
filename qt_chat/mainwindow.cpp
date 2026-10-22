@@ -51,10 +51,6 @@ MainWindow::MainWindow(QWidget *parent)
                                        "color: white;"
                                        "background: #404040;"
                                        "}"));
-    QWebEngineProfile *profile = new QWebEngineProfile("shared");
-    profile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
-    profile->setCachePath(appContext->webEngineCacheDir());
-    appContext->setWebEngineProfile(profile);
     // ===== 预置隐藏的 RHI 占位控件（消除首个 WebEngineView 加入时的窗口重建） =====
     // 原生窗口由构造函数末尾的 ensureFrameStyle("constructor") 提前创建，Qt 在创建
     // QWidgetWindow 时会评估部件树中是否存在需要 RHI 合成的控件（QQuickWidget 等）
@@ -69,65 +65,19 @@ MainWindow::MainWindow(QWidget *parent)
     QQuickWidget *rhiProbeWidget = new QQuickWidget(this);
     rhiProbeWidget->resize(1, 1);
     rhiProbeWidget->hide();
-    QWebEngineView *dummyView = new QWebEngineView();
-    // dummyView->setPage(new WebEnginePage(sharedProfile, dummyView));
-    WebEnginePage *page = new WebEnginePage(appContext->webEngineProfile(), nullptr); // 无 parent
-    dummyView->setPage(page);
-    connect(
-            dummyView, &QWebEngineView::loadFinished, dummyView,
-            [dummyView]() {
-                qDebug() << "load finished";
-                dummyView->stop();
-                QTimer::singleShot(0, dummyView, [dummyView]() {
-                    if (dummyView->page()) {
-                        dummyView->page()->triggerAction(QWebEnginePage::Stop);
-                    }
-                    QTimer::singleShot(100, dummyView, [dummyView]() {
-                        QWebEnginePage *page = dummyView->page();
-                        dummyView->setPage(nullptr);
-                        if (page) {
-                            delete page;
-                        }
-                        QTimer::singleShot(500, dummyView, [dummyView]() {
-                            delete dummyView;
-                            qDebug() << "cleanup done";
-                        });
-                    });
-                });
-            },
-            Qt::QueuedConnection);
-
-    // connect(
-    //         dummyView, &QWebEngineView::loadFinished, dummyView,
-    //         [dummyView, page]() {
-    //             qDebug() << "load finished, scheduling safe delete";
-    //             dummyView->stop();
-    //             QTimer::singleShot(0, [dummyView, page]() {
-    //                 dummyView->setPage(nullptr);
-    //                 delete page;
-    //                 delete dummyView;
-    //                 qDebug() << "safe delete completed";
-    //             });
-    //         },
-    //         Qt::QueuedConnection);
-
-    // QTimer::singleShot(1000, dummyView, [dummyView]() {
-    //     qDebug() << "delayed delete dummyView";
-    //     QWebEnginePage *page = dummyView->page();
-    //     dummyView->setPage(nullptr);
-    //     delete page;
-    //     dummyView->deleteLater();
-    // });
-
-    // connect(dummyView, &QWebEngineView::loadFinished, this, [dummyView]() {
-    //     qDebug() << "delayed delete dummyView";
-    //     QWebEnginePage *page = dummyView->page();
-    //     dummyView->setPage(nullptr);
-    //     delete page;
-    //     dummyView->deleteLater();
-    // });
-    dummyView->load(QUrl("about:blank"));
-    // connect(dummyView, &QWebEngineView::loadFinished, []() { qDebug() << "dummyView delete"; });
+    // ===== WebEngine 引擎预热（不创建额外 page） =====
+    // 原 dummyView 通过隐藏 QWebEngineView + about:blank 预热，会额外创建一个 page。
+    // 相比这里只初始化 browser 进程，dummyView 还多预热了 GPU 侧（Qt WebEngine 默认
+    // --in-process-gpu，即 browser 进程内的 GPU 线程/GL 上下文，属于全局共享资源）；
+    // 但原实现从未 show()，loadFinished 后立即 stop() 并延迟删除，合成器不会真正渲染，
+    // GPU/首帧初始化未必完成；且 about:blank 与真实页面的 data:/file:// SiteInstance
+    // 不同，renderer 进程大概率不会被后续页面复用，删除后又要重新启动。
+    // 因此这里不建 page，只提前初始化 WebEngineContext（ContentMainRunner、
+    // BrowserTaskExecutor 等），避免额外 WebContents/renderer 的内存与生命周期风险；
+    // 若将来实测首条消息仍明显偏慢，应改为“预热 page 复用为第一个真实页面”，
+    // 而不是创建后丢弃的 dummyView。
+    // 延迟到 singleShot(0) 执行，避免 Chromium 初始化阻塞主窗口首次显示。
+    QTimer::singleShot(0, qApp, []() { QWebEngineProfile::defaultProfile(); });
 
     setMinimumSize(1110, 795);
     resize(1200, 800);
