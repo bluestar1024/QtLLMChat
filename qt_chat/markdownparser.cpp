@@ -102,6 +102,7 @@ void MarkdownParser::split(const QString &rawText)
     std::vector<QString> blockText;
     size_t ins = 0;
     bool codeFlag = false;
+    int codeLead = 0;
     bool orderedListsFlag = false;
     bool unorderedListFlag = false;
     bool blockQuoteFlag = false;
@@ -115,20 +116,42 @@ void MarkdownParser::split(const QString &rawText)
             ins++;
             continue;
         }
-        if (curr.indexOf("```", 0) == 0 || codeFlag) {
-            if (curr.indexOf("```", 0) == 0 && !codeFlag) {
+        // 带前导空格的代码围栏：列表项内嵌套代码块（如
+        // "   ```python"）由此识别，否则其围栏与代码行会落入普通段落
+        // （渲染出字面 "```"、代码缩进丢失，且列表被围栏行中断）
+        // 列表块内不限制围栏缩进深度（支持嵌套子项内的代码块）；
+        // 非列表上下文与 stripLeadSpaces 一致限 3 个空格
+        const bool inFenceList = orderedListsFlag || unorderedListFlag;
+        int fenceLead = 0;
+        while (fenceLead < curr.size()
+               && (fenceLead < 3 || inFenceList) && curr[fenceLead] == ' ')
+            ++fenceLead;
+        const bool isFence = curr.mid(fenceLead).startsWith("```");
+        if (isFence || codeFlag) {
+            if (isFence && !codeFlag) {
+                // 代码块起始：结束之前的段落/列表块；围栏行剥去前导空格
+                //（块首行须为 "```xxx"，blockParse 据此识别代码块）；
+                // 同时重置列表标记，避免代码块后不同类别的列表行
+                //（如有序列表后的无序子项）混入同一块导致标记丢失
                 if (!blockText.empty()) {
                     rawBlock.push_back(blockText);
                     blockText.clear();
                 }
-            }
-            blockText.push_back(curr);
-            if (curr.indexOf("```", 0) == 0) {
-                if (codeFlag) {
-                    rawBlock.push_back(blockText);
-                    blockText.clear();
-                }
-                codeFlag = !codeFlag;
+                orderedListsFlag = false;
+                unorderedListFlag = false;
+                blockText.push_back(curr.mid(fenceLead));
+                codeLead = fenceLead;
+                codeFlag = true;
+            } else if (isFence) {
+                // 代码块结尾围栏（同样允许缩进）
+                blockText.push_back(curr.mid(fenceLead));
+                rawBlock.push_back(blockText);
+                blockText.clear();
+                codeFlag = false;
+            } else {
+                // 代码块内容行：剥去与围栏一致的前导缩进（列表项缩进），
+                // 保留代码自身的相对缩进
+                blockText.push_back(curr.mid(qMin(fenceLead, codeLead)));
             }
             ins++;
             continue;

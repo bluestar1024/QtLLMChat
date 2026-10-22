@@ -291,7 +291,10 @@ void MessageWidget::buildAiUiImpl()
             thinkCodeShowList[i]->show();
             onSizeFinished();
         }
-        if (!thinkSplitTextList.last().isEmpty()) {
+        // 尾段判断须与上方 ThinkWidget 创建过滤条件（trimmed 非空）一致：尾段为纯空白
+        // （如代码块后跟换行）时没有对应控件，继续添加会重复添加上一段控件（布局错乱）
+        // 或访问空列表崩溃（think 以代码块开头时 thinkTextShowList 为空）
+        if (!thinkSplitTextList.last().trimmed().isEmpty()) {
             thinkBackVLayout->addWidget(thinkTextShowList.last());
             // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
             if (!loop.isRunning()) {
@@ -397,7 +400,9 @@ void MessageWidget::buildAiUiImpl()
             resultCodeShowList[i]->show();
             onSizeFinished();
         }
-        if (!resultSplitTextList.last().isEmpty()) {
+        // 尾段判断须与上方 TextShow 创建过滤条件（trimmed 非空）一致，避免纯空白尾段
+        // 重复添加上一段控件（布局错乱）或访问空列表崩溃（正文以代码块开头时）
+        if (!resultSplitTextList.last().trimmed().isEmpty()) {
             textLayout->addWidget(resultTextShowList.last());
             // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
             if (!loop.isRunning()) {
@@ -1023,7 +1028,9 @@ void MessageWidget::setTextImpl(const QString &text)
                  << thinkTextShowList.size() << j;
         qDebug() << "准备添加最后ThinkWidget";
         if (thinkTextShowListLastLen < thinkTextShowList.size() - 1
-            && !thinkSplitTextList.last().isEmpty()) {
+            // 尾段判断与 ThinkWidget 创建过滤条件（trimmed 非空）一致：纯空白尾段没有
+            // 对应控件，继续添加会重复添加上一段控件或访问空列表崩溃
+            && !thinkSplitTextList.last().trimmed().isEmpty()) {
             // QEventLoop externalLoop, internalLoop;
             // QTimer processTimer;
             // processTimer.setInterval(2);
@@ -1273,7 +1280,9 @@ void MessageWidget::setTextImpl(const QString &text)
             }
         }
         if (resultTextShowListLastLen < resultTextShowList.size() - 1
-            && !resultSplitTextList.last().isEmpty()) {
+            // 尾段判断与 TextShow 创建过滤条件（trimmed 非空）一致：纯空白尾段没有
+            // 对应控件，继续添加会重复添加上一段控件或访问空列表崩溃
+            && !resultSplitTextList.last().trimmed().isEmpty()) {
             // QEventLoop externalLoop, internalLoop;
             // QTimer processTimer;
             // processTimer.setInterval(2);
