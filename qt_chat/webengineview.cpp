@@ -1,11 +1,10 @@
 #include "webengineview.h"
 #include "messagewidget.h"
-#include "appcontext.h"
 
-WebEngineView::WebEngineView(AppContext *appContext, QWidget *parent)
-    : QWebEngineView(parent), appContext(appContext)
+WebEngineView::WebEngineView(QWidget *parent)
+    : QWebEngineView(parent)
 {
-    setPage(new WebEnginePage(this->appContext->webEngineProfile(), this));
+    setPage(new WebEnginePage(this));
     page()->setBackgroundColor(Qt::transparent);
     // 不在构造中触发引擎初始化（原为 load(QUrl())）：此时视图仍是 QWidget 默认尺寸
     // 100x30，渲染视口会被锁定为该尺寸；而控件显示前收不到真实 resize 事件（Qt 对

@@ -48,7 +48,7 @@ ThinkWidget::ThinkWidget(AppContext *appContext, const QString &text,
 
     // 构造时即建立父子链（不依赖后续 addWidget）：控件随父销毁时 view 必然在内；
     // 若视图游离（无父）期间父链被摘除/销毁，view 会以顶层窗口存活并继续产生事件
-    webEngineView = new WebEngineView(this->appContext, this);
+    webEngineView = new WebEngineView(this);
     webEngineView->setMaximumWidth(this->maxWidth);
     connect(webEngineView->page(), &QWebEnginePage::loadFinished, this,
             &ThinkWidget::onPageLoadFinished);

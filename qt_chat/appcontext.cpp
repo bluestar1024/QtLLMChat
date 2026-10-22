@@ -6,7 +6,6 @@
 #include <QtGui/QScreen>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QToolTip>
-#include <QtWebEngineCore/QWebEngineProfile>
 
 #include <cmath>
 
@@ -17,8 +16,6 @@ AppContext::AppContext()
       mathjaxScriptPath_("mathjax/es5/tex-mml-chtml.js"),
       chatRecordsDir_("../../chatrecords/"),
       codeThemeFilePath_(":/config/dark_theme.xml"),
-      webEngineCacheDir_("../../webengine_cache"),
-      webEngineProfile_(nullptr),
       fontFamilyLoaded_(false),
       windowFontPointSize_(10),
       windowFontPixelSize_(20),
@@ -89,11 +86,6 @@ const QString &AppContext::chatRecordsDir() const
     return chatRecordsDir_;
 }
 
-const QString &AppContext::webEngineCacheDir() const
-{
-    return webEngineCacheDir_;
-}
-
 const QString &AppContext::codeThemeFilePath() const
 {
     return codeThemeFilePath_;
@@ -102,16 +94,6 @@ const QString &AppContext::codeThemeFilePath() const
 void AppContext::setCodeThemeFilePath(const QString &path)
 {
     codeThemeFilePath_ = path;
-}
-
-QWebEngineProfile *AppContext::webEngineProfile() const
-{
-    return webEngineProfile_;
-}
-
-void AppContext::setWebEngineProfile(QWebEngineProfile *profile)
-{
-    webEngineProfile_ = profile;
 }
 
 int AppContext::windowFontPointSize() const
