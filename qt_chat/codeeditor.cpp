@@ -9,7 +9,7 @@
 
 CodeEditor::CodeEditor(AppContext *appContext, int maxWidth, QWidget *parent)
     : QTextEdit(parent), appContext(appContext), text(""), lexerName(""), isResetText(false),
-      isDestroying(false)
+      isDestroying(false), highlighter(nullptr)
 {
     // qDebug() << "CodeEditor start" << this;
     setFixedWidth(maxWidth);
@@ -176,6 +176,9 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
         next = highlighters["GLSL"];
     else if (lexer == "lua")
         next = highlighters["LUA"];
+    else if (lexer.isEmpty())
+        // 普通文本段（无语言标识）：不做语法高亮，正文颜色与代码段一致
+        next = highlighters["None"];
     else
         next = highlighters["C++"];
     setHighlighter(next);
@@ -212,6 +215,10 @@ void CodeEditor::highlightCode(const QString &text, const QString &lexer)
 void CodeEditor::setHighlighter(StyleSyntaxHighlighter *high)
 {
     if (highlighter != high) {
+        // 旧高亮器需从文档摘除：切到普通文本段（None）后，若旧高亮器仍附着在
+        // 文档上，会继续按旧语言给新插入的文本着色
+        if (highlighter && highlighter->document() == document())
+            highlighter->setDocument(nullptr);
         highlighter = high;
     }
     if (highlighter && highlighter->document() != document())

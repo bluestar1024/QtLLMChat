@@ -87,6 +87,10 @@ private:
         QString language;
         QString code;
         QString endMarker;
+        // 代码块在原文中的区间 [start, end)：start 指向起始围栏 "```"，
+        // end 指向代码内容之后（含结尾围栏），供调用方按偏移切分原文
+        int start;
+        int end;
     };
 
     void buildUserUi();

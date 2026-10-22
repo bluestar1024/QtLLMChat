@@ -213,21 +213,13 @@ void MessageWidget::buildAiUiImpl()
 
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
-        QString thinkTempText = thinkText;
+        // 按代码块在原文中的偏移切分：普通文本段（language 为空）无法用 "```\n" 反查围栏
+        int thinkTextPos = 0;
         qDebug() << "thinkText:" << thinkText << this;
         for (const auto &codeBlock : thinkCodeBlocks) {
-            int idx = thinkTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
-            thinkSplitTextList.append(thinkTempText.left(idx));
+            thinkSplitTextList.append(thinkText.mid(thinkTextPos, codeBlock.start - thinkTextPos));
+            thinkTextPos = codeBlock.end;
             qDebug() << "codeBlock:" << codeBlock.language << codeBlock.code << codeBlock.endMarker;
-            if (!codeBlock.endMarker.isEmpty())
-                thinkTempText =
-                        thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
-                                          + codeBlock.code.size() + 3);
-            else
-                thinkTempText =
-                        thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
-                                          + codeBlock.code.size());
-            qDebug() << "thinkTempText:" << thinkTempText;
             QPointer<MessageWidget> thinkCodeSelf(this);
             auto *codeShow = new CodeShow(
                     appContext, codeBlock.code, codeBlock.language,
@@ -244,7 +236,7 @@ void MessageWidget::buildAiUiImpl()
             thinkCodeShowList.append(codeShow);
             qDebug() << "append CodeShow";
         }
-        thinkSplitTextList.append(thinkTempText);
+        thinkSplitTextList.append(thinkText.mid(thinkTextPos));
         qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
         for (const auto &splitText : thinkSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
@@ -335,19 +327,13 @@ void MessageWidget::buildAiUiImpl()
     if (!resultText.isEmpty()) {
         auto resultCodeBlocks = extractCodeBlocks(resultText);
         QStringList resultSplitTextList;
-        QString resultTempText = resultText;
+        // 按代码块在原文中的偏移切分：普通文本段（language 为空）无法用 "```\n" 反查围栏
+        int resultTextPos = 0;
         qDebug() << "resultText:" << resultText << this;
         for (const auto &codeBlock : resultCodeBlocks) {
-            int idx = resultTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
-            resultSplitTextList.append(resultTempText.left(idx));
-            if (!codeBlock.endMarker.isEmpty())
-                resultTempText =
-                        resultTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
-                                           + codeBlock.code.size() + 3);
-            else
-                resultTempText =
-                        resultTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
-                                           + codeBlock.code.size());
+            resultSplitTextList.append(
+                    resultText.mid(resultTextPos, codeBlock.start - resultTextPos));
+            resultTextPos = codeBlock.end;
             QPointer<MessageWidget> resultCodeSelf(this);
             auto *codeShow = new CodeShow(
                     appContext, codeBlock.code, codeBlock.language,
@@ -360,7 +346,7 @@ void MessageWidget::buildAiUiImpl()
             codeShow->connectCodeCopyButtonClick(copyFun);
             resultCodeShowList.append(codeShow);
         }
-        resultSplitTextList.append(resultTempText);
+        resultSplitTextList.append(resultText.mid(resultTextPos));
         for (const auto &splitText : resultSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
                 QPointer<MessageWidget> resultTextSelf(this);
@@ -451,21 +437,24 @@ void MessageWidget::buildAiUiImpl()
 QList<MessageWidget::CodeBlock> MessageWidget::extractCodeBlocks(const QString &text)
 {
     QList<CodeBlock> list;
-    QRegularExpression re("```(\\w+)\\n(.*?)(```|$)",
+    // 语言标识允许为空："```\n...```" 视为普通文本段（language 为空串，渲染时不做语法高亮）。
+    // 起始围栏限定在行首，避免把未识别语言的围栏（如 ```json）的结尾 "```" 误判为新段起始
+    QRegularExpression re("(?:^|\\n)```(\\w*)\\n(.*?)(?:```|$)",
                           QRegularExpression::DotMatchesEverythingOption);
-    // QRegularExpression re("```(\\w+)\\n(.*)(?=(```|$))(\\3)?",
-    //                       QRegularExpression::DotMatchesEverythingOption);
-    // QRegularExpression re("```(\\w+)\\n([\\s\\S]*?)(?=```|$)(\\3)?");
-    // QRegularExpression re("```(\\w+)\\n(.*?)(```)?",
-    //                       QRegularExpression::DotMatchesEverythingOption);
     auto matchIterator = re.globalMatch(text);
     while (matchIterator.hasNext()) {
         auto match = matchIterator.next();
         QString lang = match.captured(1);
+        if (!lang.isEmpty() && lang != "cpp" && lang != "python" && lang != "glsl"
+            && lang != "lua")
+            continue;
         QString code = match.captured(2);
-        QString endMarker = match.captured(3);
-        if (lang == "cpp" || lang == "python" || lang == "glsl" || lang == "lua")
-            list.append({ lang, code, endMarker });
+        int codeEnd = static_cast<int>(match.capturedEnd(2));
+        bool hasEndFence = text.mid(codeEnd, 3) == "```";
+        QString endMarker = hasEndFence ? QString("```") : QString();
+        // capturedStart(1) 紧跟在起始围栏之后，减 3 得到 "```" 的位置
+        int start = static_cast<int>(match.capturedStart(1)) - 3;
+        list.append({ lang, code, endMarker, start, hasEndFence ? codeEnd + 3 : codeEnd });
     }
     return list;
 }
@@ -835,21 +824,14 @@ void MessageWidget::setTextImpl(const QString &text)
         qDebug() << "MessageWidget setText ing1" << this;
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
-        QString thinkTempText = thinkText;
+        // 按代码块在原文中的偏移切分：普通文本段（language 为空）无法用 "```\n" 反查围栏
+        int thinkTextPos = 0;
         qDebug() << "setText thinkText:" << thinkText << this;
         int thinkCodeShowListLastLen = thinkCodeShowList.size() - 1;
         for (int i = 0; i < thinkCodeBlocks.size(); i++) {
-            int idx = thinkTempText.indexOf(QString("```%1\n").arg(thinkCodeBlocks[i].language));
-            thinkSplitTextList.append(thinkTempText.left(idx));
-            if (!thinkCodeBlocks[i].endMarker.isEmpty()) {
-                thinkTempText = thinkTempText.mid(
-                        idx + QString("```%1\n").arg(thinkCodeBlocks[i].language).size()
-                        + thinkCodeBlocks[i].code.size() + 3);
-            } else {
-                thinkTempText = thinkTempText.mid(
-                        idx + QString("```%1\n").arg(thinkCodeBlocks[i].language).size()
-                        + thinkCodeBlocks[i].code.size());
-            }
+            thinkSplitTextList.append(
+                    thinkText.mid(thinkTextPos, thinkCodeBlocks[i].start - thinkTextPos));
+            thinkTextPos = thinkCodeBlocks[i].end;
             if (thinkCodeShowListLastLen < i) {
                 QPointer<MessageWidget> thinkCodeSelf(this);
                 auto *codeShow = new CodeShow(
@@ -871,7 +853,7 @@ void MessageWidget::setTextImpl(const QString &text)
                      << thinkCodeBlocks[i].code.left(5) << "and" << thinkCodeBlocks[i].code.right(5)
                      << "and" << thinkCodeBlocks[i].endMarker << "end";
         }
-        thinkSplitTextList.append(thinkTempText);
+        thinkSplitTextList.append(thinkText.mid(thinkTextPos));
         qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
         int i = 0;
         int thinkTextShowListLastLen = thinkTextShowList.size() - 1;
@@ -1112,15 +1094,14 @@ void MessageWidget::setTextImpl(const QString &text)
         qDebug() << "MessageWidget setText ing2" << this;
         auto resultCodeBlocks = extractCodeBlocks(resultText);
         QStringList resultSplitTextList;
-        QString resultTempText = resultText;
+        // 按代码块在原文中的偏移切分：普通文本段（language 为空）无法用 "```\n" 反查围栏
+        int resultTextPos = 0;
         qDebug() << "setText resultText:" << resultText << this;
         int resultCodeShowListLastLen = resultCodeShowList.size() - 1;
         for (int i = 0; i < resultCodeBlocks.size(); i++) {
-            int idx = resultTempText.indexOf(QString("```%1\n").arg(resultCodeBlocks[i].language));
-            resultSplitTextList.append(resultTempText.left(idx));
-            resultTempText = resultTempText.mid(
-                    idx + QString("```%1\n").arg(resultCodeBlocks[i].language).size()
-                    + resultCodeBlocks[i].code.size() + 3);
+            resultSplitTextList.append(
+                    resultText.mid(resultTextPos, resultCodeBlocks[i].start - resultTextPos));
+            resultTextPos = resultCodeBlocks[i].end;
             if (resultCodeShowListLastLen < i) {
                 qDebug() << "MessageWidget setText ing3" << this;
                 QPointer<MessageWidget> resultCodeSelf(this);
@@ -1141,7 +1122,7 @@ void MessageWidget::setTextImpl(const QString &text)
                                                resultCodeBlocks[i].language);
             }
         }
-        resultSplitTextList.append(resultTempText);
+        resultSplitTextList.append(resultText.mid(resultTextPos));
         int i = 0;
         int resultTextShowListLastLen = resultTextShowList.size() - 1;
         for (const auto &splitText : resultSplitTextList) {
