@@ -87,10 +87,13 @@ private:
         QString language;
         QString code;
         QString endMarker;
-        // 代码块在原文中的区间 [start, end)：start 指向起始围栏 "```"，
+        // 代码块在原文中的区间 [start, end)：start 指向起始围栏（含其前导缩进），
         // end 指向代码内容之后（含结尾围栏），供调用方按偏移切分原文
         int start;
         int end;
+        // 起始围栏的前导空格数（列表项内嵌套代码块，如 "   ```python" 的 3）：
+        // 0 表示顶格围栏；CodeShow 左侧按此留出等宽空白实现缩进显示
+        int indent;
     };
 
     void buildUserUi();
@@ -100,6 +103,9 @@ private:
     QList<CodeBlock> extractCodeBlocks(const QString &text);
     void parseThinkAndResult(const QString &txt, QString &think, QString &result, bool &thinkEnd);
     void adjustAiTextWidgetSize();
+    // 嵌套代码块（带缩进围栏）的显示容器：在 CodeShow 左侧留与围栏缩进等宽的空白，
+    // 使嵌套在列表项内的代码块视觉上缩进显示；indent <= 0 时返回 nullptr（无需容器）
+    QWidget *createCodeShowHost(CodeShow *codeShow, int indent);
 
     QString copyImagesPath;
     QString copyHoverImagesPath;
@@ -162,6 +168,10 @@ private:
     QList<CodeShow *> thinkCodeShowList;
     QList<TextShow *> resultTextShowList;
     QList<CodeShow *> resultCodeShowList;
+    // 与 thinkCodeShowList/resultCodeShowList 平行的缩进容器列表：
+    // 无缩进（顶格围栏）的代码块对应 nullptr
+    QList<QWidget *> thinkCodeShowHostList;
+    QList<QWidget *> resultCodeShowHostList;
 };
 
 // template <typename T>
