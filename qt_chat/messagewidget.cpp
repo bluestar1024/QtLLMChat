@@ -227,7 +227,9 @@ void MessageWidget::buildAiUiImpl()
                         if (thinkCodeSelf)
                             thinkCodeSelf->onSizeFinished();
                     },
-                    maxWidth - imageLabel->width() - 80, this);
+                    // 缩进围栏代码块：CodeShow 宽度缩窄 indent*8，加缩进容器后
+                    // 总宽与顶格代码块一致（CodeShow 宽 = 容器宽 - 缩进宽）
+                    maxWidth - imageLabel->width() - 80 - codeBlock.indent * 8, this);
             qDebug() << "new CodeShow";
             codeShow->hide();
             qDebug() << "hide CodeShow";
@@ -352,7 +354,8 @@ void MessageWidget::buildAiUiImpl()
                         if (resultCodeSelf)
                             resultCodeSelf->onSizeFinished();
                     },
-                    maxWidth - imageLabel->width() - 35, this);
+                    // 缩进围栏代码块：CodeShow 宽度缩窄 indent*8（宽 = 容器宽 - 缩进宽）
+                    maxWidth - imageLabel->width() - 35 - codeBlock.indent * 8, this);
             codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
             resultCodeShowList.append(codeShow);
@@ -499,7 +502,8 @@ QWidget *MessageWidget::createCodeShowHost(CodeShow *codeShow, int indent)
 {
     if (indent <= 0)
         return nullptr;
-    // 每空格 8px 缩进空白；Fixed 水平策略防止 QVBoxLayout 将容器拉伸到布局宽
+    // 每空格 8px 缩进空白；CodeShow 创建时已按 indent 缩窄（宽 = 容器宽 - 缩进宽），
+    // 容器总宽与顶格代码块一致；Fixed 水平策略防止 QVBoxLayout 将容器拉伸到布局宽
     //（拉伸会使 adjustAiTextWidgetSize 取到的容器宽度逐次膨胀）
     QWidget *host = new QWidget(this);
     host->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
@@ -895,7 +899,8 @@ void MessageWidget::setTextImpl(const QString &text)
                             if (thinkCodeSelf)
                                 thinkCodeSelf->onSizeFinished();
                         },
-                        maxWidth - imageLabel->width() - 80, this);
+                        maxWidth - imageLabel->width() - 80 - thinkCodeBlocks[i].indent * 8,
+                        this);
                 codeShow->hide();
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 // codeShow->setVisible(thinkIsExpand);
@@ -1177,7 +1182,8 @@ void MessageWidget::setTextImpl(const QString &text)
                             if (resultCodeSelf)
                                 resultCodeSelf->onSizeFinished();
                         },
-                        maxWidth - imageLabel->width() - 35, this);
+                        maxWidth - imageLabel->width() - 35 - resultCodeBlocks[i].indent * 8,
+                        this);
                 codeShow->hide();
                 qDebug() << "MessageWidget setText ing4" << this;
                 codeShow->connectCodeCopyButtonClick(copyFun);
