@@ -41,12 +41,13 @@ static int headingLevelOf(const QString &line)
 
 // 行首列表标记识别：有序（"数字." 后跟空格或行尾，数字可为多位数，如 "10."）
 // 或无序（"-"/"*"/"+" 后跟空格）；命中时返回正文起点（跳过标记与其后空格），
-// 未命中返回 -1。leadOut 输出前导空格数，orderedOut 输出是否有序标记。
+// 未命中返回 -1。leadOut 输出前导空格数，orderedOut 输出是否有序标记，
+// numberOut 输出有序标记的原文序号（无序或未命中为 0）。
 // maxLead 为前导空格数上限，负值表示不限制：普通行 3（与 stripLeadSpaces
 // 一致）；列表块内续行不限制，以支持任意深度的嵌套子项（如 9/11/13 个
 // 空格缩进的深层列表仍能识别）
 static int listMarkEnd(const QString &line, int maxLead, int *leadOut = nullptr,
-                       bool *orderedOut = nullptr)
+                       bool *orderedOut = nullptr, int *numberOut = nullptr)
 {
     int p = 0;
     while (p < line.size() && line[p] == ' ') {
@@ -64,6 +65,8 @@ static int listMarkEnd(const QString &line, int maxLead, int *leadOut = nullptr,
             *leadOut = p;
         if (orderedOut)
             *orderedOut = true;
+        if (numberOut)
+            *numberOut = line.mid(p, numEnd - p).toInt();
         return numEnd + 1 == line.size() ? numEnd + 1 : numEnd + 2;
     }
     if (p + 1 < line.size() && (line[p] == '-' || line[p] == '*' || line[p] == '+')
@@ -72,6 +75,8 @@ static int listMarkEnd(const QString &line, int maxLead, int *leadOut = nullptr,
             *leadOut = p;
         if (orderedOut)
             *orderedOut = false;
+        if (numberOut)
+            *numberOut = 0;
         return p + 2;
     }
     return -1;
@@ -153,6 +158,15 @@ void MarkdownParser::split(const QString &rawText)
                 // 保留代码自身的相对缩进
                 blockText.push_back(curr.mid(qMin(fenceLead, codeLead)));
             }
+            ins++;
+            continue;
+        }
+        // 纯空白行（如 AI 在有序列表项之间输出的 "   "）按空行处理：Markdown
+        // 中仅含空格的行视为空行，不中断列表块。此前它落入"非列表行"分支，
+        // 使 1./2./3./4. 各自成为独立 <ol>，浏览器对每个 <ol> 从 1 重新编号；
+        // 空行本身在 blockParse 中被子项正文折叠为空文本，不会渲染成段落
+        if (curr.trimmed().isEmpty()) {
+            blockText.push_back(curr);
             ins++;
             continue;
         }
@@ -475,8 +489,11 @@ void MarkdownParser::blockParse(const QString &rawText,
                     continue;
                 int lead = 0;
                 bool ordered = false;
+                // 原文序号（有序 "10." 为 10）：随行传给渲染器，使被代码块/
+                // 标题中断后另起的 <ol> 用 start 保留原编号
+                int number = 0;
                 // 块内行不限制缩进深度（与 split 的列表内判定一致）
-                const int mark = listMarkEnd(line, -1, &lead, &ordered);
+                const int mark = listMarkEnd(line, -1, &lead, &ordered, &number);
                 QString body;
                 if (mark >= 0) {
                     body = line.mid(mark);
@@ -494,7 +511,7 @@ void MarkdownParser::blockParse(const QString &rawText,
                 std::vector<MarkdownInlineElement> inlineElem = inlineParse(body, pureText);
                 lines.push_back(LineElement(pureText, inlineElem,
                                             indentStack.empty() ? 0 : int(indentStack.size()) - 1,
-                                            ordered));
+                                            ordered, number));
             }
             blockElem.push_back(MarkdownBlockElement(type, lines));
         } else if (token.size() >= 2 && token[0] == '>' && token[1] == ' ') {

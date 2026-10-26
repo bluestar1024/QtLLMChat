@@ -107,6 +107,13 @@ void HtmlRenderer::blockHtml(MarkdownBlockElement blockElem)
                             ulDepth >= 3 ? "square" : (ulDepth == 2 ? "circle" : "disc");
                     openTag += " style=\"list-style-type:" + marker + "\"";
                 }
+                // 有序列表保留原文起始序号：列表被代码围栏/标题中断后 split 会另起
+                // 一个列表块（如 "1." 之后紧跟代码块，"2."/"3." 在下一个块），
+                // 不输出 start 时新 <ol> 从 1 重新编号，整段渲染成 "1. 1. 1."
+                // （后续项序号仍交给浏览器递增，与 CommonMark 只取首项序号一致，
+                // 避免把 AI 常见的 "1. 1. 1." 列表渲染成 "1. 1. 1." 字面序号）
+                if (tag == "ol" && line.number > 1)
+                    openTag += QString(" start=\"%1\"").arg(line.number);
                 htmlText += openTag + ">\n";
                 ListLevel lv;
                 lv.level = line.level;
