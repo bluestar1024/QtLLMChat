@@ -213,21 +213,13 @@ void MessageWidget::buildAiUiImpl()
 
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
-        QString thinkTempText = thinkText;
+        // 按代码块在原文中的偏移切分：普通文本段（language 为空）无法用 "```\n" 反查围栏
+        int thinkTextPos = 0;
         qDebug() << "thinkText:" << thinkText << this;
         for (const auto &codeBlock : thinkCodeBlocks) {
-            int idx = thinkTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
-            thinkSplitTextList.append(thinkTempText.left(idx));
+            thinkSplitTextList.append(thinkText.mid(thinkTextPos, codeBlock.start - thinkTextPos));
+            thinkTextPos = codeBlock.end;
             qDebug() << "codeBlock:" << codeBlock.language << codeBlock.code << codeBlock.endMarker;
-            if (!codeBlock.endMarker.isEmpty())
-                thinkTempText =
-                        thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
-                                          + codeBlock.code.size() + 3);
-            else
-                thinkTempText =
-                        thinkTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
-                                          + codeBlock.code.size());
-            qDebug() << "thinkTempText:" << thinkTempText;
             QPointer<MessageWidget> thinkCodeSelf(this);
             auto *codeShow = new CodeShow(
                     appContext, codeBlock.code, codeBlock.language,
@@ -235,16 +227,19 @@ void MessageWidget::buildAiUiImpl()
                         if (thinkCodeSelf)
                             thinkCodeSelf->onSizeFinished();
                     },
-                    maxWidth - imageLabel->width() - 80, this);
+                    // 缩进围栏代码块：CodeShow 宽度缩窄 indent*8，加缩进容器后
+                    // 总宽与顶格代码块一致（CodeShow 宽 = 容器宽 - 缩进宽）
+                    maxWidth - imageLabel->width() - 80 - codeBlock.indent * 8, this);
             qDebug() << "new CodeShow";
             codeShow->hide();
             qDebug() << "hide CodeShow";
             codeShow->connectCodeCopyButtonClick(copyFun);
             qDebug() << "connect CodeShow";
             thinkCodeShowList.append(codeShow);
+            thinkCodeShowHostList.append(createCodeShowHost(codeShow, codeBlock.indent));
             qDebug() << "append CodeShow";
         }
-        thinkSplitTextList.append(thinkTempText);
+        thinkSplitTextList.append(thinkText.mid(thinkTextPos));
         qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
         for (const auto &splitText : thinkSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
@@ -295,11 +290,21 @@ void MessageWidget::buildAiUiImpl()
                 }
             } else
                 j += 1;
-            thinkBackVLayout->addWidget(thinkCodeShowList[i]);
+            // 嵌套代码块带缩进容器：容器代替 CodeShow 加入布局，左侧留出缩进空白
+            QWidget *codeShowHost = thinkCodeShowHostList[i];
+            if (codeShowHost) {
+                thinkBackVLayout->addWidget(codeShowHost);
+                codeShowHost->show();
+            } else {
+                thinkBackVLayout->addWidget(thinkCodeShowList[i]);
+            }
             thinkCodeShowList[i]->show();
             onSizeFinished();
         }
-        if (!thinkSplitTextList.last().isEmpty()) {
+        // 尾段判断须与上方 ThinkWidget 创建过滤条件（trimmed 非空）一致：尾段为纯空白
+        // （如代码块后跟换行）时没有对应控件，继续添加会重复添加上一段控件（布局错乱）
+        // 或访问空列表崩溃（think 以代码块开头时 thinkTextShowList 为空）
+        if (!thinkSplitTextList.last().trimmed().isEmpty()) {
             thinkBackVLayout->addWidget(thinkTextShowList.last());
             // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
             if (!loop.isRunning()) {
@@ -335,19 +340,13 @@ void MessageWidget::buildAiUiImpl()
     if (!resultText.isEmpty()) {
         auto resultCodeBlocks = extractCodeBlocks(resultText);
         QStringList resultSplitTextList;
-        QString resultTempText = resultText;
+        // 按代码块在原文中的偏移切分：普通文本段（language 为空）无法用 "```\n" 反查围栏
+        int resultTextPos = 0;
         qDebug() << "resultText:" << resultText << this;
         for (const auto &codeBlock : resultCodeBlocks) {
-            int idx = resultTempText.indexOf(QString("```%1\n").arg(codeBlock.language));
-            resultSplitTextList.append(resultTempText.left(idx));
-            if (!codeBlock.endMarker.isEmpty())
-                resultTempText =
-                        resultTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
-                                           + codeBlock.code.size() + 3);
-            else
-                resultTempText =
-                        resultTempText.mid(idx + QString("```%1\n").arg(codeBlock.language).size()
-                                           + codeBlock.code.size());
+            resultSplitTextList.append(
+                    resultText.mid(resultTextPos, codeBlock.start - resultTextPos));
+            resultTextPos = codeBlock.end;
             QPointer<MessageWidget> resultCodeSelf(this);
             auto *codeShow = new CodeShow(
                     appContext, codeBlock.code, codeBlock.language,
@@ -355,12 +354,14 @@ void MessageWidget::buildAiUiImpl()
                         if (resultCodeSelf)
                             resultCodeSelf->onSizeFinished();
                     },
-                    maxWidth - imageLabel->width() - 35, this);
+                    // 缩进围栏代码块：CodeShow 宽度缩窄 indent*8（宽 = 容器宽 - 缩进宽）
+                    maxWidth - imageLabel->width() - 35 - codeBlock.indent * 8, this);
             codeShow->hide();
             codeShow->connectCodeCopyButtonClick(copyFun);
             resultCodeShowList.append(codeShow);
+            resultCodeShowHostList.append(createCodeShowHost(codeShow, codeBlock.indent));
         }
-        resultSplitTextList.append(resultTempText);
+        resultSplitTextList.append(resultText.mid(resultTextPos));
         for (const auto &splitText : resultSplitTextList) {
             if (!splitText.trimmed().isEmpty()) {
                 QPointer<MessageWidget> resultTextSelf(this);
@@ -407,11 +408,20 @@ void MessageWidget::buildAiUiImpl()
                 }
             } else
                 j += 1;
-            textLayout->addWidget(resultCodeShowList[i]);
+            // 嵌套代码块带缩进容器：容器代替 CodeShow 加入布局，左侧留出缩进空白
+            QWidget *codeShowHost = resultCodeShowHostList[i];
+            if (codeShowHost) {
+                textLayout->addWidget(codeShowHost);
+                codeShowHost->show();
+            } else {
+                textLayout->addWidget(resultCodeShowList[i]);
+            }
             resultCodeShowList[i]->show();
             onSizeFinished();
         }
-        if (!resultSplitTextList.last().isEmpty()) {
+        // 尾段判断须与上方 TextShow 创建过滤条件（trimmed 非空）一致，避免纯空白尾段
+        // 重复添加上一段控件（布局错乱）或访问空列表崩溃（正文以代码块开头时）
+        if (!resultSplitTextList.last().trimmed().isEmpty()) {
             textLayout->addWidget(resultTextShowList.last());
             // 防重入：同一 QEventLoop 实例嵌套 exec() 会返回 -1 且产生悬空 lambda，重入时跳过等待
             if (!loop.isRunning()) {
@@ -451,23 +461,57 @@ void MessageWidget::buildAiUiImpl()
 QList<MessageWidget::CodeBlock> MessageWidget::extractCodeBlocks(const QString &text)
 {
     QList<CodeBlock> list;
-    QRegularExpression re("```(\\w+)\\n(.*?)(```|$)",
+    // 语言标识允许为空："```\n...```" 视为普通文本段（language 为空串，渲染时不做语法高亮）。
+    // 起始围栏允许前导空格（列表项内嵌套代码块，如 "   ```python"），结尾围栏同样允许
+    // 前导空格；前导空格数计入 indent，渲染时 CodeShow 左侧留出等宽空白实现缩进显示
+    QRegularExpression re("(?:^|\\n)([ ]*)```(\\w*)\\n(.*?)(?:\\n?[ ]*```|$)",
                           QRegularExpression::DotMatchesEverythingOption);
-    // QRegularExpression re("```(\\w+)\\n(.*)(?=(```|$))(\\3)?",
-    //                       QRegularExpression::DotMatchesEverythingOption);
-    // QRegularExpression re("```(\\w+)\\n([\\s\\S]*?)(?=```|$)(\\3)?");
-    // QRegularExpression re("```(\\w+)\\n(.*?)(```)?",
-    //                       QRegularExpression::DotMatchesEverythingOption);
     auto matchIterator = re.globalMatch(text);
     while (matchIterator.hasNext()) {
         auto match = matchIterator.next();
-        QString lang = match.captured(1);
-        QString code = match.captured(2);
-        QString endMarker = match.captured(3);
-        if (lang == "cpp" || lang == "python" || lang == "glsl" || lang == "lua")
-            list.append({ lang, code, endMarker });
+        QString lang = match.captured(2);
+        if (!lang.isEmpty() && lang != "cpp" && lang != "python" && lang != "glsl"
+            && lang != "lua")
+            continue;
+        QString code = match.captured(3);
+        const int indent = match.captured(1).size();
+        // 剥去代码内容行前与围栏一致的前导缩进（列表项缩进），保留代码自身相对缩进
+        if (indent > 0) {
+            const QStringList lines = code.split('\n');
+            QStringList stripped;
+            for (const QString &line : lines) {
+                int lead = 0;
+                while (lead < line.size() && lead < indent && line[lead] == ' ')
+                    ++lead;
+                stripped.append(line.mid(lead));
+            }
+            code = stripped.join('\n');
+        }
+        bool hasEndFence = match.capturedEnd(3) < text.size();
+        QString endMarker = hasEndFence ? QString("```") : QString();
+        // capturedStart(1) 指向围栏（或围栏前缩进）开头，作为切分起点；
+        // end 取完整匹配结束位置：结尾围栏允许带前导空格，不能按 "```" 长度 +3 计算
+        int start = static_cast<int>(match.capturedStart(1));
+        list.append({ lang, code, endMarker, start, static_cast<int>(match.capturedEnd(0)),
+                      indent });
     }
     return list;
+}
+
+QWidget *MessageWidget::createCodeShowHost(CodeShow *codeShow, int indent)
+{
+    if (indent <= 0)
+        return nullptr;
+    // 每空格 8px 缩进空白；CodeShow 创建时已按 indent 缩窄（宽 = 容器宽 - 缩进宽），
+    // 容器总宽与顶格代码块一致；Fixed 水平策略防止 QVBoxLayout 将容器拉伸到布局宽
+    //（拉伸会使 adjustAiTextWidgetSize 取到的容器宽度逐次膨胀）
+    QWidget *host = new QWidget(this);
+    host->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+    QHBoxLayout *hostLayout = new QHBoxLayout(host);
+    hostLayout->setContentsMargins(indent * 8, 0, 0, 0);
+    hostLayout->setSpacing(0);
+    hostLayout->addWidget(codeShow);
+    return host;
 }
 
 void MessageWidget::parseThinkAndResult(const QString &txt, QString &think, QString &result,
@@ -531,9 +575,11 @@ void MessageWidget::adjustAiTextWidgetSize()
         thinkBackHeight += thinkWidget->height();
         qDebug() << "thinkTextShowList:" << thinkBackWidth << thinkBackHeight;
     }
-    for (auto *codeShow : thinkCodeShowList) {
-        // for (auto *codeShow : thinkBackWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
-        thinkBackWidth = qMax(thinkBackWidth, codeShow->width());
+    for (int i = 0; i < thinkCodeShowList.size(); ++i) {
+        // 嵌套代码块带缩进容器：容器宽度（含左侧缩进空白）计入 think 区域宽
+        CodeShow *codeShow = thinkCodeShowList[i];
+        QWidget *host = thinkCodeShowHostList[i];
+        thinkBackWidth = qMax(thinkBackWidth, host ? host->width() : codeShow->width());
         thinkBackHeight += codeShow->height();
         qDebug() << "thinkCodeShowList:" << thinkBackWidth << thinkBackHeight;
     }
@@ -563,9 +609,11 @@ void MessageWidget::adjustAiTextWidgetSize()
             resultHeight += textShow->height();
             qDebug() << "resultTextShowList:" << resultWidth << resultHeight;
         }
-        for (auto *codeShow : resultCodeShowList) {
-            // for (auto *codeShow : textWidget->findChildren<CodeShow *>(Qt::FindDirectChildrenOnly)) {
-            resultWidth = qMax(resultWidth, codeShow->width());
+        for (int i = 0; i < resultCodeShowList.size(); ++i) {
+            // 嵌套代码块带缩进容器：容器宽度（含左侧缩进空白）计入正文区域宽
+            CodeShow *codeShow = resultCodeShowList[i];
+            QWidget *host = resultCodeShowHostList[i];
+            resultWidth = qMax(resultWidth, host ? host->width() : codeShow->width());
             resultHeight += codeShow->height();
             qDebug() << "resultCodeShowList:" << resultWidth << resultHeight;
         }
@@ -835,21 +883,14 @@ void MessageWidget::setTextImpl(const QString &text)
         qDebug() << "MessageWidget setText ing1" << this;
         auto thinkCodeBlocks = extractCodeBlocks(thinkText);
         QStringList thinkSplitTextList;
-        QString thinkTempText = thinkText;
+        // 按代码块在原文中的偏移切分：普通文本段（language 为空）无法用 "```\n" 反查围栏
+        int thinkTextPos = 0;
         qDebug() << "setText thinkText:" << thinkText << this;
         int thinkCodeShowListLastLen = thinkCodeShowList.size() - 1;
         for (int i = 0; i < thinkCodeBlocks.size(); i++) {
-            int idx = thinkTempText.indexOf(QString("```%1\n").arg(thinkCodeBlocks[i].language));
-            thinkSplitTextList.append(thinkTempText.left(idx));
-            if (!thinkCodeBlocks[i].endMarker.isEmpty()) {
-                thinkTempText = thinkTempText.mid(
-                        idx + QString("```%1\n").arg(thinkCodeBlocks[i].language).size()
-                        + thinkCodeBlocks[i].code.size() + 3);
-            } else {
-                thinkTempText = thinkTempText.mid(
-                        idx + QString("```%1\n").arg(thinkCodeBlocks[i].language).size()
-                        + thinkCodeBlocks[i].code.size());
-            }
+            thinkSplitTextList.append(
+                    thinkText.mid(thinkTextPos, thinkCodeBlocks[i].start - thinkTextPos));
+            thinkTextPos = thinkCodeBlocks[i].end;
             if (thinkCodeShowListLastLen < i) {
                 QPointer<MessageWidget> thinkCodeSelf(this);
                 auto *codeShow = new CodeShow(
@@ -858,11 +899,14 @@ void MessageWidget::setTextImpl(const QString &text)
                             if (thinkCodeSelf)
                                 thinkCodeSelf->onSizeFinished();
                         },
-                        maxWidth - imageLabel->width() - 80, this);
+                        maxWidth - imageLabel->width() - 80 - thinkCodeBlocks[i].indent * 8,
+                        this);
                 codeShow->hide();
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 // codeShow->setVisible(thinkIsExpand);
                 thinkCodeShowList.append(codeShow);
+                thinkCodeShowHostList.append(
+                        createCodeShowHost(codeShow, thinkCodeBlocks[i].indent));
             } else {
                 thinkCodeShowList[i]->setText(thinkCodeBlocks[i].code, thinkCodeBlocks[i].language);
                 qDebug() << "thinkCodeShowList setText end";
@@ -871,7 +915,7 @@ void MessageWidget::setTextImpl(const QString &text)
                      << thinkCodeBlocks[i].code.left(5) << "and" << thinkCodeBlocks[i].code.right(5)
                      << "and" << thinkCodeBlocks[i].endMarker << "end";
         }
-        thinkSplitTextList.append(thinkTempText);
+        thinkSplitTextList.append(thinkText.mid(thinkTextPos));
         qDebug() << "thinkSplitTextList:" << thinkSplitTextList;
         int i = 0;
         int thinkTextShowListLastLen = thinkTextShowList.size() - 1;
@@ -1031,7 +1075,14 @@ void MessageWidget::setTextImpl(const QString &text)
                 j += 1;
             }
             if (thinkCodeShowListLastLen < i) {
-                thinkBackVLayout->addWidget(thinkCodeShowList[i]);
+                // 嵌套代码块带缩进容器：容器代替 CodeShow 加入布局，左侧留出缩进空白
+                QWidget *codeShowHost = thinkCodeShowHostList[i];
+                if (codeShowHost) {
+                    thinkBackVLayout->addWidget(codeShowHost);
+                    codeShowHost->show();
+                } else {
+                    thinkBackVLayout->addWidget(thinkCodeShowList[i]);
+                }
                 thinkCodeShowList[i]->show();
                 onSizeFinished();
                 qDebug() << "thinkCodeShowList addWidget end";
@@ -1041,7 +1092,9 @@ void MessageWidget::setTextImpl(const QString &text)
                  << thinkTextShowList.size() << j;
         qDebug() << "准备添加最后ThinkWidget";
         if (thinkTextShowListLastLen < thinkTextShowList.size() - 1
-            && !thinkSplitTextList.last().isEmpty()) {
+            // 尾段判断与 ThinkWidget 创建过滤条件（trimmed 非空）一致：纯空白尾段没有
+            // 对应控件，继续添加会重复添加上一段控件或访问空列表崩溃
+            && !thinkSplitTextList.last().trimmed().isEmpty()) {
             // QEventLoop externalLoop, internalLoop;
             // QTimer processTimer;
             // processTimer.setInterval(2);
@@ -1112,15 +1165,14 @@ void MessageWidget::setTextImpl(const QString &text)
         qDebug() << "MessageWidget setText ing2" << this;
         auto resultCodeBlocks = extractCodeBlocks(resultText);
         QStringList resultSplitTextList;
-        QString resultTempText = resultText;
+        // 按代码块在原文中的偏移切分：普通文本段（language 为空）无法用 "```\n" 反查围栏
+        int resultTextPos = 0;
         qDebug() << "setText resultText:" << resultText << this;
         int resultCodeShowListLastLen = resultCodeShowList.size() - 1;
         for (int i = 0; i < resultCodeBlocks.size(); i++) {
-            int idx = resultTempText.indexOf(QString("```%1\n").arg(resultCodeBlocks[i].language));
-            resultSplitTextList.append(resultTempText.left(idx));
-            resultTempText = resultTempText.mid(
-                    idx + QString("```%1\n").arg(resultCodeBlocks[i].language).size()
-                    + resultCodeBlocks[i].code.size() + 3);
+            resultSplitTextList.append(
+                    resultText.mid(resultTextPos, resultCodeBlocks[i].start - resultTextPos));
+            resultTextPos = resultCodeBlocks[i].end;
             if (resultCodeShowListLastLen < i) {
                 qDebug() << "MessageWidget setText ing3" << this;
                 QPointer<MessageWidget> resultCodeSelf(this);
@@ -1130,18 +1182,21 @@ void MessageWidget::setTextImpl(const QString &text)
                             if (resultCodeSelf)
                                 resultCodeSelf->onSizeFinished();
                         },
-                        maxWidth - imageLabel->width() - 35, this);
+                        maxWidth - imageLabel->width() - 35 - resultCodeBlocks[i].indent * 8,
+                        this);
                 codeShow->hide();
                 qDebug() << "MessageWidget setText ing4" << this;
                 codeShow->connectCodeCopyButtonClick(copyFun);
                 resultCodeShowList.append(codeShow);
+                resultCodeShowHostList.append(
+                        createCodeShowHost(codeShow, resultCodeBlocks[i].indent));
                 qDebug() << "MessageWidget setText ing5" << this;
             } else {
                 resultCodeShowList[i]->setText(resultCodeBlocks[i].code,
                                                resultCodeBlocks[i].language);
             }
         }
-        resultSplitTextList.append(resultTempText);
+        resultSplitTextList.append(resultText.mid(resultTextPos));
         int i = 0;
         int resultTextShowListLastLen = resultTextShowList.size() - 1;
         for (const auto &splitText : resultSplitTextList) {
@@ -1286,13 +1341,22 @@ void MessageWidget::setTextImpl(const QString &text)
                 j += 1;
             }
             if (resultCodeShowListLastLen < i) {
-                textLayout->addWidget(resultCodeShowList[i]);
+                // 嵌套代码块带缩进容器：容器代替 CodeShow 加入布局，左侧留出缩进空白
+                QWidget *codeShowHost = resultCodeShowHostList[i];
+                if (codeShowHost) {
+                    textLayout->addWidget(codeShowHost);
+                    codeShowHost->show();
+                } else {
+                    textLayout->addWidget(resultCodeShowList[i]);
+                }
                 resultCodeShowList[i]->show();
                 onSizeFinished();
             }
         }
         if (resultTextShowListLastLen < resultTextShowList.size() - 1
-            && !resultSplitTextList.last().isEmpty()) {
+            // 尾段判断与 TextShow 创建过滤条件（trimmed 非空）一致：纯空白尾段没有
+            // 对应控件，继续添加会重复添加上一段控件或访问空列表崩溃
+            && !resultSplitTextList.last().trimmed().isEmpty()) {
             // QEventLoop externalLoop, internalLoop;
             // QTimer processTimer;
             // processTimer.setInterval(2);
