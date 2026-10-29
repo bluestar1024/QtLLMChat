@@ -736,6 +736,13 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
     maxTokensLabel->setFixedSize(scale(widgetSizeDict["maxTokensLabel"].value<QSize>()));
     topPLabel->setFixedSize(scale(widgetSizeDict["topPLabel"].value<QSize>()));
     temperatureLabel->setFixedSize(scale(widgetSizeDict["temperatureLabel"].value<QSize>()));
+    // 几何按比例缩放后，字体必须按新像素字号显式重设（像素字号不随屏 DPI 自动变化）
+    baseUrlLabel->updateFontSize();
+    apiKeyLabel->updateFontSize();
+    modelNameLabel->updateFontSize();
+    maxTokensLabel->updateFontSize();
+    topPLabel->updateFontSize();
+    temperatureLabel->updateFontSize();
     qDebug() << "baseUrlLabel" << baseUrlLabel->size();
     qDebug() << "apiKeyLabel" << apiKeyLabel->size();
     qDebug() << "modelNameLabel" << modelNameLabel->size();
@@ -746,6 +753,10 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
     baseUrlEdit->setSize(scale(widgetSizeDict["baseUrlEdit"].value<QSize>()));
     apiKeyEdit->setSize(scale(widgetSizeDict["apiKeyEdit"].value<QSize>()));
     modelNameEdit->setSize(scale(widgetSizeDict["modelNameEdit"].value<QSize>()));
+    // 输入框样式表内含像素字号 font-size，按新像素字号重应用
+    baseUrlEdit->updateFontSize();
+    apiKeyEdit->updateFontSize();
+    modelNameEdit->updateFontSize();
 
     baseUrlHLayout->setContentsMargins(
             scaleMargins(widgetSizeDict["baseUrlHLayout contentsMargins"].value<QMargins>()));

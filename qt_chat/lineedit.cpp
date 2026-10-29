@@ -11,15 +11,12 @@ LineEdit::LineEdit(AppContext *appContext, QWidget *parent)
     setFixedSize(1200 / 3 - 82, 32);
     setPlaceholderText(QStringLiteral("输入搜索词"));
 
-    int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
-    if (fontId != -1) {
-        QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
-        if (!fontFamilies.isEmpty()) {
-            QString fontFamily = fontFamilies.at(0);
-            font = QFont(fontFamily);
-            font.setPixelSize(appContext->windowFontPixelSize());
-            setFont(font);
-        }
+    // 字体族由 AppContext 统一注册缓存，直接取用（不再逐个 addApplicationFont）
+    const QString fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        font = QFont(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
+        setFont(font);
     }
 
     searchButton = new PushButton(appContext, "搜索", this);
@@ -53,21 +50,21 @@ void LineEdit::resetWidgetSize()
     widgetSizeDict["self"] = size();
 }
 
-void LineEdit::updateSize(int curDpi, int lastDpi)
+void LineEdit::updateSize(qreal curDpi, qreal lastDpi)
 {
     QSize selfSize = widgetSizeDict["self"];
-    int newWidth = qRound(selfSize.width() * curDpi / static_cast<qreal>(lastDpi));
-    int newHeight = qRound(selfSize.height() * curDpi / static_cast<qreal>(lastDpi));
+    int newWidth = qRound(selfSize.width() * curDpi / lastDpi);
+    int newHeight = qRound(selfSize.height() * curDpi / lastDpi);
     setFixedSize(newWidth, newHeight);
 
     QSize buttonSize = widgetSizeDict["searchButton"];
-    int btnNewWidth = qRound(buttonSize.width() * curDpi / static_cast<qreal>(lastDpi));
-    int btnNewHeight = qRound(buttonSize.height() * curDpi / static_cast<qreal>(lastDpi));
+    int btnNewWidth = qRound(buttonSize.width() * curDpi / lastDpi);
+    int btnNewHeight = qRound(buttonSize.height() * curDpi / lastDpi);
     searchButton->setFixedSize(btnNewWidth, btnNewHeight);
 
     QSize buttonIconSize = widgetSizeDict["searchButton iconSize"];
-    int btnIconNewWidth = qRound(buttonIconSize.width() * curDpi / static_cast<qreal>(lastDpi));
-    int btnIconNewHeight = qRound(buttonIconSize.height() * curDpi / static_cast<qreal>(lastDpi));
+    int btnIconNewWidth = qRound(buttonIconSize.width() * curDpi / lastDpi);
+    int btnIconNewHeight = qRound(buttonIconSize.height() * curDpi / lastDpi);
     searchButton->setIconSize(QSize(btnIconNewWidth, btnIconNewHeight));
 
     if (!font.family().isEmpty()) {

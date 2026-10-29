@@ -40,7 +40,9 @@ void CodeShow::setupUI()
     // 返回空串表示字体不可用，跳过设置使用默认字体
     const QString &fontFamily = appContext->fontFamily();
     if (!fontFamily.isEmpty()) {
-        QFont font(fontFamily, appContext->windowFontPointSize());
+        // 像素字号（与 CodeEditor 及全局一致）：跨屏缩放由消息重建链统一处理
+        QFont font(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
         label->setFont(font);
     }
     QPalette pal = label->palette();

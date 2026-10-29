@@ -7,7 +7,6 @@
 #include <QtCore/QTime>
 #include <QtGui/QColor>
 #include <QtGui/QFont>
-#include <QtGui/QFontDatabase>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>

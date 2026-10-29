@@ -199,6 +199,15 @@ void TitleWidget::updateSize(qreal curDpi, qreal lastDpi)
 {
     if (lastDpi == 0)
         return;
+    // resizeEvent 中 updateSize 先于 saveWidgetSize 执行：首次 DPI 缩放若发生在
+    // 首个 resizeEvent 之前，widgetSizeDict 为空，各键取默认 QSize(-1,-1) 缩放
+    // 出的负尺寸会把按钮/图标挤没、标题栏高度失效（界面失去 TitleWidget）。
+    // 此时先以当前尺寸为基准保存再缩放：与正常路径（上轮 resizeEvent 已保存
+    // 旧 DPI 尺寸）结果一致
+    if (widgetSizeDict.isEmpty()) {
+        saveWidgetSize();
+        qDebug() << "TitleWidget::updateSize dict empty, saved current as baseline";
+    }
     qreal ratio = qreal(curDpi / lastDpi);
 
     auto scale = [=](const QSize &s) -> QSize {
@@ -214,5 +223,7 @@ void TitleWidget::updateSize(qreal curDpi, qreal lastDpi)
     closeButton->setFixedSize(scale(widgetSizeDict["closeButton"].value<QSize>()));
     closeButton->setIconSize(scale(widgetSizeDict["closeButton iconSize"].value<QSize>()));
     titleRightSubWidget->resize(scale(widgetSizeDict["titleRightSubWidget"].value<QSize>()));
-    setFixedHeight(qRound(widgetSizeDict["self"].value<QSize>().height() * ratio));
+    // 键名与 saveWidgetSize 保持一致（"titleWidget"）
+    setFixedHeight(qRound(widgetSizeDict["titleWidget"].value<QSize>().height() * ratio));
+    qDebug() << "TitleWidget::updateSize ratio" << ratio << "newHeight" << height();
 }

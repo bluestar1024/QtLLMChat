@@ -22,14 +22,11 @@ ChatRecordsWidget::ChatRecordsWidget(AppContext *appContext, QWidget *parent)
     resize(400, 760);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
 
-    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
-    if (fontId != -1) {
-        QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
-        if (!fontFamilies.isEmpty()) {
-            fontFamily = fontFamilies.at(0);
-            font = QFont(fontFamily);
-            font.setPixelSize(this->appContext->windowFontPixelSize());
-        }
+    // 字体族由 AppContext 统一注册缓存，直接取用（不再逐个 addApplicationFont）
+    fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        font = QFont(fontFamily);
+        font.setPixelSize(this->appContext->windowFontPixelSize());
     }
 
     settingButton = new PushButton(this->appContext, "设置");
@@ -58,11 +55,12 @@ ChatRecordsWidget::ChatRecordsWidget(AppContext *appContext, QWidget *parent)
     label->resize(width() - buttonWidget->width() - 40, 50);
     label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
-    QFont titleFont(fontFamily);
+    // 标题字体用成员 titleFont 记录（字体族 + 加粗），updateSize 跨屏缩放时按新
+    // 像素字号重设，保证标题与列表项同步缩放
+    titleFont = QFont(fontFamily);
     titleFont.setPixelSize(this->appContext->titleFontPixelSize());
     titleFont.setBold(true);
     label->setFont(titleFont);
-
     label->setText("聊天历史");
     label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
@@ -246,11 +244,11 @@ void ChatRecordsWidget::resetWidgetSize()
     saveWidgetSize();
 }
 
-void ChatRecordsWidget::updateSize(int curDpi, int lastDpi)
+void ChatRecordsWidget::updateSize(qreal curDpi, qreal lastDpi)
 {
     if (lastDpi == 0)
         return;
-    qreal ratio = qreal(curDpi / lastDpi);
+    qreal ratio = curDpi / lastDpi;
 
     auto scale = [=](const QSize &s) -> QSize {
         return QSize(qRound(s.width() * ratio), qRound(s.height() * ratio));
@@ -291,7 +289,12 @@ void ChatRecordsWidget::updateSize(int curDpi, int lastDpi)
 
     widgetSizeDict["chatRecordItem height"] =
             qRound(widgetSizeDict["chatRecordItem height"].value<int>() * ratio);
+    // 列表项字体与标题字体都按新的像素字号重设：列表项字体直接取自
+    // appContext（与 WebEngineView 页面同为像素字号，保持视觉一致），
+    // 标题字体用成员 titleFont 重设（构造时记录的字体族与加粗属性）
     font.setPixelSize(appContext->windowFontPixelSize());
+    titleFont.setPixelSize(appContext->titleFontPixelSize());
+    label->setFont(titleFont);
     for (int i = 0; i < listWidget->count(); ++i) {
         QListWidgetItem *item = listWidget->item(i);
         item->setSizeHint(

@@ -10,16 +10,16 @@ PrintLabel::PrintLabel(const QString &text, AppContext *appContext, QWidget *par
       mainHLayout(new QHBoxLayout()),
       printTimer(new QTimer(this))
 {
-    int fontId = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
-    if (fontId != -1) {
-        QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
-        if (!fontFamilies.isEmpty()) {
-            QString fontFamily = fontFamilies.at(0);
-            font = QFont(fontFamily, this->appContext->windowFontPointSize());
-            font.setBold(true);
-            label->setFont(font);
-            fontMetrics = new QFontMetrics(font);
-        }
+    // 字体族由 AppContext 统一注册缓存，直接取用（不再逐个 addApplicationFont）；
+    // 像素字号与全局一致：pointSize 会被 Qt 按屏 DPI 自动重解析，
+    // 跨屏后与像素字号控件不一致
+    const QString fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        font = QFont(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
+        font.setBold(true);
+        label->setFont(font);
+        fontMetrics = new QFontMetrics(font);
     }
     palette = label->palette();
     palette.setColor(QPalette::WindowText, QColor(76, 106, 246));
@@ -49,10 +49,25 @@ PrintLabel::~PrintLabel()
     delete fontMetrics;
 }
 
-void PrintLabel::updateSize(int curDpi, int lastDpi)
+void PrintLabel::updateSize(qreal curDpi, qreal lastDpi)
 {
-    label->resize(qRound(label->width() * static_cast<qreal>(curDpi) / lastDpi),
-                  qRound(label->height() * static_cast<qreal>(curDpi) / lastDpi));
+    Q_UNUSED(curDpi)
+    Q_UNUSED(lastDpi)
+    // 字号按新像素值重设并重建度量，再按文本重算 label 尺寸（几何效果等同于
+    // 按 DPI 比例缩放，且字体与文字始终匹配）
+    if (fontMetrics) {
+        font.setPixelSize(appContext->windowFontPixelSize());
+        label->setFont(font);
+        delete fontMetrics;
+        fontMetrics = new QFontMetrics(font);
+    }
+    if (!text.isEmpty()) {
+        label->adjustSize();
+    } else if (fontMetrics) {
+        label->resize(fontMetrics->height(), fontMetrics->height());
+    } else {
+        label->resize(20, 20);
+    }
     setFixedSize(label->width() + 10, label->height() + 10);
 }
 

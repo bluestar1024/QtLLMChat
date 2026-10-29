@@ -2,6 +2,7 @@
 #include "appcontext.h"
 
 #include <QtGui/QFontMetrics>
+#include <QtGui/QFontInfo>
 #include <QtGui/QTextBlock>
 #include <QtGui/QTextDocument>
 #include <QtGui/QPalette>
@@ -16,9 +17,27 @@ CodeEditor::CodeEditor(AppContext *appContext, int maxWidth, QWidget *parent)
     horizontalScrollBar()->setCursor(Qt::PointingHandCursor);
 
     // qDebug() << "CodeEditor ing0" << this;
-    QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    // 字体选择：优先 appContext->fontFamily() 且实际渲染为等宽字体；
+    // 字体族不是等宽字体时（如微软雅黑为比例字体，setFixedPitch 只是请求
+    // 并不能把字形变为等宽）回退系统等宽字体——CodeEditor 展示代码必须
+    // 等宽，允许字体族例外不满足全局统一
+    QFont font;
+    const QString &fontFamily = this->appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        QFont candidate(fontFamily);
+        candidate.setFixedPitch(true);
+        // QFontInfo 查询实际匹配字体的等宽属性，避免“请求等宽但渲染比例”的偏差
+        if (QFontInfo(candidate).fixedPitch())
+            font = candidate;
+    }
+    if (font.family().isEmpty() || !QFontInfo(font).fixedPitch())
+        font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     font.setFixedPitch(true);
-    font.setPointSize(this->appContext->windowFontPointSize());
+    // 像素字号与全局一致：pointSize 会在每个屏的 DPI 下被 Qt 自动重解析
+    // （跨屏后物理尺寸不变、设备像素数变化），而 WebEngineView 的 HTML
+    // 使用写死的像素字号，导致跨屏后两者字号不一致（Bug 2）；统一改用
+    // 像素字号后由 applyScreenDpiChange 驱动的重建链负责跨屏缩放
+    font.setPixelSize(this->appContext->windowFontPixelSize());
     setFont(font);
 
     // qDebug() << "CodeEditor ing1" << this;
@@ -136,6 +155,9 @@ void CodeEditor::adjustHeight()
     if (isDestroying)
         return;
     qDebug() << "CodeEditor adjustHeight start" << this;
+    qDebug() << "CodeEditor adjustHeight docH" << document()->size().height()
+             << "fontPixel" << font().pixelSize() << "blocks" << document()->blockCount()
+             << "selfH" << height() << "fixedW" << width();
     int h = int(document()->size().height()) + 15;
     setFixedHeight(h);
     updateLineNumberAreaWidth();

@@ -89,6 +89,12 @@ private:
     // 按窗口所在屏 DPI 换算的像素字号应用 QToolTip 提示字体（提示显示前
     // 按钮还会按自身所在屏再校正一次，避免初始化时沿用主屏 DPI 使字号偏大）
     void applyToolTipFont();
+    // 统一的屏幕 DPI 转换入口：窗口所在屏 DPI 变化时（跨屏拖动结束、系统缩放
+    // 设置改变、首次显示时被系统放到 DPI 不同的屏上）重算像素字号，并驱动
+    // resizeEvent 的 isDpiChanged 缩放链——窗口与全部部件按 DPI 比例缩放、
+    // 各部件 updateSize 重设几何与字体、消息部件（WebEngineView/CodeEditor）
+    // 以新字号重建，保证部件物理大小跨屏一致
+    void applyScreenDpiChange(int newDpi, bool scheduleRegenerate = true);
 #ifdef Q_OS_WIN
     // 取当前原生窗口句柄：仅当平台窗口已创建完成时返回有效句柄，否则返回
     // nullptr；不做任何创建动作（对比 winId() 会触发窗口创建——在窗口创建
@@ -224,9 +230,25 @@ private:
     // QRect lastNormalGeometry;
     int dragStartWidth;
     int dragStartHeight;
+    // 拖拽开始时的窗口尺寸快照：跨屏拖拽期间 WM_DPICHANGED 会临时缩放窗口，
+    // 其 resizeEvent 会覆盖 widgetSizeDict["MainWindow"]；释放后按 DPI 比例
+    // 缩放窗口必须基于拖拽前基准，否则会被二次缩放
+    QSize dragStartWindowSize;
     bool isSizeMoveDrag;
     bool dragRegenerateDone;
     bool pendingRegenerateAfterResize;
+    // 拖拽中 WM_MOVING 检测到窗口中心进入 DPI 不同的屏（跨 DPI 屏拖动）：
+    // 系统随后会按 DPI 缩放窗口并触发 resizeEvent，由 resizeEvent 提前执行
+    // 完整 DPI 缩放链（见 resizeEvent 拦截），避免与释放时缩放链重复缩放
+    bool isDpiDragPending;
+    int pendingDragDpi;
+    // 本次拖拽已在 resizeEvent 拦截中执行过 DPI 缩放链：
+    // WM_EXITSIZEMOVE 的 DPI 分支据此跳过（curDpi 已更新）
+    bool dpiDragHandled;
+    // 当前 DPI 缩放链是否调度消息重建（applyScreenDpiChange 参数透传给
+    // resizeEvent 的 isDpiChanged 链尾）：拖动中提前执行的缩放链不立即重建，
+    // 由 WM_EXITSIZEMOVE 在释放后统一触发，避免阻塞拖拽模态循环
+    bool dpiChainScheduleRegenerate;
     bool isMinimizedState;
     int lastRegenerateWidth;
     int lastRegenerateHeight;

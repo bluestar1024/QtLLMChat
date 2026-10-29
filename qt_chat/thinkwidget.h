@@ -8,7 +8,6 @@
 
 #include <QtWidgets/QWidget>
 #include <QtGui/QFont>
-#include <QtGui/QFontDatabase>
 #include <QtGui/QFontMetricsF>
 #include <QtWidgets/QHBoxLayout>
 #include <QtCore/QTimer>

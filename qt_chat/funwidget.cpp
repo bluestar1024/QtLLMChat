@@ -28,9 +28,9 @@ FunWidget::FunWidget(AppContext *appContext, QWidget *parent)
     // applicationFontFamilies(fontId).at(0) 未判空，空列表时越界读取崩溃）
     const QString &fontFamily = this->appContext->fontFamily();
     if (!fontFamily.isEmpty()) {
-        QFont font(fontFamily);
-        font.setPixelSize(this->appContext->titleFontPixelSize());
-        titleLabel->setFont(font);
+        titleFont = QFont(fontFamily);
+        titleFont.setPixelSize(this->appContext->titleFontPixelSize());
+        titleLabel->setFont(titleFont);
     }
     titleLabel->setText("AI助理");
     titleLabel->adjustSize();
@@ -185,6 +185,12 @@ void FunWidget::updateSize(qreal curDpi, qreal lastDpi)
 
     titleLabel->setFixedSize(scale(widgetSizeDict["titleLabel"].value<QSize>()));
     funMidSubHLayout->setContentsMargins(0, 0, 0, 0);
+
+    // 标题字体按新像素字号重设（像素字号不随屏 DPI 自动变化，需显式重设）
+    if (!titleFont.family().isEmpty()) {
+        titleFont.setPixelSize(appContext->titleFontPixelSize());
+        titleLabel->setFont(titleFont);
+    }
 
     newChatButton->setFixedSize(scale(widgetSizeDict["newChatButton"].value<QSize>()));
     newChatButton->setIconSize(scale(widgetSizeDict["newChatButton iconSize"].value<QSize>()));

@@ -5,16 +5,22 @@ Label::Label(AppContext *appContext, QWidget *parent) : QLabel(parent), appConte
 {
     resize(50, 32);
 
-    int fontId = QFontDatabase::addApplicationFont(appContext->fontFilePath());
-    if (fontId != -1) {
-        QStringList fontFamilies = QFontDatabase::applicationFontFamilies(fontId);
-        if (!fontFamilies.isEmpty()) {
-            QString fontFamily = fontFamilies.at(0);
-            QFont font(fontFamily);
-            font.setPixelSize(appContext->windowFontPixelSize());
-            setFont(font);
-        }
+    // 字体族由 AppContext 统一注册缓存，直接取用（不再逐个 addApplicationFont）
+    fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        QFont font(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
+        setFont(font);
     }
+}
+
+void Label::updateFontSize()
+{
+    if (fontFamily.isEmpty())
+        return;
+    QFont font(fontFamily);
+    font.setPixelSize(appContext->windowFontPixelSize());
+    setFont(font);
 }
 
 Label::~Label() { }

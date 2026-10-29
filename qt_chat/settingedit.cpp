@@ -16,6 +16,11 @@ void SettingEdit::setSize(QSize s)
     updateStyleSheet();
 }
 
+void SettingEdit::updateFontSize()
+{
+    updateStyleSheet();
+}
+
 void SettingEdit::updateStyleSheet()
 {
     setStyleSheet(QString(R"(

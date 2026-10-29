@@ -12,7 +12,6 @@
 #include <QtWidgets/QBoxLayout>
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
-#include <QtGui/QFontDatabase>
 #include <QtCore/QSize>
 #include <QtWidgets/QSizePolicy>
 #include <QtGui/QIcon>
@@ -52,7 +51,7 @@ public:
     void setSize();
     void saveWidgetSize();
     void resetWidgetSize();
-    void updateSize(int curDpi, int lastDpi);
+    void updateSize(qreal curDpi, qreal lastDpi);
     QString getLineEditText() const;
     QListWidgetItem *addListItem(const QString &string);
     void delAllListItems();
@@ -66,6 +65,7 @@ protected:
 private:
     AppContext *appContext;
     QFont font;
+    QFont titleFont;
     QString fontFamily;
     PushButton *settingButton;
     QString settingImagesPath;

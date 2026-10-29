@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 
+#include <cmath>
+
 #include <QtWebEngineCore/QWebEngineProfile>
 #include <QtQuickWidgets/QQuickWidget>
 #include <QtWidgets/QApplication>
@@ -27,9 +29,14 @@ MainWindow::MainWindow(QWidget *parent)
       isContinueShow(true),
       dragStartWidth(-1),
       dragStartHeight(-1),
+      dragStartWindowSize(QSize(-1, -1)),
       isSizeMoveDrag(false),
       dragRegenerateDone(false),
       pendingRegenerateAfterResize(false),
+      isDpiDragPending(false),
+      pendingDragDpi(0),
+      dpiDragHandled(false),
+      dpiChainScheduleRegenerate(true),
       isMinimizedState(false),
       lastRegenerateWidth(-1),
       lastRegenerateHeight(-1),
@@ -37,6 +44,17 @@ MainWindow::MainWindow(QWidget *parent)
       avoidRepeatSelfFun(false)
 {
     appContext = new AppContext();
+    // ===== 初始像素字号：按窗口所在屏 DPI 从磅值换算（原为写死的 20/28，仅匹配
+    // 144 DPI 主屏；窗口启动于其他 DPI 的屏时所有像素字号控件与 WebEngine 页面
+    // 都会偏大/偏小）。构造期 screen() 可能仍指向主屏，窗口实际被系统放到 DPI
+    // 不同的屏上时由 showEvent 中的 applyScreenDpiChange 校正 =====
+    {
+        const int initScreenDpi = screen()->logicalDotsPerInch();
+        appContext->setWindowFontPixelSize(
+                std::ceil(appContext->windowFontPointSize() * (initScreenDpi / 72.0)));
+        appContext->setTitleFontPixelSize(
+                std::ceil(appContext->titleFontPointSize() * (initScreenDpi / 72.0)));
+    }
     // ===== 应用级默认字体与 ToolTip 样式 =====
     // 应用级默认字体：兜底未显式 setFont 的控件（QToolTip 弹窗、QMessageBox 等）；
     // 字体族经 AppContext::fontFamily() 懒加载注册（进程内单次注册，与各控件
@@ -412,6 +430,13 @@ void MainWindow::showEvent(QShowEvent *event)
     // 首次显示完成后，WM_SIZE 才允许触发聊天记录重建（避免启动阶段误触发）
     isShowFirst = false;
 
+    // 构造时 screen() 可能仍指向主屏：窗口实际被系统放到另一块 DPI 不同的屏上时
+    // （主屏 144、副屏 96），按实际所在屏 DPI 校正像素字号并按比例缩放全部部件，
+    // 避免启动即出现字号/尺寸偏差
+    if (screen()->logicalDotsPerInch() != curDpi) {
+        applyScreenDpiChange(screen()->logicalDotsPerInch());
+    }
+
 #ifdef Q_OS_WIN
     // static bool firstShow = true;
     // if (firstShow) {
@@ -610,6 +635,12 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         }
         mmi->ptMinTrackSize.x = 1100;
         mmi->ptMinTrackSize.y = 795;
+        // 最小尺寸按窗口当前所在屏的 DPI 相对 144（设计基准）缩放：固定
+        // 1100x795 物理像素在 96 DPI 屏上会钳制跨屏缩放目标（如 800x533），
+        // 窗口无法按 DPI 比例缩小，自适应缩放链失效
+        const UINT windowDpi = GetDpiForWindow(hwnd);
+        mmi->ptMinTrackSize.x = MulDiv(1100, int(windowDpi), 144);
+        mmi->ptMinTrackSize.y = MulDiv(795, int(windowDpi), 144);
         *result = 0;
         return true;
     }
@@ -675,9 +706,14 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
 
     case WM_ENTERSIZEMOVE: {
         // 拖动标题栏移动或调整大小开始：记录窗口尺寸，供 WM_MOVING/WM_EXITSIZEMOVE
-        // 区分“仅移动”与“调整大小”（仅移动不应触发聊天记录重建）
+        // 区分“仅移动”与“调整大小”（仅移动不应触发聊天记录重建）；同时快照
+        // 窗口尺寸基准供跨屏拖动结束后的 DPI 缩放使用（详见 dragStartWindowSize）
         isSizeMoveDrag = true;
         dragRegenerateDone = false;
+        isDpiDragPending = false;
+        pendingDragDpi = 0;
+        dpiDragHandled = false;
+        dragStartWindowSize = size();
         // 拖拽开始前顺带检查样式（缺失时延迟补齐，恢复后续边缘拉伸能力）
         scheduleFrameStyleEnsure();
         RECT rect;
@@ -688,6 +724,38 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     }
 
     case WM_MOVING: {
+        // 跨 DPI 屏拖动检测（须在 dragRegenerateDone 提前 break 之前执行）：
+        // 用拖动目标矩形中心所在屏的 DPI 判断本次拖动是否跨 DPI 屏。系统在
+        // 拖动中按 DPI 缩放窗口（WM_DPICHANGED）并触发 resizeEvent，resizeEvent
+        // 据此提前执行完整 DPI 缩放链；若等释放（WM_EXITSIZEMOVE）再缩放，
+        // 普通布局与 DPI 链会先后各缩放一次子部件，物理尺寸变化过大（Bug）
+        {
+            RECT *mrc = reinterpret_cast<RECT *>(msg->lParam);
+            const POINT center = { (mrc->left + mrc->right) / 2,
+                                   (mrc->top + mrc->bottom) / 2 };
+            const HMONITOR mon = MonitorFromPoint(center, MONITOR_DEFAULTTONEAREST);
+            MONITORINFO mi = { sizeof(mi) };
+            int targetDpi = 0;
+            if (mon && GetMonitorInfoW(mon, &mi)) {
+                const QRect monRect(mi.rcMonitor.left, mi.rcMonitor.top,
+                                    mi.rcMonitor.right - mi.rcMonitor.left,
+                                    mi.rcMonitor.bottom - mi.rcMonitor.top);
+                for (const QScreen *s : screens) {
+                    if (s->geometry() == monRect) {
+                        targetDpi = qRound(s->logicalDotsPerInch());
+                        break;
+                    }
+                }
+            }
+            if (targetDpi > 0 && targetDpi != qRound(curDpi)) {
+                isDpiDragPending = true;
+                pendingDragDpi = targetDpi;
+                qDebug() << "WM_MOVING cross-dpi pending" << targetDpi;
+            } else if (targetDpi > 0) {
+                // 拖回原 DPI 屏（或目标屏与当前同 DPI）：清除待处理状态
+                isDpiDragPending = false;
+            }
+        }
         // 拖动标题栏移动/拖动还原过程中：lParam 为拖动目标矩形。
         // 目标宽度发生变化（最大化/半屏还原、Aero Snap、左右拉伸）时仅标记待重建，
         // 不在这里直接重建：系统拖拽模态循环中执行耗时重建会阻塞拖拽造成卡顿，
@@ -708,8 +776,39 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
     case WM_EXITSIZEMOVE: {
         QTimer::singleShot(10, this, &MainWindow::applyDWMShadow);
         isSizeMoveDrag = false;
+        isDpiDragPending = false;
         // 拖拽结束：顺带检查样式（缺失时延迟补齐）
         scheduleFrameStyleEnsure();
+
+        // 标题栏拖动走 Windows 原生模态循环（WM_NCHITTEST 返回 HTCAPTION）：
+        // 释放时 WM_LBUTTONUP 被模态循环消费，Qt 不派发 mouseReleaseEvent，
+        // 其 screenChanged 分支不会执行；跨屏拖动结束的 DPI 缩放链必须在这里
+        // 触发（mouseReleaseEvent 分支作为非模态拖动路径的补充保留）。
+        // 判断条件除了 moveEvent 设置的 screenChanged 标志，还要比较当前屏幕
+        // DPI 与 curDpi：Qt 平台层对 DPI 变化型跨屏移动会推迟屏幕切换（移动
+        // 阶段 moveEvent 拿到的还是旧屏），屏幕在 WM_DPICHANGED 处理时才切换，
+        // 而切换本身不触发新的 moveEvent，标志可能一直是 false——仅靠标志判断
+        // 会漏掉跨 DPI 屏拖动，缩放链（字号重算 + 部件按比例缩放 + 消息重建）
+        // 不执行，CodeEditor/WebEngineView 字号停留在旧屏像素值（Bug 2）。
+        // applyScreenDpiChange 内部 newDpi==curDpi 时提前返回，同 DPI 屏间
+        // 拖动不会产生多余重建
+        const QScreen *releaseScreen = screen();
+        const int releaseDpi = releaseScreen ? qRound(releaseScreen->logicalDotsPerInch()) : 0;
+        if (dpiDragHandled) {
+            // resizeEvent 拦截已执行过 DPI 缩放链（curDpi 已更新）：
+            // 只清理 screenChanged 标志，不再重复缩放
+            screenChanged = false;
+        } else if (screenChanged || (releaseDpi > 0 && releaseDpi != qRound(curDpi))) {
+            screenChanged = false;
+            // 拖拽期间 WM_DPICHANGED 临时缩放窗口，其 resizeEvent 已把
+            // widgetSizeDict["MainWindow"] 覆盖为临时尺寸：恢复拖拽前快照
+            // 作为 DPI 缩放基准，避免窗口被二次缩放（如 1200x800 拖到 96 DPI
+            // 屏再乘 2/3 得到 533x355 的错误目标）
+            widgetSizeDict["MainWindow"] = dragStartWindowSize;
+            qDebug() << "WM_EXITSIZEMOVE screenChanged, applyScreenDpiChange"
+                     << releaseDpi << "baseline" << dragStartWindowSize;
+            applyScreenDpiChange(releaseDpi);
+        }
 
         RECT rect;
         GetWindowRect(hwnd, &rect);
@@ -853,6 +952,11 @@ void MainWindow::moveEvent(QMoveEvent *event)
     curScreen = screen();
     if (lastScreen != curScreen) {
         lastScreen = curScreen;
+        screenChanged = true;
+    } else if (curScreen && qRound(curScreen->logicalDotsPerInch()) != qRound(curDpi)) {
+        // 跨 DPI 屏拖动时 Qt 在移动阶段仍返回旧屏（屏幕切换推迟到 WM_DPICHANGED
+        // 处理，且切换不触发新的 moveEvent）；以 DPI 与 curDpi 的差异兜底置位，
+        // 保证 mouseReleaseEvent/WM_EXITSIZEMOVE 的跨屏缩放分支能被触发
         screenChanged = true;
     }
     QMainWindow::moveEvent(event);
@@ -1202,13 +1306,11 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         }
         if (screenChanged) {
             qDebug() << "mouseReleaseEvent screenChanged";
-            curDpi = curScreen->logicalDotsPerInch();
-            appContext->setWindowFontPixelSize(
-                    std::ceil(appContext->windowFontPointSize() * (curDpi / 72)));
-            appContext->setTitleFontPixelSize(
-                    std::ceil(appContext->titleFontPointSize() * (curDpi / 72)));
-            applyToolTipFont();
             screenChanged = false;
+            // 跨屏拖动结束：新屏 DPI 与旧屏不同时执行完整缩放链——重算像素字号、
+            // 窗口与全部部件按 DPI 比例缩放（物理大小跨屏保持一致）、消息部件
+            // （WebEngineView 页面与 CodeEditor）以新字号重建
+            applyScreenDpiChange(curScreen->logicalDotsPerInch());
         }
     }
     QMainWindow::mouseReleaseEvent(event);
@@ -1217,12 +1319,41 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 void MainWindow::onDpiChanged()
 {
     qDebug() << "onDpiChanged";
+    // 某块屏的 DPI（系统缩放设置）发生变化：若为窗口所在屏，与跨屏拖动共用
+    // 同一套缩放链（字号重算 + 窗口/部件按比例缩放 + 消息部件重建）
+    applyScreenDpiChange(curScreen->logicalDotsPerInch());
+}
+
+void MainWindow::applyScreenDpiChange(int newDpi, bool scheduleRegenerate)
+{
+    qDebug() << "applyScreenDpiChange newDpi" << newDpi << "curDpi" << curDpi;
+    if (newDpi == curDpi)
+        return;
     lastDpi = curDpi;
-    curDpi = curScreen->logicalDotsPerInch();
+    curDpi = newDpi;
+    // 重建调度决策透传给 resizeEvent 的 isDpiChanged 链尾（见 dpiChainScheduleRegenerate）
+    dpiChainScheduleRegenerate = scheduleRegenerate;
+    // 像素字号按新屏 DPI 从磅值重算：全部像素字号控件重设字体后、WebEngineView
+    // 页面与 CodeEditor 重建后统一生效；磅值字号控件（QToolTip 等）另行处理
     appContext->setWindowFontPixelSize(
-            std::ceil(appContext->windowFontPointSize() * (curDpi / 72)));
+            std::ceil(appContext->windowFontPointSize() * (curDpi / 72.0)));
+    appContext->setTitleFontPixelSize(
+            std::ceil(appContext->titleFontPointSize() * (curDpi / 72.0)));
     applyToolTipFont();
     isDpiChanged = true;
+    // 触发 resizeEvent 的 isDpiChanged 缩放链：按比例缩放窗口最小尺寸、主部件
+    // 几何与各部件 updateSize，最后重建消息部件。窗口能按目标尺寸 resize 时由
+    // 真实 resize 事件驱动；最大化或目标尺寸与当前相同（比例四舍五入后相等）时
+    // 手动驱动一次缩放链，保证字体仍然更新
+    const QSize target(
+            qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi),
+            qRound(widgetSizeDict["MainWindow"].value<QSize>().height() * curDpi / lastDpi));
+    if (!isWindowMaximized() && target != size()) {
+        resize(target);
+    } else {
+        QResizeEvent e(size(), size());
+        resizeEvent(&e);
+    }
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
@@ -1231,6 +1362,41 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     if (avoidRepeatSelfFun) {
         avoidRepeatSelfFun = false;
         return;
+    }
+    // 跨屏拖动中系统按 DPI 缩放窗口（WM_DPICHANGED）会触发本 resizeEvent：
+    // 若不拦截，普通布局路径会把子部件按新窗口尺寸重新布局（如
+    // SettingWidget::setSize 按新宽度重排，且 resetWidgetSize 会把新尺寸
+    // 写回 widgetSizeDict），随后 WM_EXITSIZEMOVE 的 DPI 缩放链又按比例
+    // 缩放一次——两次缩放叠加使部件物理尺寸在拖动前后变化过大（切换屏幕
+    // 显示效果 Bug）。这里提前执行完整 DPI 缩放链（一次到位），释放时
+    // WM_EXITSIZEMOVE 检测到 curDpi 已更新即跳过，不再重复缩放
+    if (isSizeMoveDrag && !isDpiChanged) {
+        int targetDpi = 0;
+        if (isDpiDragPending && pendingDragDpi != qRound(curDpi)) {
+            // WM_MOVING 已用拖动目标矩形中心检测到目标屏 DPI（首选，
+            // 时序上早于系统缩放窗口，最可靠）
+            targetDpi = pendingDragDpi;
+        } else {
+            // 兜底：resizeEvent 时 screen() 已切换到新屏则按其 DPI 判断
+            const QScreen *s = screen();
+            const int screenDpi = s ? qRound(s->logicalDotsPerInch()) : 0;
+            if (screenDpi > 0 && screenDpi != qRound(curDpi))
+                targetDpi = screenDpi;
+        }
+        if (targetDpi > 0) {
+            qDebug() << "resizeEvent dpi drag intercepted, applyScreenDpiChange" << targetDpi;
+            // 恢复拖拽前窗口尺寸快照作为 DPI 缩放基准：此前 resizeEvent
+            // 可能已把 widgetSizeDict["MainWindow"] 覆盖为系统缩放后的
+            // 临时尺寸（与 WM_EXITSIZEMOVE 侧的处理一致）
+            widgetSizeDict["MainWindow"] = dragStartWindowSize;
+            // 重建不在拖动模态循环中执行（耗时重建会阻塞拖拽）：只标记
+            // 待重建，由 WM_EXITSIZEMOVE 的 pending 分支在释放后调度
+            applyScreenDpiChange(targetDpi, false);
+            isDpiDragPending = false;
+            pendingRegenerateAfterResize = true;
+            dpiDragHandled = true;
+            return;
+        }
     }
     if (isDpiChanged) {
         setMinimumSize(qRound(widgetSizeDict["MainWindow minimumSize"].value<QSize>().width()
@@ -1328,8 +1494,11 @@ void MainWindow::resizeEvent(QResizeEvent *event)
             resize(qRound(widgetSizeDict["MainWindow"].value<QSize>().width() * curDpi / lastDpi),
                    qRound(widgetSizeDict["MainWindow"].value<QSize>().height() * curDpi / lastDpi));
         }
-        // 与上方 resize 触发的 WM_SIZE 重建请求经统一调度入口合并去重
-        scheduleMessageWidgetRegenerate();
+        // 与上方 resize 触发的 WM_SIZE 重建请求经统一调度入口合并去重；
+        // 拖动中提前执行本缩放链时不立即调度（重建耗时，阻塞拖拽模态循环），
+        // 重建由调用方（WM_EXITSIZEMOVE）在释放后统一触发
+        if (dpiChainScheduleRegenerate)
+            scheduleMessageWidgetRegenerate();
     }
     widgetSizeDict["MainWindow"] = size();
     qDebug() << "resizeEvent MainWindow size:" << size();

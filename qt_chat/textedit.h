@@ -7,7 +7,6 @@
 
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QSizePolicy>
-#include <QtGui/QFontDatabase>
 #include <QtGui/QFont>
 #include <QtWidgets/QGridLayout>
 #include <QtGui/QContextMenuEvent>
@@ -54,6 +53,7 @@ private slots:
 
 private:
     AppContext *appContext;
+    QFont font;
     SendButton *sendButton;
     QGridLayout *gLayout;
     QString sendImagesPath;

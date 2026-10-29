@@ -8,16 +8,13 @@ TextEdit::TextEdit(AppContext *appContext, QWidget *parent)
 {
     resize(1130, 150);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    int font_id = QFontDatabase::addApplicationFont(this->appContext->fontFilePath());
-    if (font_id != -1) {
-        QStringList font_families = QFontDatabase::applicationFontFamilies(font_id);
-        if (!font_families.isEmpty()) {
-            QString font_family = font_families.at(0);
-            QFont font(font_family);
-            font.setPixelSize(this->appContext->windowFontPixelSize());
-            setFont(font);
-            qDebug() << "textEdit setFont end";
-        }
+    // 字体族由 AppContext 统一注册缓存，直接取用（不再逐个 addApplicationFont）
+    const QString fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        font = QFont(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
+        setFont(font);
+        qDebug() << "textEdit setFont end";
     }
     setPlaceholderText("按Shift+Enter换行、按Enter提交");
     sendButton = new SendButton(this->appContext, "发送");
@@ -41,17 +38,17 @@ TextEdit::TextEdit(AppContext *appContext, QWidget *parent)
         }
     )")
                                       .arg(sendImagesPath));
+    // 字体用像素字号（上方 setFont）；QSS 若写 font-size 会覆盖 QFont 设置，
+    // 且 pt 字号会被 Qt 按屏 DPI 重解析，跨屏后与全局像素字号不一致
     setStyleSheet(QString(R"(
         QTextEdit{
             border: none;
             background: transparent;
-            font-size: %1pt;
         }
         QScrollBar{
             width: 25px;
         }
-    )")
-                          .arg(this->appContext->windowFontPointSize()));
+    )"));
     setMouseTracking(true);
     widgetSizeDict["sendButton"] = sendButton->size();
     widgetSizeDict["sendButton iconSize"] = sendButton->iconSize();
@@ -143,6 +140,12 @@ void TextEdit::updateSendButtonSize(qreal curDpi, qreal lastDpi)
 
     sendButton->setFixedSize(scale(widgetSizeDict["sendButton"].value<QSize>()));
     sendButton->setIconSize(scale(widgetSizeDict["sendButton iconSize"].value<QSize>()));
+
+    // 输入框字体按新像素字号重设（像素字号不随屏 DPI 自动变化，需显式重设）
+    if (!font.family().isEmpty()) {
+        font.setPixelSize(appContext->windowFontPixelSize());
+        setFont(font);
+    }
 
     widgetSizeDict["sendButton"] = sendButton->size();
     widgetSizeDict["sendButton iconSize"] = sendButton->iconSize();

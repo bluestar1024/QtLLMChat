@@ -103,7 +103,7 @@ th{background-color:#b0b0b0;}
 .left-align{text-align:left;}
 .center-align{text-align:center;}
 .right-align{text-align:right;}
-body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-size:%2px;overflow:hidden;}
+body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-size:%2px;font-family:'%3','Microsoft YaHei',sans-serif;overflow:hidden;}
 .content{width:auto;height:auto;display:flex;flex-direction:column;justify-content:center;}
 </style>
 </head>
@@ -111,7 +111,8 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 <div class="content">
 )")
                          .arg(this->appContext->mathjaxScriptPath())
-                         .arg(this->appContext->windowFontPixelSize());
+                         .arg(this->appContext->windowFontPixelSize())
+                         .arg(this->appContext->fontFamily());
     // ---- markdown → html ----
     if (!text.isEmpty()) {
         htmlText = buildHtmlText(text);
@@ -209,7 +210,7 @@ th{background-color:#b0b0b0;}
 .left-align{text-align:left;}
 .center-align{text-align:center;}
 .right-align{text-align:right;}
-body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-size:%2px;overflow:hidden;}
+body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-size:%2px;font-family:'%3','Microsoft YaHei',sans-serif;overflow:hidden;}
 .content{width:auto;height:auto;display:flex;flex-direction:column;justify-content:center;}
 </style>
 </head>
@@ -217,7 +218,8 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
 <div class="content">
 )")
                          .arg(appContext->mathjaxScriptPath())
-                         .arg(appContext->windowFontPixelSize());
+                         .arg(appContext->windowFontPixelSize())
+                         .arg(appContext->fontFamily());
     // ---- markdown → html ----
     if (!text.isEmpty()) {
         htmlText = buildHtmlText(text);

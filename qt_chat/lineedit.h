@@ -6,7 +6,6 @@
 
 #include <QtWidgets/QLineEdit>
 #include <QtGui/QFont>
-#include <QtGui/QFontDatabase>
 #include <QtGui/QIcon>
 #include <QtCore/QSize>
 #include <QtCore/QMap>
@@ -26,7 +25,7 @@ public:
     void connectSearchButtonClick(T *receiver, void (T::*slot)(bool));
 
     void resetWidgetSize();
-    void updateSize(int curDpi, int lastDpi);
+    void updateSize(qreal curDpi, qreal lastDpi);
 
 private:
     AppContext *appContext;

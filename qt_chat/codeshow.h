@@ -11,7 +11,6 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QTextEdit>
 #include <QtGui/QClipboard>
-#include <QtGui/QFontDatabase>
 #include <QtGui/QPainter>
 #include <QtWidgets/QApplication>
 

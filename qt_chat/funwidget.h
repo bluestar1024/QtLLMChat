@@ -9,7 +9,6 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QSizePolicy>
-#include <QtGui/QFontDatabase>
 #include <QtGui/QFont>
 #include <QtGui/QIcon>
 #include <QtGui/QMouseEvent>
@@ -57,6 +56,7 @@ private:
     QString chatRecordsImagesPath;
     QString newChatImagesPath;
     QLabel *titleLabel;
+    QFont titleFont;
 
     Widget *funLeftSubWidget;
     Widget *funMidSubWidget;
