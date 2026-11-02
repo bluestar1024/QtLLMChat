@@ -95,6 +95,20 @@ private:
     // 各部件 updateSize 重设几何与字体、消息部件（WebEngineView/CodeEditor）
     // 以新字号重建，保证部件物理大小跨屏一致
     void applyScreenDpiChange(int newDpi, bool scheduleRegenerate = true);
+    // 窗口所在屏变化（QWindow::screenChanged）：系统 DPI 设置变更时窗口在
+    // 拓扑重算中会临时跨屏再回到原屏，期间按临时屏 DPI 执行过缩放链，回到
+    // 原屏后没有可靠的 WM_DPICHANGED 时序，界面会停留在临时屏字号/尺寸上
+    // （整体偏大）。这里在屏变化后自动按窗口实际所在屏 DPI 校正（拖拽中由
+    // resizeEvent 拦截路径处理，释放时 WM_EXITSIZEMOVE 兜底）
+    void onScreenChanged(QScreen *newScreen);
+    // DPI 稳定后校验（延迟一段时间再比较窗口实际所在屏 DPI 与 curDpi）：
+    // 系统缩放设置变更期间 Qt 报告的屏/DPI 会短暂错误，校正所依赖的屏信号
+    // 可能不再到达或来得过早，这里作为兜底保证界面最终自动回到正确字号/尺寸
+    void scheduleDpiSettleCheck();
+    // 按物理尺寸基准换算某 DPI 下的窗口目标尺寸（baseWindowSize × dpi /
+    // baseWindowDpi）：跨屏拖动与系统缩放变化统一用该基准，避免系统在 DPI
+    // 切换过渡期临时缩放窗口污染尺寸基准，导致来回拖动后窗口/部件比例失常
+    QSize dpiScaledSize(qreal dpi) const;
 #ifdef Q_OS_WIN
     // 取当前原生窗口句柄：仅当平台窗口已创建完成时返回有效句柄，否则返回
     // nullptr；不做任何创建动作（对比 winId() 会触发窗口创建——在窗口创建
@@ -155,6 +169,10 @@ private:
     void updateItemLayout(QWidget *itemWidget, MessageWidget *messageWidget, QListWidgetItem *item);
     // 聊天记录部件展开/收起后只调整 item 布局边距，不重建 MessageWidget
     void messageWidgetItemRelayout();
+    // 跨 DPI 屏拖动未释放鼠标前的轻量刷新：按新 DPI 重设各 MessageWidget
+    // 内文本/代码块的字体与尺寸（不重建控件，避免阻塞拖拽模态循环），
+    // 使消息区域在未释放鼠标时就呈现正确比例
+    void messageWidgetUpdateSize(qreal curDpi, qreal lastDpi);
 
     // 用户消息 item 的右侧留白：用户消息 ImageLabel 右边缘与 chatShow 右边缘的距离，
     // 同时也是 AI 消息达到最大宽度时右边缘的对齐基准
@@ -230,10 +248,11 @@ private:
     // QRect lastNormalGeometry;
     int dragStartWidth;
     int dragStartHeight;
-    // 拖拽开始时的窗口尺寸快照：跨屏拖拽期间 WM_DPICHANGED 会临时缩放窗口，
-    // 其 resizeEvent 会覆盖 widgetSizeDict["MainWindow"]；释放后按 DPI 比例
-    // 缩放窗口必须基于拖拽前基准，否则会被二次缩放
-    QSize dragStartWindowSize;
+    // DPI 缩放的物理尺寸基准（见 dpiScaledSize）：只在用户主动改变窗口尺寸时
+    // 更新；系统在 DPI 切换过渡期临时缩放窗口、DPI 缩放链内部的 resize 都
+    // 不更新，保证多次跨屏拖动 / 系统缩放设置变化后尺寸不漂移
+    QSize baseWindowSize;
+    qreal baseWindowDpi;
     bool isSizeMoveDrag;
     bool dragRegenerateDone;
     bool pendingRegenerateAfterResize;

@@ -14,9 +14,12 @@ TextShow::~TextShow() { }
 
 void TextShow::onUpdateSize()
 {
+    // 页面正在加载/重建（setHtml 之后、文档就绪之前）时 documentElement 为 null，
+    // 直接读取 clientWidth 会抛 TypeError；返回 null 交给 waitForValidSize 轮询等待
     const char *js = R"(
 function getPageSize(){
-  var body=document.body, html=document.documentElement;
+  var html=document.documentElement;
+  if(!html) return null;
   var w=Math.max(html.clientWidth,html.scrollWidth,html.offsetWidth);
   var h=Math.max(html.clientHeight,html.scrollHeight,html.offsetHeight);
   var content=document.querySelector('.content');

@@ -720,6 +720,65 @@ bool MessageWidget::getIsRemoveloadingWidget()
     return loadingWidgetIsRemove;
 }
 
+void MessageWidget::updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth)
+{
+    // 跨 DPI 屏拖动尚未释放鼠标时：完整重建被推迟到释放后（重建耗时，会阻塞
+    // 拖拽模态循环），这里只做轻量刷新，使字体与各部件尺寸立即符合新屏比例
+    if (renderingAborted || lastDpi <= 0 || curDpi <= 0 || newMaxWidth <= 0)
+        return;
+    const qreal ratio = qreal(curDpi) / qreal(lastDpi);
+    const int oldMaxWidth = maxWidth;
+    maxWidth = newMaxWidth;
+    // 子控件创建时的宽度 = 当时的 maxWidth - 偏移量（头像宽 + 固定间隙 + 代码
+    // 缩进等）；偏移量由“旧 maxWidth - 子控件自身当前最大宽度”反推，刷新后
+    // 的宽度与重建结果一致，不必在各处重复维护宽度常量
+    auto textBlockMaxWidth = [&](ThinkWidget *w) {
+        const int offset = oldMaxWidth - (w->getMaxWidth() + 10);
+        return qMax(newMaxWidth - offset, 1);
+    };
+    auto codeBlockMaxWidth = [&](CodeShow *w) {
+        const int offset = oldMaxWidth - w->getMaxWidth();
+        return qMax(newMaxWidth - offset, 1);
+    };
+    if (isUser) {
+        if (textShow)
+            textShow->updateSize(curDpi, lastDpi, textBlockMaxWidth(textShow));
+    } else {
+        for (auto *thinkWidget : thinkTextShowList)
+            thinkWidget->updateSize(curDpi, lastDpi, textBlockMaxWidth(thinkWidget));
+        for (auto *textShow : resultTextShowList)
+            textShow->updateSize(curDpi, lastDpi, textBlockMaxWidth(textShow));
+        for (auto *codeShow : thinkCodeShowList)
+            codeShow->updateSize(curDpi, lastDpi, codeBlockMaxWidth(codeShow));
+        for (auto *codeShow : resultCodeShowList)
+            codeShow->updateSize(curDpi, lastDpi, codeBlockMaxWidth(codeShow));
+        // 嵌套代码块的缩进容器：缩进空白按比例缩放，容器宽度随代码块同步
+        auto updateCodeHosts = [&](const QList<CodeShow *> &codeShows,
+                                   const QList<QWidget *> &hosts) {
+            const int count = qMin(codeShows.size(), hosts.size());
+            for (int i = 0; i < count; ++i) {
+                QWidget *host = hosts.at(i);
+                if (!host)
+                    continue;
+                QHBoxLayout *hostLayout = qobject_cast<QHBoxLayout *>(host->layout());
+                const int indent = hostLayout ? hostLayout->contentsMargins().left() : 0;
+                const int newIndent = qRound(indent * ratio);
+                if (hostLayout)
+                    hostLayout->setContentsMargins(newIndent, 0, 0, 0);
+                host->setFixedWidth(codeShows.at(i)->width() + newIndent);
+            }
+        };
+        updateCodeHosts(thinkCodeShowList, thinkCodeShowHostList);
+        updateCodeHosts(resultCodeShowList, resultCodeShowHostList);
+        if (thinkButtonHaveCreated && thinkButton)
+            thinkButton->updateDpiSize();
+    }
+    // 复制/重新生成按钮与边距按新 DPI 缩放，并同步重算本控件尺寸
+    updateFunWidgetSize(curDpi, lastDpi);
+    setSize();
+    qDebug() << "MessageWidget updateSize" << curDpi << lastDpi << "maxWidth" << maxWidth << this;
+}
+
 void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
 {
     if (initDpi <= 0)

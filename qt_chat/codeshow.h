@@ -38,6 +38,11 @@ public:
     QString getLexerName() const;
     bool hasSelectedText() const;
     QString getSelectedText() const;
+    // 跨 DPI 屏拖动未释放鼠标时的轻量刷新（不重建控件）：语言标签/工具栏
+    // 按新像素字号重算，代码区字体重设并重新量算高度，宽度按新的最大宽度设置
+    void updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth);
+    // 当前最大宽度（跨 DPI 刷新时用于反推创建时相对 MessageWidget 的宽度偏移）
+    int getMaxWidth() const { return maxWidth; }
 
 public slots:
     void toggleThemeStyle();

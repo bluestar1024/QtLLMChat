@@ -249,6 +249,40 @@ body,html{margin:0;padding:0;width:100%;height:100%;box-sizing:border-box;font-s
     isSetTextEnd = true;
 }
 
+void ThinkWidget::updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth)
+{
+    if (lastDpi <= 0 || curDpi <= 0 || newMaxWidth <= 0)
+        return;
+    const qreal ratio = curDpi / lastDpi;
+    // 像素字号不随屏 DPI 自动变化：重设字体度量与页面内字号，否则跨屏拖动
+    // 未释放鼠标前文本仍按旧屏字号渲染（与窗口/其他部件比例不符）
+    const int pixelSize = appContext->windowFontPixelSize();
+    font.setPixelSize(pixelSize);
+    delete fontMetrics;
+    fontMetrics = new QFontMetricsF(font);
+    // 最大宽度与创建时一致：外部传入值减 10（左右各 5 边距）
+    maxWidth = qMax(newMaxWidth - 10, 1);
+    webEngineView->setMaximumWidth(maxWidth);
+    // 初始宽度按新字号重算（窄内容块），精确尺寸随后由量测回调回写
+    const int initWidth = int(fontMetrics->horizontalAdvance(text));
+    if (initWidth > maxWidth)
+        webEngineView->setFixedWidth(maxWidth);
+    else if (!text.isEmpty())
+        webEngineView->setFixedWidth(qMax(initWidth, 1));
+    webEngineView->setFixedHeight(qMax(qRound(webEngineView->height() * ratio), 1));
+    setFixedSize(webEngineView->width() + 10, webEngineView->height());
+    // 只改页面内联字号（不重载页面）：行高与折行按新字号重排，避免整页重建
+    if (webEngineView->page())
+        webEngineView->page()->runJavaScript(
+                QString("if(document.body){document.body.style.fontSize='%1px';}"
+                        "if(document.documentElement){document.documentElement.style.fontSize='%1px';}")
+                        .arg(pixelSize));
+    // 尺寸缓存置无效：强制量测回调重新应用尺寸（字体已变，旧尺寸不再适用）
+    webEngineSize = QSize(-1, -1);
+    // 触发一次内容量测，完成后通过 setSizeFinished 让 MessageWidget 重新布局
+    updateSizeTimer->start(20);
+}
+
 // void ThinkWidget::measureText(const QString &text, int &labelWidth, int &labelHeight) const
 // {
 //     int textHeight = int(fontMetrics->height());
@@ -448,9 +482,12 @@ bool ThinkWidget::waitForValidSize()
 
 void ThinkWidget::onUpdateSize()
 {
+    // 页面正在加载/重建（setHtml 之后、文档就绪之前）时 documentElement 为 null，
+    // 直接读取 clientWidth 会抛 TypeError；返回 null 交给 waitForValidSize 轮询等待
     const char *js = R"(
 function getPageSize(){
-  var body=document.body, html=document.documentElement;
+  var html=document.documentElement;
+  if(!html) return null;
   var w=Math.max(html.clientWidth,html.scrollWidth,html.offsetWidth);
   var h=Math.max(html.clientHeight,html.scrollHeight,html.offsetHeight);
   var content=document.querySelector('.content');

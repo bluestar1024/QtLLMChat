@@ -31,6 +31,9 @@ public:
     void setThinkEnd();
     void setThinkTimeLength(int secs);
     int getThinkTimeLength();
+    // 跨 DPI 屏拖动时的轻量刷新：像素字号不会自动变化，需重设标签字体、
+    // 重建图标像素尺寸并按新尺寸重算按钮大小
+    void updateDpiSize();
 
 signals:
     void clicked();

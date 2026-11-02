@@ -46,6 +46,10 @@ public:
     void setIsSizeFinish(bool flag);
     bool getIsSizeFinish();
     int getMaxWidth() const { return maxWidth; }
+    // 跨 DPI 屏拖动未释放鼠标时的轻量刷新（不重建控件、不重载页面）：
+    // 重设字体与页面内像素字号、按新最大宽度重设初始宽度，随后由内容量测
+    // 回调按新字号回写精确尺寸（否则未释放前文本仍按旧屏字号显示）
+    void updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth);
 
 protected:
     WebEngineView *webEngineView;

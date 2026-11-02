@@ -72,6 +72,29 @@ void ThinkingButton::updateSize()
     setFixedSize(w, h);
 }
 
+void ThinkingButton::updateDpiSize()
+{
+    // 标签字体：像素字号不随屏 DPI 自动变化，必须显式重设
+    const QString &fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        QFont font(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
+        textLabel->setFont(font);
+    }
+    textLabel->adjustSize();
+    // 图标按新标签高度重算（与 initUI 的换算一致），右侧箭头保持当前展开态方向
+    const int iconSize = qMax(textLabel->height() - 6, 1);
+    leftIconLabel->setFixedSize(iconSize, iconSize);
+    leftIconLabel->setPixmap(QPixmap(thinkingIconPath)
+                                    .scaled(iconSize, iconSize, Qt::KeepAspectRatio,
+                                            Qt::SmoothTransformation));
+    rightIconLabel->setFixedSize(iconSize, iconSize);
+    rightIconLabel->setPixmap(QPixmap(isShowThinkContent ? arrowUpPath : arrowDownPath)
+                                     .scaled(iconSize, iconSize, Qt::KeepAspectRatio,
+                                             Qt::SmoothTransformation));
+    updateSize();
+}
+
 void ThinkingButton::enterEvent(QEnterEvent *)
 {
     backgroundColor = QColor(232, 232, 232);

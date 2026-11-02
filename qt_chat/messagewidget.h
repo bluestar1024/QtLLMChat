@@ -55,6 +55,10 @@ public:
     void removeRenewResponseButton();
     void removeLoadingWidget();
     void updateFunWidgetSize(qreal curDpi, qreal initDpi);
+    // 跨 DPI 屏拖动未释放鼠标时的轻量刷新（与重建链效果一致但不重建控件）：
+    // 文本块/代码块重设字体与宽度、思考按钮与复制按钮按比例缩放，最后重算
+    // 本控件尺寸；释放鼠标后的完整重建仍会按新字号重建一次
+    void updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth);
     bool getThinkIsExpanded();
     void showFunWidget();
     void hideFunWidget();
