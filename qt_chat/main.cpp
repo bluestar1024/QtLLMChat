@@ -200,6 +200,9 @@ int main(int argc, char *argv[])
 {
     // 注册崩溃处理器：任何未处理异常（含访问违规 0xc0000005）都会写入 crash.log
     // AddVectoredExceptionHandler(1, CrashHandler);
+    // 顶层未处理异常过滤器：只在异常确实无人处理（即将终止进程）时触发，
+    // 不影响 Chromium/Qt 内部的 first-chance 异常（VEH 会对它们生效，故不用 VEH）
+    SetUnhandledExceptionFilter(CrashHandler);
 
     // qputenv("QSG_RHI_BACKEND", "null");
     // qputenv("QT_QUICK_BACKEND", "software");

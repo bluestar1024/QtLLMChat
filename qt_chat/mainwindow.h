@@ -101,6 +101,8 @@ private:
     // （整体偏大）。这里在屏变化后自动按窗口实际所在屏 DPI 校正（拖拽中由
     // resizeEvent 拦截路径处理，释放时 WM_EXITSIZEMOVE 兜底）
     void onScreenChanged(QScreen *newScreen);
+    // 显示拓扑变化（插拔/断电重连/RDP/改缩放）后重建缓存的屏列表并重连 DPI 信号
+    void refreshScreenList();
     // DPI 稳定后校验（延迟一段时间再比较窗口实际所在屏 DPI 与 curDpi）：
     // 系统缩放设置变更期间 Qt 报告的屏/DPI 会短暂错误，校正所依赖的屏信号
     // 可能不再到达或来得过早，这里作为兜底保证界面最终自动回到正确字号/尺寸
@@ -173,6 +175,11 @@ private:
     // 内文本/代码块的字体与尺寸（不重建控件，避免阻塞拖拽模态循环），
     // 使消息区域在未释放鼠标时就呈现正确比例
     void messageWidgetUpdateSize(qreal curDpi, qreal lastDpi);
+    // 同 DPI 横向拉伸（拖拽中未释放鼠标）中的消息宽度轻量刷新调度：
+    // 拖拽期间 resizeEvent/WM_SIZE 触发非常频繁，按定时器节流后统一执行一次
+    // （只重设最大宽度与子控件尺寸/字号，不重建控件、不重载 WebEngine 页面）
+    void scheduleMessageWidthRefresh();
+    void refreshMessageWidthDuringDrag();
 
     // 用户消息 item 的右侧留白：用户消息 ImageLabel 右边缘与 chatShow 右边缘的距离，
     // 同时也是 AI 消息达到最大宽度时右边缘的对齐基准
@@ -271,6 +278,11 @@ private:
     bool isMinimizedState;
     int lastRegenerateWidth;
     int lastRegenerateHeight;
+    // 拖拽中消息宽度轻量刷新的节流定时器与上次刷新的最大宽度：
+    // 单次触发型定时器保证一次拖拽中的连续 resize 只做一次刷新；
+    // 最大宽度未变化（仅上下拉伸）时跳过，避免无谓的文本重新量测
+    QTimer messageWidthRefreshTimer;
+    int lastMessageWidthRefreshMaxWidth = -1;
     // bool isChangeRectFirst;
     QList<QScreen *> screens;
     // RegionEnum regionDir;

@@ -5,6 +5,7 @@
 #include <QtWebEngineCore/QWebEngineProfile>
 #include <QtQuickWidgets/QQuickWidget>
 #include <QtWidgets/QApplication>
+#include <QtGui/QGuiApplication>
 #include <QtGui/QFont>
 #include <QDebug>
 #include <QPointer>
@@ -180,6 +181,12 @@ MainWindow::MainWindow(QWidget *parent)
     textCopyLabel->hide();
 
     messageWidgetList.clear();
+    // 拖拽中的消息宽度轻量刷新节流（见 scheduleMessageWidthRefresh）：
+    // 单次触发 + 80ms 间隔，一次拖拽中连续的 resize 只做一次刷新
+    messageWidthRefreshTimer.setSingleShot(true);
+    messageWidthRefreshTimer.setInterval(80);
+    connect(&messageWidthRefreshTimer, &QTimer::timeout, this,
+            &MainWindow::refreshMessageWidthDuringDrag);
     lastScreen = curScreen = screen();
     initDpi = lastDpi = curDpi = curScreen->logicalDotsPerInch();
     // DPI 物理尺寸基准：以初始窗口尺寸与当前屏 DPI 为基准（见 dpiScaledSize）
@@ -193,9 +200,17 @@ MainWindow::MainWindow(QWidget *parent)
     // lastNormalGeometry = geometry();
     // uiRectWidth = width();
     // uiRectHeight = height();
-    screens = QApplication::screens();
-    for (QScreen *screen : screens) {
-        connect(screen, &QScreen::logicalDotsPerInchChanged, this, &MainWindow::onDpiChanged);
+    // 屏对象由 Qt 随显示拓扑变化动态创建/销毁：缓存列表与 DPI 信号连接需在
+    // 拓扑变化时重建（详见 refreshScreenList）
+    refreshScreenList();
+    if (QGuiApplication *guiApp =
+                qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
+        connect(guiApp, &QGuiApplication::screenAdded, this,
+                [this](QScreen *) { refreshScreenList(); });
+        connect(guiApp, &QGuiApplication::screenRemoved, this,
+                [this](QScreen *) { refreshScreenList(); });
+        connect(guiApp, &QGuiApplication::primaryScreenChanged, this,
+                [this](QScreen *) { refreshScreenList(); });
     }
 
     widgetSizeDict["MainWindow"] = size();
@@ -229,6 +244,26 @@ MainWindow::~MainWindow()
 {
     delete chatRecordStore;
     chatRecordStore = nullptr;
+}
+
+void MainWindow::refreshScreenList()
+{
+    // 显示器断电/休眠重连、插拔、RDP 会话切换、修改缩放比例引起的显示拓扑重算，
+    // 都会让 Qt 销毁并重建 QScreen 对象。若只在构造时取一次 QApplication::screens()，
+    // 屏被移除后列表里就留下悬空 QScreen*：拖拽窗口时 WM_MOVING 遍历它读取
+    // geometry()，即访问已销毁对象（Qt6Gui 内 QScreen::geometry() 访问 this->d_ptr
+    // 崩溃）。
+    // 拓扑变化时重建列表，并重新连接各屏的 DPI 变化信号（新屏对象没有旧连接）
+    const QList<QScreen *> currentScreens = QGuiApplication::screens();
+    for (QScreen *s : currentScreens) {
+        if (!s)
+            continue;
+        connect(s, &QScreen::logicalDotsPerInchChanged, this, &MainWindow::onDpiChanged,
+                Qt::UniqueConnection);
+    }
+    screens = currentScreens;
+    // 缓存的“窗口所在屏”同样可能失效：统一以 Qt 维护的当前屏重新取值
+    lastScreen = curScreen = screen();
 }
 
 void MainWindow::titleWidgetInit()
@@ -410,6 +445,33 @@ void MainWindow::scheduleFrameStyleEnsure()
 #endif
 }
 
+// 递归激活部件及其全部子部件的布局：布局的激活通常只是排队（LayoutRequest 事件），
+// 窗口首次映射时若已绘制，画面仍会是排队前的旧几何。首次显示前按本机 DPI 重排
+// 全部部件后，需要在返回事件循环前同步激活，保证第一帧即为新布局（见 showEvent）
+static void activateLayoutsRecursively(QWidget *widget)
+{
+    if (!widget)
+        return;
+    QLayout *layout = widget->layout();
+    if (layout) {
+        layout->activate();
+        // 激活只设置本部件管理的子部件几何，子部件自己的布局仍需继续激活
+        const int count = layout->count();
+        for (int i = 0; i < count; ++i) {
+            QLayoutItem *item = layout->itemAt(i);
+            if (item && item->widget())
+                activateLayoutsRecursively(item->widget());
+        }
+    }
+    const QList<QWidget *> children = widget->findChildren<QWidget *>(Qt::FindDirectChildrenOnly);
+    for (QWidget *child : children) {
+        // 已由布局管理的子部件在上方递归过，这里只处理无布局直接锚定/手动定位的
+        if (layout && layout->indexOf(child) >= 0)
+            continue;
+        activateLayoutsRecursively(child);
+    }
+}
+
 void MainWindow::logHitTestRegion(const char *region)
 {
     if (lastHitTestRegion == region) {
@@ -439,6 +501,15 @@ void MainWindow::showEvent(QShowEvent *event)
     // 避免启动即出现字号/尺寸偏差
     if (screen()->logicalDotsPerInch() != curDpi) {
         applyScreenDpiChange(screen()->logicalDotsPerInch());
+        // 缩放链已将各部件按新屏 DPI 重排（几何/字号已正确），但布局激活
+        // 是排队执行的：首次映射时的第一帧若在激活前绘制，画面仍是构造时（144
+        // DPI）的旧布局——标题行高 40 而非 27、FunWidget 内部边距 10 而非 7，
+        // 使功能区行与图标偏低（用户看到“FunWidget 位置比预期低”）；其后的
+        // 重绘又被启动阶段 Chromium 预热阻塞约 0.6-1s（用户感知约 1 秒），
+        // 才“跳回”正确位置。这里在返回事件循环前递归激活全部布局并标脏重绘，
+        // 保证首帧即为缩放后的布局
+        activateLayoutsRecursively(this);
+        mainWidget->update();
     }
     // 监听平台窗口的屏幕变化：系统缩放比例变更时窗口会在拓扑重算中临时跨屏
     // 再回到原屏，期间按临时屏 DPI 执行过缩放链，回到原屏后没有可靠的
@@ -757,7 +828,12 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 const QRect monRect(mi.rcMonitor.left, mi.rcMonitor.top,
                                     mi.rcMonitor.right - mi.rcMonitor.left,
                                     mi.rcMonitor.bottom - mi.rcMonitor.top);
-                for (const QScreen *s : screens) {
+                // 取实时屏列表而不是成员缓存：即使拓扑变化信号尚未处理到，
+                // 也不会遍历到已被 Qt 销毁的 QScreen（见 refreshScreenList）
+                const QList<QScreen *> currentScreens = QGuiApplication::screens();
+                for (const QScreen *s : currentScreens) {
+                    if (!s)
+                        continue;
                     if (s->geometry() == monRect) {
                         targetDpi = qRound(s->logicalDotsPerInch());
                         break;
@@ -1363,8 +1439,11 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             screenChanged = false;
             // 跨屏拖动结束：新屏 DPI 与旧屏不同时执行完整缩放链——重算像素字号、
             // 窗口与全部部件按 DPI 比例缩放（物理大小跨屏保持一致）、消息部件
-            // （WebEngineView 页面与 CodeEditor）以新字号重建
-            applyScreenDpiChange(curScreen->logicalDotsPerInch());
+            // （WebEngineView 页面与 CodeEditor）以新字号重建。
+            // 用 Qt 维护的当前屏取值：缓存的 curScreen 可能因显示拓扑变化已被销毁
+            const QScreen *releaseScreen = screen();
+            if (releaseScreen)
+                applyScreenDpiChange(qRound(releaseScreen->logicalDotsPerInch()));
         }
     }
     QMainWindow::mouseReleaseEvent(event);
@@ -1588,6 +1667,13 @@ void MainWindow::resizeEvent(QResizeEvent *event)
                          titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     textCopyLabel->move((width() - textCopyLabel->width()) / 2,
                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
+    // 同 DPI 的横向拉伸（拖拽中未释放鼠标）不经过任何消息部件宽度刷新路径：
+    // MessageWidget 的最大宽度只取决于窗口宽度，不刷新则气泡宽度停留在拖拽前的
+    // 窗口宽度，直到释放鼠标后的完整重建才恢复。
+    // 这里按节流做一次不重建的轻量刷新（只重设最大宽度与子控件宽度/字号，
+    // 不重载 WebEngine 页面），使气泡宽度在拖拽中即随窗口同步变化
+    if (isSizeMoveDrag && !isDpiChanged)
+        scheduleMessageWidthRefresh();
     if (isDpiChanged) {
         isDpiChanged = false;
         const QSize dpiTarget = dpiScaledSize(curDpi);
@@ -1799,6 +1885,33 @@ void MainWindow::messageWidgetUpdateSize(qreal curDpi, qreal lastDpi)
     messageWidgetItemRelayout();
     qDebug() << "MainWindow messageWidgetUpdateSize" << curDpi << lastDpi << "count"
              << messageWidgetList.size() << "maxWidth" << maxWidth;
+}
+
+void MainWindow::scheduleMessageWidthRefresh()
+{
+    // 拖拽中 WM_SIZE/resizeEvent 触发非常频繁，逐次对全部消息部件重新量测
+    // 会使拖拽卡顿：合并到定时器超时后执行一次；延迟也保证执行时布局已激活
+    // （chatShow 宽度已同步到新窗口宽度）
+    if (messageWidthRefreshTimer.isActive())
+        return;
+    messageWidthRefreshTimer.start();
+}
+
+void MainWindow::refreshMessageWidthDuringDrag()
+{
+    // 拖拽已结束（释放后由 messageWidgetRegenerate 完整重建）或正处在 DPI
+    // 缩放链中时不做轻量刷新
+    if (!isSizeMoveDrag || isDpiChanged || messageWidgetList.isEmpty())
+        return;
+    const int maxWidth = messageWidgetMaxWidth();
+    // 仅上下拉伸/宽度取整后未变化：气泡宽度无需更新，跳过文本重新量测
+    if (maxWidth == lastMessageWidthRefreshMaxWidth)
+        return;
+    lastMessageWidthRefreshMaxWidth = maxWidth;
+    // 同一 DPI（ratio=1）：只按新窗口宽度重设最大宽度与子控件尺寸/字号，
+    // 不重建控件、不重载 WebEngine 页面
+    messageWidgetUpdateSize(curDpi, curDpi);
+    qDebug() << "MainWindow refreshMessageWidthDuringDrag maxWidth" << maxWidth;
 }
 
 void MainWindow::messageWidgetResize(MessageWidget *selfMessageWidget)
@@ -2479,6 +2592,9 @@ void MainWindow::messageWidgetRegenerate()
         return;
     }
     isRegenerating = true;
+    // 重建已按当前窗口宽度生成全部消息部件：上次拖拽轻量刷新记录的最大宽度
+    // 不再有效，否则首次拖拽到相同宽度时会误判“宽度未变化”而跳过刷新
+    lastMessageWidthRefreshMaxWidth = -1;
     do {
         isRegeneratePending = false;
         if (messageWidgetList.size() != 0) {
