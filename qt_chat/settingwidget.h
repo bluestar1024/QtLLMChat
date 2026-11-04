@@ -62,6 +62,11 @@ private:
     void createMaxTokensWidget();
     void createTopPWidget();
     void createTemperatureWidget();
+    // 按当前字体度量重新拟合标签宽高：文本宽度与像素字号不严格线性，
+    // 不能用按 DPI 比例推导的固定宽度
+    void fitLabelSize(Label *label);
+    // 数值行（标签 + 数值框）按标签实际宽度分配间距与数值框宽度
+    void layoutValueRow(QHBoxLayout *layout, QWidget *subWidget, Label *label, QWidget *box);
 
     QString baseUrl;
     QString apiKey;

@@ -1,6 +1,8 @@
 #include "settingwidget.h"
 #include "appcontext.h"
 
+#include <QtGui/QFontMetrics>
+
 #include <stdexcept>
 
 SettingWidget::SettingWidget(AppContext *appContext, QWidget *parent)
@@ -119,15 +121,12 @@ void SettingWidget::setupUI()
     topPLabel->setText("Top P");
     temperatureLabel->setText("Temperature");
 
-    baseUrlLabel->adjustSize();
-    baseUrlLabel->setFixedWidth(baseUrlLabel->width() + 2);
-    apiKeyLabel->adjustSize();
-    apiKeyLabel->setFixedWidth(apiKeyLabel->width() + 2);
-    modelNameLabel->adjustSize();
-    modelNameLabel->setFixedWidth(modelNameLabel->width() + 2);
-    maxTokensLabel->adjustSize();
-    topPLabel->adjustSize();
-    temperatureLabel->adjustSize();
+    fitLabelSize(baseUrlLabel);
+    fitLabelSize(apiKeyLabel);
+    fitLabelSize(modelNameLabel);
+    fitLabelSize(maxTokensLabel);
+    fitLabelSize(topPLabel);
+    fitLabelSize(temperatureLabel);
 
     baseUrlEdit = new SettingEdit(this->appContext);
     apiKeyEdit = new SettingEdit(this->appContext);
@@ -502,6 +501,40 @@ void SettingWidget::createTemperatureWidget()
     temperatureVLayout->setSpacing(0);
 }
 
+// 标签宽高按当前字体度量重新拟合：字体像素字号与字形 advance 都是整数，
+// 文本总宽与字号并非严格线性。此前宽度取 adjustSize() 结果 + 2 后按 DPI
+// 比例逐级缩放，多数缩放比例下小于实际文本宽度，文本右边缘被部件边缘裁掉
+void SettingWidget::fitLabelSize(Label *label)
+{
+    if (!label)
+        return;
+
+    // 先解除上一次的定尺寸约束，sizeHint 才能按当前字体重新度量
+    label->setMinimumSize(0, 0);
+    label->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    const QSize hint = label->sizeHint();
+    const QFontMetrics fm(label->font());
+    // 边框与 QLabel margin 占据绘制区两侧，文本可用宽度 = 总宽 - extra
+    const int extra = 2 * label->margin() + 2 * label->frameWidth();
+    // 宽度取 sizeHint（含样式 padding）与文本 advance 的较大值，并留 2px 余量
+    label->setFixedSize(qMax(hint.width(), fm.horizontalAdvance(label->text()) + extra) + 2,
+                        qMax(hint.height(), fm.height() + extra));
+}
+
+// 数值行布局：标签宽度随字体度量变化后不能再固定用“行宽 / 2”做间距，
+// 否则标签变宽时间距被压成负值，标签与数值框重叠
+void SettingWidget::layoutValueRow(QHBoxLayout *layout, QWidget *subWidget, Label *label,
+                                   QWidget *box)
+{
+    if (!layout || !subWidget || !label || !box)
+        return;
+
+    const int spacing = qMax(0, subWidget->width() / 2 - label->width());
+    layout->setSpacing(spacing);
+    // 数值框宽度取标签与间距占完后的剩余空间（标签未变宽时仍为行宽一半）
+    box->setFixedWidth(qMax(1, subWidget->width() - label->width() - spacing));
+}
+
 void SettingWidget::setSize()
 {
     modelSelectWidget->setFixedSize(
@@ -551,9 +584,9 @@ void SettingWidget::setSize()
                     - 2 * modelSelectVLayout->spacing())
                    / qreal(3)));
 
-    baseUrlLabel->setFixedSize(baseUrlLabel->size());
-    apiKeyLabel->setFixedSize(apiKeyLabel->size());
-    modelNameLabel->setFixedSize(modelNameLabel->size());
+    fitLabelSize(baseUrlLabel);
+    fitLabelSize(apiKeyLabel);
+    fitLabelSize(modelNameLabel);
     baseUrlEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
                                       - baseUrlHLayout->contentsMargins().right()
                                       - baseUrlHLayout->spacing() - baseUrlLabel->width() - 1,
@@ -604,17 +637,13 @@ void SettingWidget::setSize()
                     - temperatureVLayout->contentsMargins().bottom())
                    / qreal(2)));
 
-    maxTokensLabel->setFixedSize(maxTokensLabel->size());
-    topPLabel->setFixedSize(topPLabel->size());
-    temperatureLabel->setFixedSize(temperatureLabel->size());
-    maxTokensTopSubHLayout->setSpacing(maxTokensTopSubWidget->width() / 2
-                                       - maxTokensLabel->width());
-    topPTopSubHLayout->setSpacing(topPTopSubWidget->width() / 2 - topPLabel->width());
-    temperatureTopSubHLayout->setSpacing(temperatureTopSubWidget->width() / 2
-                                         - temperatureLabel->width());
-    maxTokensBox->setFixedSize(maxTokensTopSubWidget->width() / 2, maxTokensBox->height());
-    topPBox->setFixedSize(topPTopSubWidget->width() / 2, topPBox->height());
-    temperatureBox->setFixedSize(temperatureTopSubWidget->width() / 2, temperatureBox->height());
+    fitLabelSize(maxTokensLabel);
+    fitLabelSize(topPLabel);
+    fitLabelSize(temperatureLabel);
+    layoutValueRow(maxTokensTopSubHLayout, maxTokensTopSubWidget, maxTokensLabel, maxTokensBox);
+    layoutValueRow(topPTopSubHLayout, topPTopSubWidget, topPLabel, topPBox);
+    layoutValueRow(temperatureTopSubHLayout, temperatureTopSubWidget, temperatureLabel,
+                   temperatureBox);
     qDebug() << "resizeEvent maxTokensBox size" << maxTokensBox->size()
              << maxTokensTopSubWidget->height() << maxTokensTopSubHLayout->contentsMargins().top()
              << maxTokensTopSubHLayout->contentsMargins().bottom();
@@ -730,19 +759,22 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
                         qRound(m.right() * ratio), qRound(m.bottom() * ratio));
     };
 
-    baseUrlLabel->setFixedSize(scale(widgetSizeDict["baseUrlLabel"].value<QSize>()));
-    apiKeyLabel->setFixedSize(scale(widgetSizeDict["apiKeyLabel"].value<QSize>()));
-    modelNameLabel->setFixedSize(scale(widgetSizeDict["modelNameLabel"].value<QSize>()));
-    maxTokensLabel->setFixedSize(scale(widgetSizeDict["maxTokensLabel"].value<QSize>()));
-    topPLabel->setFixedSize(scale(widgetSizeDict["topPLabel"].value<QSize>()));
-    temperatureLabel->setFixedSize(scale(widgetSizeDict["temperatureLabel"].value<QSize>()));
-    // 几何按比例缩放后，字体必须按新像素字号显式重设（像素字号不随屏 DPI 自动变化）
+    // 标签宽高不再按 DPI 比例推导：像素字号经字形 hinting 后文本宽度与
+    // 字号并非严格线性，比例推导出的固定宽度在多数缩放比例下小于实际文本
+    // 宽度，文本右边缘被部件边缘裁掉（如 "Model" 只显示 "Mode"）。
+    // 这里只重设字体，随后按新字体的实际度量重新拟合尺寸
     baseUrlLabel->updateFontSize();
     apiKeyLabel->updateFontSize();
     modelNameLabel->updateFontSize();
     maxTokensLabel->updateFontSize();
     topPLabel->updateFontSize();
     temperatureLabel->updateFontSize();
+    fitLabelSize(baseUrlLabel);
+    fitLabelSize(apiKeyLabel);
+    fitLabelSize(modelNameLabel);
+    fitLabelSize(maxTokensLabel);
+    fitLabelSize(topPLabel);
+    fitLabelSize(temperatureLabel);
     qDebug() << "baseUrlLabel" << baseUrlLabel->size();
     qDebug() << "apiKeyLabel" << apiKeyLabel->size();
     qDebug() << "modelNameLabel" << modelNameLabel->size();
@@ -812,17 +844,16 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
             scaleMargins(widgetSizeDict["topPTopSubHLayout contentsMargins"].value<QMargins>()));
     temperatureTopSubHLayout->setContentsMargins(scaleMargins(
             widgetSizeDict["temperatureTopSubHLayout contentsMargins"].value<QMargins>()));
-    maxTokensTopSubHLayout->setSpacing(maxTokensTopSubWidget->width() / 2
-                                       - maxTokensLabel->width());
-    topPTopSubHLayout->setSpacing(topPTopSubWidget->width() / 2 - topPLabel->width());
-    temperatureTopSubHLayout->setSpacing(temperatureTopSubWidget->width() / 2
-                                         - temperatureLabel->width());
-    maxTokensBox->setSize(maxTokensTopSubWidget->width() / 2,
+    layoutValueRow(maxTokensTopSubHLayout, maxTokensTopSubWidget, maxTokensLabel, maxTokensBox);
+    layoutValueRow(topPTopSubHLayout, topPTopSubWidget, topPLabel, topPBox);
+    layoutValueRow(temperatureTopSubHLayout, temperatureTopSubWidget, temperatureLabel,
+                   temperatureBox);
+    maxTokensBox->setSize(maxTokensBox->width(),
                           qRound(widgetSizeDict["maxTokensBox"].value<QSize>().height() * ratio));
-    topPBox->setSize(topPTopSubWidget->width() / 2,
+    topPBox->setSize(topPBox->width(),
                      qRound(widgetSizeDict["topPBox"].value<QSize>().height() * ratio));
     temperatureBox->setSize(
-            temperatureTopSubWidget->width() / 2,
+            temperatureBox->width(),
             qRound(widgetSizeDict["temperatureBox"].value<QSize>().height() * ratio));
 
     maxTokensBottomSubWidget->setFixedSize(
