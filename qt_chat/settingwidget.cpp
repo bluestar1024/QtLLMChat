@@ -5,6 +5,24 @@
 
 #include <stdexcept>
 
+// 布局日志用：布局的 margin 与 spacing 拼成一行
+static QString layoutInfo(const QLayout *layout)
+{
+    const QMargins margins = layout->contentsMargins();
+    return QString("margin=(%1,%2,%3,%4) spacing=%5")
+            .arg(margins.left())
+            .arg(margins.top())
+            .arg(margins.right())
+            .arg(margins.bottom())
+            .arg(layout->spacing());
+}
+
+// 布局日志用：控件宽高
+static QString sizeInfo(const QWidget *widget)
+{
+    return QString("%1x%2").arg(widget->width()).arg(widget->height());
+}
+
 SettingWidget::SettingWidget(AppContext *appContext, QWidget *parent)
     : QWidget(parent),
       appContext(appContext),
@@ -321,10 +339,10 @@ void SettingWidget::createModelSelectWidget()
 
     baseUrlHLayout = new QHBoxLayout(baseUrlWidget);
     baseUrlHLayout->setSpacing(9);
-    baseUrlEdit->setFixedSize(baseUrlWidget->width() - baseUrlLabel->width() - 10,
-                              baseUrlEdit->height());
+    // 输入框宽度不再手工拼算（行宽 - 标签宽 - 间距）：交给布局按剩余空间分配，
+    // 多轮 DPI 缩放后即使各固定尺寸的取整误差互不抵消，右边缘也不会越出行
     baseUrlHLayout->addWidget(baseUrlLabel);
-    baseUrlHLayout->addWidget(baseUrlEdit);
+    baseUrlHLayout->addWidget(baseUrlEdit, 1);
     baseUrlHLayout->setContentsMargins(0, 4, 0, 4);
 
     apiKeyWidget = new QWidget();
@@ -337,10 +355,8 @@ void SettingWidget::createModelSelectWidget()
 
     apiKeyHLayout = new QHBoxLayout(apiKeyWidget);
     apiKeyHLayout->setSpacing(9);
-    apiKeyEdit->setFixedSize(apiKeyWidget->width() - apiKeyLabel->width() - 10,
-                             apiKeyEdit->height());
     apiKeyHLayout->addWidget(apiKeyLabel);
-    apiKeyHLayout->addWidget(apiKeyEdit);
+    apiKeyHLayout->addWidget(apiKeyEdit, 1);
     apiKeyHLayout->setContentsMargins(0, 4, 0, 4);
 
     modelNameWidget = new QWidget();
@@ -353,10 +369,8 @@ void SettingWidget::createModelSelectWidget()
 
     modelNameHLayout = new QHBoxLayout(modelNameWidget);
     modelNameHLayout->setSpacing(9);
-    modelNameEdit->setFixedSize(modelNameWidget->width() - modelNameLabel->width() - 10,
-                                modelNameEdit->height());
     modelNameHLayout->addWidget(modelNameLabel);
-    modelNameHLayout->addWidget(modelNameEdit);
+    modelNameHLayout->addWidget(modelNameEdit, 1);
     modelNameHLayout->setContentsMargins(0, 4, 0, 4);
 
     modelSelectVLayout = new QVBoxLayout(modelSelectWidget);
@@ -587,18 +601,6 @@ void SettingWidget::setSize()
     fitLabelSize(baseUrlLabel);
     fitLabelSize(apiKeyLabel);
     fitLabelSize(modelNameLabel);
-    baseUrlEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
-                                      - baseUrlHLayout->contentsMargins().right()
-                                      - baseUrlHLayout->spacing() - baseUrlLabel->width() - 1,
-                              baseUrlEdit->height());
-    apiKeyEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
-                                     - baseUrlHLayout->contentsMargins().right()
-                                     - baseUrlHLayout->spacing() - apiKeyLabel->width() - 1,
-                             apiKeyEdit->height());
-    modelNameEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
-                                        - baseUrlHLayout->contentsMargins().right()
-                                        - baseUrlHLayout->spacing() - modelNameLabel->width() - 1,
-                                modelNameEdit->height());
 
     maxTokensTopSubWidget->setFixedSize(
             maxTokensWidget->width() - maxTokensVLayout->contentsMargins().left()
@@ -669,6 +671,51 @@ void SettingWidget::setSize()
              << temperatureBottomSubWidget->height()
              << temperatureBottomSubHLayout->contentsMargins().top()
              << temperatureBottomSubHLayout->contentsMargins().bottom();
+
+    // 布局快照：确认各部件尺寸与布局距离是否按 DPI 比例缩放（跨 DPI 时重点看这段）
+    qDebug().nospace().noquote() << "SettingWidget::setSize 面板=" << sizeInfo(this)
+                                 << " settingVLayout " << layoutInfo(settingVLayout);
+    qDebug().nospace().noquote() << "  modelSelectWidget=" << sizeInfo(modelSelectWidget)
+                                 << " modelSelectVLayout " << layoutInfo(modelSelectVLayout);
+    qDebug().nospace().noquote() << "    baseUrlWidget=" << sizeInfo(baseUrlWidget)
+                                 << " baseUrlHLayout " << layoutInfo(baseUrlHLayout)
+                                 << " label=" << sizeInfo(baseUrlLabel)
+                                 << " edit=" << sizeInfo(baseUrlEdit);
+    qDebug().nospace().noquote() << "    apiKeyWidget=" << sizeInfo(apiKeyWidget)
+                                 << " apiKeyHLayout " << layoutInfo(apiKeyHLayout)
+                                 << " label=" << sizeInfo(apiKeyLabel)
+                                 << " edit=" << sizeInfo(apiKeyEdit);
+    qDebug().nospace().noquote() << "    modelNameWidget=" << sizeInfo(modelNameWidget)
+                                 << " modelNameHLayout " << layoutInfo(modelNameHLayout)
+                                 << " label=" << sizeInfo(modelNameLabel)
+                                 << " edit=" << sizeInfo(modelNameEdit);
+    qDebug().nospace().noquote() << "  maxTokensWidget=" << sizeInfo(maxTokensWidget)
+                                 << " maxTokensVLayout " << layoutInfo(maxTokensVLayout);
+    qDebug().nospace().noquote() << "    上子行=" << sizeInfo(maxTokensTopSubWidget)
+                                 << " " << layoutInfo(maxTokensTopSubHLayout)
+                                 << " label=" << sizeInfo(maxTokensLabel)
+                                 << " box=" << sizeInfo(maxTokensBox);
+    qDebug().nospace().noquote() << "    下子行=" << sizeInfo(maxTokensBottomSubWidget)
+                                 << " " << layoutInfo(maxTokensBottomSubHLayout)
+                                 << " slider=" << sizeInfo(maxTokensSlider);
+    qDebug().nospace().noquote() << "  topPWidget=" << sizeInfo(topPWidget) << " topPVLayout "
+                                 << layoutInfo(topPVLayout);
+    qDebug().nospace().noquote() << "    上子行=" << sizeInfo(topPTopSubWidget) << " "
+                                 << layoutInfo(topPTopSubHLayout)
+                                 << " label=" << sizeInfo(topPLabel)
+                                 << " box=" << sizeInfo(topPBox);
+    qDebug().nospace().noquote() << "    下子行=" << sizeInfo(topPBottomSubWidget) << " "
+                                 << layoutInfo(topPBottomSubHLayout)
+                                 << " slider=" << sizeInfo(topPSlider);
+    qDebug().nospace().noquote() << "  temperatureWidget=" << sizeInfo(temperatureWidget)
+                                 << " temperatureVLayout " << layoutInfo(temperatureVLayout);
+    qDebug().nospace().noquote() << "    上子行=" << sizeInfo(temperatureTopSubWidget) << " "
+                                 << layoutInfo(temperatureTopSubHLayout)
+                                 << " label=" << sizeInfo(temperatureLabel)
+                                 << " box=" << sizeInfo(temperatureBox);
+    qDebug().nospace().noquote() << "    下子行=" << sizeInfo(temperatureBottomSubWidget) << " "
+                                 << layoutInfo(temperatureBottomSubHLayout)
+                                 << " slider=" << sizeInfo(temperatureSlider);
 }
 
 void SettingWidget::saveWidgetSize()
@@ -782,9 +829,13 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
     qDebug() << "topPLabel" << topPLabel->size();
     qDebug() << "temperatureLabel" << temperatureLabel->size();
 
-    baseUrlEdit->setSize(scale(widgetSizeDict["baseUrlEdit"].value<QSize>()));
-    apiKeyEdit->setSize(scale(widgetSizeDict["apiKeyEdit"].value<QSize>()));
-    modelNameEdit->setSize(scale(widgetSizeDict["modelNameEdit"].value<QSize>()));
+    // 输入框只缩放高度：宽度由行内布局按剩余空间分配（见 SettingEdit::setHeight）
+    baseUrlEdit->setHeight(
+            qRound(widgetSizeDict["baseUrlEdit"].value<QSize>().height() * ratio));
+    apiKeyEdit->setHeight(
+            qRound(widgetSizeDict["apiKeyEdit"].value<QSize>().height() * ratio));
+    modelNameEdit->setHeight(
+            qRound(widgetSizeDict["modelNameEdit"].value<QSize>().height() * ratio));
     // 输入框样式表内含像素字号 font-size，按新像素字号重应用
     baseUrlEdit->updateFontSize();
     apiKeyEdit->updateFontSize();
@@ -797,26 +848,19 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
     modelNameHLayout->setContentsMargins(
             scaleMargins(widgetSizeDict["modelNameHLayout contentsMargins"].value<QMargins>()));
     baseUrlHLayout->setSpacing(
-            qRound(widgetSizeDict["baseUrlHLayout spacing"].value<int>() * ratio));
-    apiKeyHLayout->setSpacing(qRound(widgetSizeDict["apiKeyHLayout spacing"].value<int>() * ratio));
+            qMax(1, qRound(widgetSizeDict["baseUrlHLayout spacing"].value<int>() * ratio)));
+    apiKeyHLayout->setSpacing(
+            qMax(1, qRound(widgetSizeDict["apiKeyHLayout spacing"].value<int>() * ratio)));
     modelNameHLayout->setSpacing(
-            qRound(widgetSizeDict["modelNameHLayout spacing"].value<int>() * ratio));
+            qMax(1, qRound(widgetSizeDict["modelNameHLayout spacing"].value<int>() * ratio)));
 
+    // 宽度不再按“行宽 - 标签宽 - 间距”反推后修正间距：那个修正会把算出
+    // 的（可能是负的）间距写回 widgetSizeDict，下一次缩放继续沿用，导致
+    // 标签与输入框重叠或输入框越出行右边缘。行宽与输入框宽度现在由布局
+    // 自行分配，这里只按比例缩放行自身的尺寸
     baseUrlWidget->setFixedSize(scale(widgetSizeDict["baseUrlWidget"].value<QSize>()));
-    if (baseUrlWidget->width()
-        < baseUrlLabel->width() + baseUrlEdit->width() + baseUrlHLayout->spacing())
-        baseUrlHLayout->setSpacing(baseUrlWidget->width() - baseUrlLabel->width()
-                                   - baseUrlEdit->width() - 1);
     apiKeyWidget->setFixedSize(scale(widgetSizeDict["apiKeyWidget"].value<QSize>()));
-    if (apiKeyWidget->width()
-        < apiKeyLabel->width() + apiKeyEdit->width() + apiKeyHLayout->spacing())
-        apiKeyHLayout->setSpacing(apiKeyWidget->width() - apiKeyLabel->width() - apiKeyEdit->width()
-                                  - 1);
     modelNameWidget->setFixedSize(scale(widgetSizeDict["modelNameWidget"].value<QSize>()));
-    if (modelNameWidget->width()
-        < modelNameLabel->width() + modelNameEdit->width() + modelNameHLayout->spacing())
-        modelNameHLayout->setSpacing(modelNameWidget->width() - modelNameLabel->width()
-                                     - modelNameEdit->width() - 1);
     modelSelectVLayout->setContentsMargins(
             scaleMargins(widgetSizeDict["modelSelectVLayout contentsMargins"].value<QMargins>()));
     modelSelectVLayout->setSpacing(
