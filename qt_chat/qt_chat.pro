@@ -111,6 +111,7 @@ HEADERS += \
     customwebengineview.h \
     cxxhighlighter.h \
     doublespinbox.h \
+    dpiutil.h \
     frame.h \
     funwidget.h \
     glslhighlighter.h \

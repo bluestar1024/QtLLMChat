@@ -44,6 +44,7 @@ public:
     void setSize();
     void saveWidgetSize();
     void resetWidgetSize();
+    // 按 144 DPI 基准（DpiUtil::kBaseDpi）重设功能区尺寸与内部边距
     void updateSize(qreal curDpi, qreal lastDpi);
 
 protected:
@@ -67,7 +68,10 @@ private:
     QHBoxLayout *funRightSubHLayout;
     QHBoxLayout *mainHLayout;
 
+    // 各尺寸缓存（widgetSizeDict）以 144 DPI 基准保存：保存时按当前已应用的
+    // DPI 折算回基准，读取时再按目标 DPI 放大，来回跨屏不会累积取整误差
     QMap<QString, QVariant> widgetSizeDict;
+    qreal appliedDpi;
 
     /* 记录原始尺寸 */
     // struct Saved

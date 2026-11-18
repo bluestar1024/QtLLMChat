@@ -1,5 +1,6 @@
 #include "titlewidget.h"
 #include "appcontext.h"
+#include "dpiutil.h"
 
 TitleWidget::TitleWidget(AppContext *appContext, QWidget *parent)
     : QWidget(parent),
@@ -10,7 +11,9 @@ TitleWidget::TitleWidget(AppContext *appContext, QWidget *parent)
       maxButton(nullptr),
       closeButton(nullptr),
       titleLeftSubWidget(nullptr),
-      titleRightSubWidget(nullptr)
+      titleRightSubWidget(nullptr),
+      // 构造期的尺寸是代码默认值，即 144 DPI 基准尺寸
+      appliedDpi(DpiUtil::kBaseDpi)
 {
     setMouseTracking(true);
     initializeUI();
@@ -183,22 +186,29 @@ QSize TitleWidget::getCloseButtonSize()
 
 void TitleWidget::saveWidgetSize()
 {
-    widgetSizeDict["titleIconLabel"] = titleIconLabel->size();
-    widgetSizeDict["titleLeftSubWidget"] = titleLeftSubWidget->size();
-    widgetSizeDict["minButton"] = minButton->size();
-    widgetSizeDict["minButton iconSize"] = minButton->iconSize();
-    widgetSizeDict["maxButton"] = maxButton->size();
-    widgetSizeDict["maxButton iconSize"] = maxButton->iconSize();
-    widgetSizeDict["closeButton"] = closeButton->size();
-    widgetSizeDict["closeButton iconSize"] = closeButton->iconSize();
-    widgetSizeDict["titleRightSubWidget"] = titleRightSubWidget->size();
-    widgetSizeDict["titleWidget"] = size();
+    // 全部按 144 基准保存（appliedDpi 为这些尺寸实际所属的 DPI）
+    widgetSizeDict["titleIconLabel"] = DpiUtil::toBaseSize(titleIconLabel->size(), appliedDpi);
+    widgetSizeDict["titleLeftSubWidget"] =
+            DpiUtil::toBaseSize(titleLeftSubWidget->size(), appliedDpi);
+    widgetSizeDict["minButton"] = DpiUtil::toBaseSize(minButton->size(), appliedDpi);
+    widgetSizeDict["minButton iconSize"] = DpiUtil::toBaseSize(minButton->iconSize(), appliedDpi);
+    widgetSizeDict["maxButton"] = DpiUtil::toBaseSize(maxButton->size(), appliedDpi);
+    widgetSizeDict["maxButton iconSize"] = DpiUtil::toBaseSize(maxButton->iconSize(), appliedDpi);
+    widgetSizeDict["closeButton"] = DpiUtil::toBaseSize(closeButton->size(), appliedDpi);
+    widgetSizeDict["closeButton iconSize"] =
+            DpiUtil::toBaseSize(closeButton->iconSize(), appliedDpi);
+    widgetSizeDict["titleRightSubWidget"] =
+            DpiUtil::toBaseSize(titleRightSubWidget->size(), appliedDpi);
+    widgetSizeDict["titleWidget"] = DpiUtil::toBaseSize(size(), appliedDpi);
 }
 
 void TitleWidget::updateSize(qreal curDpi, qreal lastDpi)
 {
-    if (lastDpi == 0)
-        return;
+    // 尺寸以 144 DPI 基准（DpiUtil::kBaseDpi）绝对换算，与上一次 DPI（lastDpi）
+    // 无关：缓存里存的就是基准值，反复跨屏不会因逐次取整而漂移
+    Q_UNUSED(lastDpi);
+    if (curDpi <= 0)
+        curDpi = DpiUtil::kBaseDpi;
     // resizeEvent 中 updateSize 先于 saveWidgetSize 执行：首次 DPI 缩放若发生在
     // 首个 resizeEvent 之前，widgetSizeDict 为空，各键取默认 QSize(-1,-1) 缩放
     // 出的负尺寸会把按钮/图标挤没、标题栏高度失效（界面失去 TitleWidget）。
@@ -208,22 +218,25 @@ void TitleWidget::updateSize(qreal curDpi, qreal lastDpi)
         saveWidgetSize();
         qDebug() << "TitleWidget::updateSize dict empty, saved current as baseline";
     }
-    qreal ratio = qreal(curDpi / lastDpi);
 
-    auto scale = [=](const QSize &s) -> QSize {
-        return QSize(qRound(s.width() * ratio), qRound(s.height() * ratio));
-    };
-
-    titleIconLabel->setFixedSize(scale(widgetSizeDict["titleIconLabel"].value<QSize>()));
-    titleLeftSubWidget->resize(scale(widgetSizeDict["titleLeftSubWidget"].value<QSize>()));
-    minButton->setFixedSize(scale(widgetSizeDict["minButton"].value<QSize>()));
-    minButton->setIconSize(scale(widgetSizeDict["minButton iconSize"].value<QSize>()));
-    maxButton->setFixedSize(scale(widgetSizeDict["maxButton"].value<QSize>()));
-    maxButton->setIconSize(scale(widgetSizeDict["maxButton iconSize"].value<QSize>()));
-    closeButton->setFixedSize(scale(widgetSizeDict["closeButton"].value<QSize>()));
-    closeButton->setIconSize(scale(widgetSizeDict["closeButton iconSize"].value<QSize>()));
-    titleRightSubWidget->resize(scale(widgetSizeDict["titleRightSubWidget"].value<QSize>()));
+    titleIconLabel->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["titleIconLabel"].value<QSize>(),
+                                                    curDpi));
+    titleLeftSubWidget->resize(
+            DpiUtil::scaleSize(widgetSizeDict["titleLeftSubWidget"].value<QSize>(), curDpi));
+    minButton->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["minButton"].value<QSize>(), curDpi));
+    minButton->setIconSize(
+            DpiUtil::scaleSize(widgetSizeDict["minButton iconSize"].value<QSize>(), curDpi));
+    maxButton->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["maxButton"].value<QSize>(), curDpi));
+    maxButton->setIconSize(
+            DpiUtil::scaleSize(widgetSizeDict["maxButton iconSize"].value<QSize>(), curDpi));
+    closeButton->setFixedSize(
+            DpiUtil::scaleSize(widgetSizeDict["closeButton"].value<QSize>(), curDpi));
+    closeButton->setIconSize(
+            DpiUtil::scaleSize(widgetSizeDict["closeButton iconSize"].value<QSize>(), curDpi));
+    titleRightSubWidget->resize(
+            DpiUtil::scaleSize(widgetSizeDict["titleRightSubWidget"].value<QSize>(), curDpi));
     // 键名与 saveWidgetSize 保持一致（"titleWidget"）
-    setFixedHeight(qRound(widgetSizeDict["titleWidget"].value<QSize>().height() * ratio));
-    qDebug() << "TitleWidget::updateSize ratio" << ratio << "newHeight" << height();
+    setFixedHeight(DpiUtil::scalePx(widgetSizeDict["titleWidget"].value<QSize>().height(), curDpi));
+    appliedDpi = curDpi;
+    qDebug() << "TitleWidget::updateSize dpi" << curDpi << "newHeight" << height();
 }

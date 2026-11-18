@@ -1,5 +1,6 @@
 #include "thinkwidget.h"
 #include "appcontext.h"
+#include "dpiutil.h"
 
 #include <QDebug>
 #include <QPointer>
@@ -253,7 +254,6 @@ void ThinkWidget::updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth)
 {
     if (lastDpi <= 0 || curDpi <= 0 || newMaxWidth <= 0)
         return;
-    const qreal ratio = curDpi / lastDpi;
     // 像素字号不随屏 DPI 自动变化：重设字体度量与页面内字号，否则跨屏拖动
     // 未释放鼠标前文本仍按旧屏字号渲染（与窗口/其他部件比例不符）
     const int pixelSize = appContext->windowFontPixelSize();
@@ -269,7 +269,9 @@ void ThinkWidget::updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth)
         webEngineView->setFixedWidth(maxWidth);
     else if (!text.isEmpty())
         webEngineView->setFixedWidth(qMax(initWidth, 1));
-    webEngineView->setFixedHeight(qMax(qRound(webEngineView->height() * ratio), 1));
+    // 高度经 144 基准归一后按新 DPI 换算（等价于新旧比例，但不会就已被
+    // 取整的像素值反复乘比例而累积误差）
+    webEngineView->setFixedHeight(DpiUtil::rescalePx(webEngineView->height(), lastDpi, curDpi, 1));
     setFixedSize(webEngineView->width() + 10, webEngineView->height());
     // 只改页面内联字号（不重载页面）：行高与折行按新字号重排，避免整页重建
     if (webEngineView->page())

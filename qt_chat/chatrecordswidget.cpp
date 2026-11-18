@@ -1,5 +1,6 @@
 #include "chatrecordswidget.h"
 #include "appcontext.h"
+#include "dpiutil.h"
 
 ChatRecordsWidget::ChatRecordsWidget(AppContext *appContext, QWidget *parent)
     : QWidget(parent),
@@ -17,6 +18,7 @@ ChatRecordsWidget::ChatRecordsWidget(AppContext *appContext, QWidget *parent)
       listWidget(nullptr),
       mainWidget(nullptr),
       mainVLayout(nullptr),
+      appliedDpi(DpiUtil::kBaseDpi),
       chatRecordItem(nullptr)
 {
     resize(400, 760);
@@ -138,29 +140,9 @@ ChatRecordsWidget::ChatRecordsWidget(AppContext *appContext, QWidget *parent)
 
     setMouseTracking(true);
 
-    widgetSizeDict["self"] = size();
-    widgetSizeDict["settingButton"] = settingButton->size();
-    widgetSizeDict["settingButton iconSize"] = settingButton->iconSize();
-    widgetSizeDict["buttonWidget"] = buttonWidget->size();
-    widgetSizeDict["buttonVLayout contentsMargins"] =
-            QVariant::fromValue(buttonVLayout->contentsMargins());
-    widgetSizeDict["label"] = label->size();
-    widgetSizeDict["headWidget"] = headWidget->size();
-    widgetSizeDict["headHLayout contentsMargins"] =
-            QVariant::fromValue(headHLayout->contentsMargins());
-    widgetSizeDict["lineEdit"] = lineEdit->size();
-    widgetSizeDict["clearAllButton"] = clearAllButton->size();
-    widgetSizeDict["clearAllButton iconSize"] = clearAllButton->iconSize();
-    widgetSizeDict["searchWidget"] = searchWidget->size();
-    widgetSizeDict["searchHLayout contentsMargins"] =
-            QVariant::fromValue(searchHLayout->contentsMargins());
-    widgetSizeDict["searchHLayout spacing"] = searchHLayout->spacing();
-    widgetSizeDict["listWidget"] = listWidget->size();
-    widgetSizeDict["mainWidget"] = mainWidget->size();
-    widgetSizeDict["mainVLayout contentsMargins"] =
-            QVariant::fromValue(mainVLayout->contentsMargins());
-    widgetSizeDict["mainVLayout spacing"] = mainVLayout->spacing();
+    // 列表项高度以 144 DPI 基准记录，取用时按当前已应用 DPI 换算
     widgetSizeDict["chatRecordItem height"] = 60;
+    saveWidgetSize();
 }
 
 ChatRecordsWidget::~ChatRecordsWidget() { }
@@ -214,28 +196,35 @@ void ChatRecordsWidget::setSize()
 
 void ChatRecordsWidget::saveWidgetSize()
 {
-    widgetSizeDict["self"] = size();
-    widgetSizeDict["settingButton"] = settingButton->size();
-    widgetSizeDict["settingButton iconSize"] = settingButton->iconSize();
-    widgetSizeDict["buttonWidget"] = buttonWidget->size();
+    // 按当前已应用的 DPI 折算回 144 DPI 基准
+    widgetSizeDict["self"] = DpiUtil::toBaseSize(size(), appliedDpi);
+    widgetSizeDict["settingButton"] = DpiUtil::toBaseSize(settingButton->size(), appliedDpi);
+    widgetSizeDict["settingButton iconSize"] =
+            DpiUtil::toBaseSize(settingButton->iconSize(), appliedDpi);
+    widgetSizeDict["buttonWidget"] = DpiUtil::toBaseSize(buttonWidget->size(), appliedDpi);
     widgetSizeDict["buttonVLayout contentsMargins"] =
-            QVariant::fromValue(buttonVLayout->contentsMargins());
-    widgetSizeDict["label"] = label->size();
-    widgetSizeDict["headWidget"] = headWidget->size();
+            QVariant::fromValue(DpiUtil::toBaseMargins(buttonVLayout->contentsMargins(),
+                                                      appliedDpi));
+    widgetSizeDict["label"] = DpiUtil::toBaseSize(label->size(), appliedDpi);
+    widgetSizeDict["headWidget"] = DpiUtil::toBaseSize(headWidget->size(), appliedDpi);
     widgetSizeDict["headHLayout contentsMargins"] =
-            QVariant::fromValue(headHLayout->contentsMargins());
-    widgetSizeDict["lineEdit"] = lineEdit->size();
-    widgetSizeDict["clearAllButton"] = clearAllButton->size();
-    widgetSizeDict["clearAllButton iconSize"] = clearAllButton->iconSize();
-    widgetSizeDict["searchWidget"] = searchWidget->size();
+            QVariant::fromValue(DpiUtil::toBaseMargins(headHLayout->contentsMargins(), appliedDpi));
+    widgetSizeDict["lineEdit"] = DpiUtil::toBaseSize(lineEdit->size(), appliedDpi);
+    widgetSizeDict["clearAllButton"] = DpiUtil::toBaseSize(clearAllButton->size(), appliedDpi);
+    widgetSizeDict["clearAllButton iconSize"] =
+            DpiUtil::toBaseSize(clearAllButton->iconSize(), appliedDpi);
+    widgetSizeDict["searchWidget"] = DpiUtil::toBaseSize(searchWidget->size(), appliedDpi);
     widgetSizeDict["searchHLayout contentsMargins"] =
-            QVariant::fromValue(searchHLayout->contentsMargins());
-    widgetSizeDict["searchHLayout spacing"] = searchHLayout->spacing();
-    widgetSizeDict["listWidget"] = listWidget->size();
-    widgetSizeDict["mainWidget"] = mainWidget->size();
+            QVariant::fromValue(DpiUtil::toBaseMargins(searchHLayout->contentsMargins(),
+                                                      appliedDpi));
+    widgetSizeDict["searchHLayout spacing"] =
+            DpiUtil::toBasePx(searchHLayout->spacing(), appliedDpi);
+    widgetSizeDict["listWidget"] = DpiUtil::toBaseSize(listWidget->size(), appliedDpi);
+    widgetSizeDict["mainWidget"] = DpiUtil::toBaseSize(mainWidget->size(), appliedDpi);
     widgetSizeDict["mainVLayout contentsMargins"] =
-            QVariant::fromValue(mainVLayout->contentsMargins());
-    widgetSizeDict["mainVLayout spacing"] = mainVLayout->spacing();
+            QVariant::fromValue(DpiUtil::toBaseMargins(mainVLayout->contentsMargins(), appliedDpi));
+    widgetSizeDict["mainVLayout spacing"] =
+            DpiUtil::toBasePx(mainVLayout->spacing(), appliedDpi);
 }
 
 void ChatRecordsWidget::resetWidgetSize()
@@ -246,21 +235,17 @@ void ChatRecordsWidget::resetWidgetSize()
 
 void ChatRecordsWidget::updateSize(qreal curDpi, qreal lastDpi)
 {
-    if (lastDpi == 0)
-        return;
-    qreal ratio = curDpi / lastDpi;
+    // 缓存值均为 144 DPI 基准：按目标 DPI 绝对换算（不再用 curDpi/lastDpi 叠乘，
+    // 避免取整误差随跨屏次数累积）
+    Q_UNUSED(lastDpi);
+    if (curDpi <= 0)
+        curDpi = DpiUtil::kBaseDpi;
 
-    auto scale = [=](const QSize &s) -> QSize {
-        return QSize(qRound(s.width() * ratio), qRound(s.height() * ratio));
-    };
-    auto scaleMargins = [=](const QMargins &m) -> QMargins {
-        return QMargins(qRound(m.left() * ratio), qRound(m.top() * ratio),
-                        qRound(m.right() * ratio), qRound(m.bottom() * ratio));
-    };
-
-    resize(scale(widgetSizeDict["self"].value<QSize>()));
-    settingButton->setFixedSize(scale(widgetSizeDict["settingButton"].value<QSize>()));
-    settingButton->setIconSize(scale(widgetSizeDict["settingButton iconSize"].value<QSize>()));
+    resize(DpiUtil::scaleSize(widgetSizeDict["self"].value<QSize>(), curDpi));
+    settingButton->setFixedSize(
+            DpiUtil::scaleSize(widgetSizeDict["settingButton"].value<QSize>(), curDpi));
+    settingButton->setIconSize(
+            DpiUtil::scaleSize(widgetSizeDict["settingButton iconSize"].value<QSize>(), curDpi));
     settingButton->setStyleSheet(QString("QPushButton{"
                                          "    border: none;"
                                          "    border-radius: %1px;"
@@ -269,26 +254,32 @@ void ChatRecordsWidget::updateSize(qreal curDpi, qreal lastDpi)
                                          "    background: #b0b0b0;"
                                          "}")
                                          .arg(settingButton->width() / 2));
-    buttonWidget->setFixedSize(scale(widgetSizeDict["buttonWidget"].value<QSize>()));
-    buttonVLayout->setContentsMargins(
-            scaleMargins(widgetSizeDict["buttonVLayout contentsMargins"].value<QMargins>()));
-    label->setFixedSize(scale(widgetSizeDict["label"].value<QSize>()));
-    headWidget->setFixedSize(scale(widgetSizeDict["headWidget"].value<QSize>()));
+    buttonWidget->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["buttonWidget"].value<QSize>(), curDpi));
+    buttonVLayout->setContentsMargins(DpiUtil::scaleMargins(
+            widgetSizeDict["buttonVLayout contentsMargins"].value<QMargins>(), curDpi));
+    label->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["label"].value<QSize>(), curDpi));
+    headWidget->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["headWidget"].value<QSize>(), curDpi));
     headHLayout->setContentsMargins(0, 0, 0, 0);
     lineEdit->updateSize(curDpi, lastDpi);
-    clearAllButton->setFixedSize(scale(widgetSizeDict["clearAllButton"].value<QSize>()));
-    clearAllButton->setIconSize(scale(widgetSizeDict["clearAllButton iconSize"].value<QSize>()));
-    searchWidget->setFixedSize(scale(widgetSizeDict["searchWidget"].value<QSize>()));
+    clearAllButton->setFixedSize(
+            DpiUtil::scaleSize(widgetSizeDict["clearAllButton"].value<QSize>(), curDpi));
+    clearAllButton->setIconSize(
+            DpiUtil::scaleSize(widgetSizeDict["clearAllButton iconSize"].value<QSize>(), curDpi));
+    searchWidget->setFixedSize(
+            DpiUtil::scaleSize(widgetSizeDict["searchWidget"].value<QSize>(), curDpi));
     searchHLayout->setContentsMargins(0, 0, 0, 0);
-    searchHLayout->setSpacing(qRound(widgetSizeDict["searchHLayout spacing"].value<int>() * ratio));
-    listWidget->setFixedSize(scale(widgetSizeDict["listWidget"].value<QSize>()));
-    mainWidget->resize(scale(widgetSizeDict["mainWidget"].value<QSize>()));
-    mainVLayout->setContentsMargins(
-            scaleMargins(widgetSizeDict["mainVLayout contentsMargins"].value<QMargins>()));
-    mainVLayout->setSpacing(qRound(widgetSizeDict["mainVLayout spacing"].value<int>() * ratio));
+    searchHLayout->setSpacing(
+            DpiUtil::scalePx(widgetSizeDict["searchHLayout spacing"].value<int>(), curDpi, 0));
+    listWidget->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["listWidget"].value<QSize>(), curDpi));
+    mainWidget->resize(DpiUtil::scaleSize(widgetSizeDict["mainWidget"].value<QSize>(), curDpi));
+    mainVLayout->setContentsMargins(DpiUtil::scaleMargins(
+            widgetSizeDict["mainVLayout contentsMargins"].value<QMargins>(), curDpi));
+    mainVLayout->setSpacing(
+            DpiUtil::scalePx(widgetSizeDict["mainVLayout spacing"].value<int>(), curDpi, 0));
 
-    widgetSizeDict["chatRecordItem height"] =
-            qRound(widgetSizeDict["chatRecordItem height"].value<int>() * ratio);
+    // 列表项高度保持 144 基准不就地修改（否则每跨一次屏都会就当前像素再乘一次）
+    const int itemHeight =
+            DpiUtil::scalePx(widgetSizeDict["chatRecordItem height"].value<int>(), curDpi);
     // 列表项字体与标题字体都按新的像素字号重设：列表项字体直接取自
     // appContext（与 WebEngineView 页面同为像素字号，保持视觉一致），
     // 标题字体用成员 titleFont 重设（构造时记录的字体族与加粗属性）
@@ -297,10 +288,10 @@ void ChatRecordsWidget::updateSize(qreal curDpi, qreal lastDpi)
     label->setFont(titleFont);
     for (int i = 0; i < listWidget->count(); ++i) {
         QListWidgetItem *item = listWidget->item(i);
-        item->setSizeHint(
-                QSize(listWidget->width(), widgetSizeDict["chatRecordItem height"].value<int>()));
+        item->setSizeHint(QSize(listWidget->width(), itemHeight));
         item->setFont(font);
     }
+    appliedDpi = curDpi;
 }
 
 QString ChatRecordsWidget::getLineEditText() const
@@ -312,8 +303,9 @@ QListWidgetItem *ChatRecordsWidget::addListItem(const QString &string)
 {
     chatRecordItem = new QListWidgetItem(string);
     listWidget->insertItem(0, chatRecordItem);
-    chatRecordItem->setSizeHint(
-            QSize(listWidget->width(), widgetSizeDict["chatRecordItem height"].value<int>()));
+    chatRecordItem->setSizeHint(QSize(
+            listWidget->width(),
+            DpiUtil::scalePx(widgetSizeDict["chatRecordItem height"].value<int>(), appliedDpi)));
     font.setPixelSize(appContext->windowFontPixelSize());
     chatRecordItem->setFont(font);
     return chatRecordItem;

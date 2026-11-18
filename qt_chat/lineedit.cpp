@@ -1,12 +1,13 @@
 #include "lineedit.h"
 #include "appcontext.h"
+#include "dpiutil.h"
 
 #include <QtWidgets/QApplication>
 #include <QtGui/QScreen>
 #include <QtCore/QDir>
 
 LineEdit::LineEdit(AppContext *appContext, QWidget *parent)
-    : QLineEdit(parent), appContext(appContext)
+    : QLineEdit(parent), appContext(appContext), appliedDpi(DpiUtil::kBaseDpi)
 {
     setFixedSize(1200 / 3 - 82, 32);
     setPlaceholderText(QStringLiteral("输入搜索词"));
@@ -38,34 +39,33 @@ LineEdit::LineEdit(AppContext *appContext, QWidget *parent)
         }
     )");
 
-    widgetSizeDict["self"] = size();
-    widgetSizeDict["searchButton"] = searchButton->size();
-    widgetSizeDict["searchButton iconSize"] = searchButton->iconSize();
+    widgetSizeDict["self"] = DpiUtil::toBaseSize(size(), appliedDpi);
+    widgetSizeDict["searchButton"] = DpiUtil::toBaseSize(searchButton->size(), appliedDpi);
+    widgetSizeDict["searchButton iconSize"] =
+            DpiUtil::toBaseSize(searchButton->iconSize(), appliedDpi);
 }
 
 LineEdit::~LineEdit() { }
 
 void LineEdit::resetWidgetSize()
 {
-    widgetSizeDict["self"] = size();
+    // 宽度随容器布局变化：由调用方（ChatRecordsWidget::setSize）先行 setFixedSize，
+    // 这里把当前像素尺寸按已应用 DPI 折算回 144 基准
+    widgetSizeDict["self"] = DpiUtil::toBaseSize(size(), appliedDpi);
 }
 
 void LineEdit::updateSize(qreal curDpi, qreal lastDpi)
 {
-    QSize selfSize = widgetSizeDict["self"];
-    int newWidth = qRound(selfSize.width() * curDpi / lastDpi);
-    int newHeight = qRound(selfSize.height() * curDpi / lastDpi);
-    setFixedSize(newWidth, newHeight);
+    // 缓存值均为 144 DPI 基准：按目标 DPI 绝对换算（不再用 curDpi/lastDpi 叠乘，
+    // 也不再把当前像素值回写为下次的基准，避免取整误差逐次累积）
+    Q_UNUSED(lastDpi);
+    if (curDpi <= 0)
+        curDpi = DpiUtil::kBaseDpi;
 
-    QSize buttonSize = widgetSizeDict["searchButton"];
-    int btnNewWidth = qRound(buttonSize.width() * curDpi / lastDpi);
-    int btnNewHeight = qRound(buttonSize.height() * curDpi / lastDpi);
-    searchButton->setFixedSize(btnNewWidth, btnNewHeight);
-
-    QSize buttonIconSize = widgetSizeDict["searchButton iconSize"];
-    int btnIconNewWidth = qRound(buttonIconSize.width() * curDpi / lastDpi);
-    int btnIconNewHeight = qRound(buttonIconSize.height() * curDpi / lastDpi);
-    searchButton->setIconSize(QSize(btnIconNewWidth, btnIconNewHeight));
+    setFixedSize(DpiUtil::scaleSize(widgetSizeDict["self"], curDpi));
+    searchButton->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["searchButton"], curDpi));
+    searchButton->setIconSize(
+            DpiUtil::scaleSize(widgetSizeDict["searchButton iconSize"], curDpi));
 
     if (!font.family().isEmpty()) {
         font.setPixelSize(appContext->windowFontPixelSize());
@@ -85,7 +85,5 @@ void LineEdit::updateSize(qreal curDpi, qreal lastDpi)
     )")
                           .arg(searchButton->width()));
 
-    widgetSizeDict["self"] = size();
-    widgetSizeDict["searchButton"] = searchButton->size();
-    widgetSizeDict["searchButton iconSize"] = searchButton->iconSize();
+    appliedDpi = curDpi;
 }

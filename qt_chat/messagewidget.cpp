@@ -1,5 +1,6 @@
 #include "messagewidget.h"
 #include "appcontext.h"
+#include "dpiutil.h"
 
 #include <QtCore/QMutexLocker>
 #include <QtCore/QPointer>
@@ -42,6 +43,12 @@ MessageWidget::MessageWidget(AppContext *appContext, const QString &text,
       funHLayout(nullptr),
       copyButton(nullptr),
       renewResponseButton(nullptr),
+      baseCopyButtonSize(16, 16),
+      baseRenewResponseButtonSize(16, 16),
+      baseFunWidgetSize(isUser ? QSize(26, 26) : QSize(52, 26)),
+      baseFunHLayoutMargins(5, 5, 5, 5),
+      baseFunHLayoutSpacing(10),
+      funSizeDpi(DpiUtil::kBaseDpi),
       thinkButtonHaveCreated(false),
       thinkText(""),
       resultText(""),
@@ -726,7 +733,6 @@ void MessageWidget::updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth)
     // 拖拽模态循环），这里只做轻量刷新，使字体与各部件尺寸立即符合新屏比例
     if (renderingAborted || lastDpi <= 0 || curDpi <= 0 || newMaxWidth <= 0)
         return;
-    const qreal ratio = qreal(curDpi) / qreal(lastDpi);
     const int oldMaxWidth = maxWidth;
     maxWidth = newMaxWidth;
     // 子控件创建时的宽度 = 当时的 maxWidth - 偏移量（头像宽 + 固定间隙 + 代码
@@ -762,7 +768,9 @@ void MessageWidget::updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth)
                     continue;
                 QHBoxLayout *hostLayout = qobject_cast<QHBoxLayout *>(host->layout());
                 const int indent = hostLayout ? hostLayout->contentsMargins().left() : 0;
-                const int newIndent = qRound(indent * ratio);
+                // 缩进值经 144 基准归一后再按新 DPI 换算（等价于新旧比例，
+                // 但不会就已被取整的像素值反复乘比例而累积误差）
+                const int newIndent = DpiUtil::rescalePx(indent, lastDpi, curDpi, 0);
                 if (hostLayout)
                     hostLayout->setContentsMargins(newIndent, 0, 0, 0);
                 host->setFixedWidth(codeShows.at(i)->width() + newIndent);
@@ -781,26 +789,27 @@ void MessageWidget::updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth)
 
 void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
 {
-    if (initDpi <= 0)
-        return;
-    const qreal ratio = qreal(curDpi) / initDpi;
-    auto scale = [=](int v) { return qRound(v * ratio); };
+    // 基准尺寸均以 144 DPI 给出：按目标 DPI 绝对换算（不再就当前像素乘比例，
+    // 避免跨屏来回后按钮/边距逐次被取整放大或缩小）
+    Q_UNUSED(initDpi);
+    if (curDpi <= 0)
+        curDpi = DpiUtil::kBaseDpi;
 
-    copyButton->setFixedSize(scale(copyButton->width()), scale(copyButton->height()));
-    QMargins m = funHLayout->contentsMargins();
-    funHLayout->setContentsMargins(scale(m.left()), scale(m.top()), scale(m.right()),
-                                   scale(m.bottom()));
+    const QSize copySize = DpiUtil::scaleSize(baseCopyButtonSize, curDpi);
+    copyButton->setFixedSize(copySize);
+    funHLayout->setContentsMargins(DpiUtil::scaleMargins(baseFunHLayoutMargins, curDpi));
+    const QSize funWidgetSize = DpiUtil::scaleSize(baseFunWidgetSize, curDpi);
     if (isUser) {
-        funWidget->setFixedSize(scale(funWidget->width()), scale(funWidget->height()));
+        funWidget->setFixedSize(funWidgetSize);
         textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
                                     textWidget->height() + funWidget->height());
     } else {
         if (!renewResponseButtonIsRemove) {
-            renewResponseButton->setFixedSize(scale(renewResponseButton->width()),
-                                              scale(renewResponseButton->height()));
-            funHLayout->setSpacing(scale(funHLayout->spacing()));
+            renewResponseButton->setFixedSize(
+                    DpiUtil::scaleSize(baseRenewResponseButtonSize, curDpi));
+            funHLayout->setSpacing(DpiUtil::scalePx(baseFunHLayoutSpacing, curDpi, 0));
         }
-        funWidget->setFixedSize(scale(funWidget->width()), scale(funWidget->height()));
+        funWidget->setFixedSize(funWidgetSize);
         if (!loadingWidgetIsRemove)
             return;
         textBoxWidget->setFixedSize(qMax(textWidget->width(), funWidget->width()),
@@ -808,6 +817,7 @@ void MessageWidget::updateFunWidgetSize(qreal curDpi, qreal initDpi)
     }
     setFixedSize(qMin(imageLabel->width() + textBoxWidget->width() + 5, maxWidth),
                  qMax(imageLabel->height(), textBoxWidget->height()));
+    funSizeDpi = curDpi;
 }
 
 // void MessageWidget::toggleWidget()
@@ -899,6 +909,8 @@ void MessageWidget::removeRenewResponseButton()
     int h = copyButton->height() + funHLayout->contentsMargins().top()
             + funHLayout->contentsMargins().bottom();
     funWidget->setFixedSize(w, h);
+    // 同步更新 144 DPI 基准：当前像素按已应用 DPI 折算，后续跨屏据此换算
+    baseFunWidgetSize = DpiUtil::toBaseSize(QSize(w, h), funSizeDpi);
 }
 
 // 渲染栈包装（同 buildAiUi）：中止后销毁推迟到渲染栈退出，保证栈内访问安全

@@ -32,6 +32,7 @@ public:
     void setSize();
     void saveWidgetSize();
     void resetWidgetSize();
+    // 按 144 DPI 基准（DpiUtil::kBaseDpi）重设尺寸与内部边距
     void updateSize(qreal curDpi, qreal lastDpi);
     void updateLayoutMarginsSpacing(qreal curDpi, qreal lastDpi);
 
@@ -127,6 +128,9 @@ private:
     QVBoxLayout *settingVLayout;
 
     QMap<QString, QVariant> widgetSizeDict;
+    // widgetSizeDict 以 144 DPI 基准保存：保存时按当前已应用的 DPI 折算回基准，
+    // 读取时再按目标 DPI 放大，来回跨屏不会累积取整误差
+    qreal appliedDpi;
 };
 
 #endif // SETTINGWIDGET_H

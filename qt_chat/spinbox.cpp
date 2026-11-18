@@ -1,14 +1,14 @@
 #include "spinbox.h"
 #include "appcontext.h"
+#include "dpiutil.h"
 
 #include <QtCore/QDebug>
 #include <QtGui/QScreen>
 
 namespace {
-// 以 144 DPI 屏上的实测物理尺寸为基准，其它 DPI 按 dpi / 144 缩放后取整，
-// 让两个屏看到的物理尺寸一致（96 DPI 正好是 2/3：边框 2→1、圆角 8→5、
-// 按钮 18x13→12x9、两按钮之间的空隙 2→1）
-constexpr int kBaseDpi = 144;
+// 以 144 DPI 屏上的实测物理尺寸为基准（DpiUtil::kBaseDpi），其它 DPI 按
+// dpi / 144 缩放后取整，让两个屏看到的物理尺寸一致（96 DPI 正好是 2/3：边框
+// 2→1、圆角 8→5、按钮 18x13→12x9、两按钮之间的空隙 2→1）
 constexpr int kBaseBorderWidth = 2;
 constexpr int kBaseRadius = 8;
 constexpr int kBaseButtonWidth = 18;
@@ -23,7 +23,7 @@ qreal dpiScale(const QWidget *widget)
 {
     const QScreen *screen = widget->screen();
     const qreal dpi = screen ? screen->logicalDotsPerInch() : 0;
-    return dpi > 0 ? dpi / qreal(kBaseDpi) : 1.0;
+    return DpiUtil::scaleOf(dpi);
 }
 
 // 样式表 url() 只认正斜杠（Windows 路径需要转换）

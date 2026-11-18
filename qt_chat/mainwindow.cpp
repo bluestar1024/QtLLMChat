@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "dpiutil.h"
 
 #include <cmath>
 
@@ -9,6 +10,26 @@
 #include <QtGui/QFont>
 #include <QDebug>
 #include <QPointer>
+
+namespace {
+// 本窗口内的布局尺寸均以 144 DPI 基准（DpiUtil::kBaseDpi）在代码中给定，
+// 其它 DPI 按基准 × dpi / 144 换算：
+//   - 窗口初始尺寸与最小拖动尺寸（WM_GETMINMAXINFO）
+//   - chatShowWidget / chatInputWidget 的最小高度
+//   - chatShowVLayout / chatInputVLayout 的内边距
+constexpr int kBaseWindowWidth = 1200;
+constexpr int kBaseWindowHeight = 800;
+constexpr int kBaseWindowMinWidth = 1100;
+constexpr int kBaseWindowMinHeight = 795;
+constexpr int kBaseChatShowMinHeight = 244;
+constexpr int kBaseChatInputMinHeight = 100;
+const QMargins kBaseChatShowMargins(20, 4, 10, 16);
+const QMargins kBaseChatInputMargins(20, 0, 20, 20);
+// 浮动提示标签（emptyTextLabel / textCopyLabel）与聊天显示区下边缘之间的间距：
+// 其位置的其余组成（标题栏 / 功能栏 / 聊天显示区高度）由各部件自身的 DPI 缩放链
+// 给出，只有这里是代码中的固定像素，需同样以 144 基准换算
+constexpr int kBaseFloatingLabelGap = 10;
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -32,6 +53,7 @@ MainWindow::MainWindow(QWidget *parent)
       dragStartHeight(-1),
       baseWindowSize(QSize(-1, -1)),
       baseWindowDpi(0),
+      baseChatInputHeight(-1),
       isSizeMoveDrag(false),
       dragRegenerateDone(false),
       pendingRegenerateAfterResize(false),
@@ -46,17 +68,14 @@ MainWindow::MainWindow(QWidget *parent)
       avoidRepeatSelfFun(false)
 {
     appContext = new AppContext();
-    // ===== 初始像素字号：按窗口所在屏 DPI 从磅值换算（原为写死的 20/28，仅匹配
-    // 144 DPI 主屏；窗口启动于其他 DPI 的屏时所有像素字号控件与 WebEngine 页面
-    // 都会偏大/偏小）。构造期 screen() 可能仍指向主屏，窗口实际被系统放到 DPI
-    // 不同的屏上时由 showEvent 中的 applyScreenDpiChange 校正 =====
-    {
-        const int initScreenDpi = screen()->logicalDotsPerInch();
-        appContext->setWindowFontPixelSize(
-                std::ceil(appContext->windowFontPointSize() * (initScreenDpi / 72.0)));
-        appContext->setTitleFontPixelSize(
-                std::ceil(appContext->titleFontPointSize() * (initScreenDpi / 72.0)));
-    }
+    // ===== 构造期一律以 144 DPI 基准建界面 =====
+    // 各部件的默认尺寸、边距、最小高度与像素字号（AppContext 默认 20/28px）都是
+    // 144 DPI 屏（150% 缩放）下的数值。窗口初始化完成、实际落到某块屏后，由
+    // showEvent 按该屏 DPI 从基准换算一次（见其中 applyScreenDpiChange 调用）：
+    // 启动屏不是 144 DPI 时（例如只在 96 DPI 屏上运行），窗口与部件尺寸、最小
+    // 尺寸、appliedDpi、像素字号都在首帧绘制前统一换算到该屏，物理尺寸与
+    // 144 DPI 屏一致。构造期也不再用“当前屏 DPI”解释这些基准尺寸（否则基准会
+    // 被记成 1800x1200 之类的错误值）
     // ===== 应用级默认字体与 ToolTip 样式 =====
     // 应用级默认字体：兜底未显式 setFont 的控件（QToolTip 弹窗、QMessageBox 等）；
     // 字体族经 AppContext::fontFamily() 懒加载注册（进程内单次注册，与各控件
@@ -99,8 +118,10 @@ MainWindow::MainWindow(QWidget *parent)
     // 延迟到 singleShot(0) 执行，避免 Chromium 初始化阻塞主窗口首次显示。
     QTimer::singleShot(0, qApp, []() { QWebEngineProfile::defaultProfile(); });
 
-    setMinimumSize(1110, 795);
-    resize(1200, 800);
+    // 窗口初始尺寸与最小尺寸以 144 DPI 基准常数给出（最小尺寸与 WM_GETMINMAXINFO
+    // 使用同一常量）：其它 DPI 屏上由 showEvent 在首次显示前按基准换算
+    setMinimumSize(kBaseWindowMinWidth, kBaseWindowMinHeight);
+    resize(kBaseWindowWidth, kBaseWindowHeight);
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
     setMouseTracking(true);
 
@@ -111,21 +132,20 @@ MainWindow::MainWindow(QWidget *parent)
     funWidgetInit();
     chatShow = new ListWidget();
     chatShowWidget = new Widget();
-    chatShowWidget->setMinimumHeight(244);
-    chatShowWidget->resize(1200, 500);
+    chatShowWidget->resize(1200, 460);
     chatShowWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     chatShowVLayout = new QVBoxLayout(chatShowWidget);
     chatShowVLayout->addWidget(chatShow);
-    chatShowVLayout->setContentsMargins(20, 4, 10, 16);
     chatInput = new TextEditFull(appContext);
     chatInput->connectSendButtonClick(this, &MainWindow::sendMessage);
     chatInputWidget = new Widget();
-    chatInputWidget->setMinimumHeight(100);
-    chatInputWidget->resize(1200, 200);
+    chatInputWidget->resize(1200, 240);
     chatInputWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     chatInputVLayout = new QVBoxLayout(chatInputWidget);
     chatInputVLayout->addWidget(chatInput);
-    chatInputVLayout->setContentsMargins(20, 0, 20, 20);
+    // 最小高度与内边距均为 144 DPI 基准下的默认值，实际值在窗口落到其它 DPI
+    // 屏时按基准重新换算（见 applyLayoutDpiScale）
+    applyLayoutDpiScale(DpiUtil::kBaseDpi);
     splitter = new Splitter(Qt::Vertical);
     splitter->resize(1200, 700);
     splitter->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -136,6 +156,12 @@ MainWindow::MainWindow(QWidget *parent)
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 0);
     splitter->setHandleWidth(0);
+    // 用户拖动分隔条改变 chatInput 高度时回写高度基准（折算回 144 DPI）：
+    // 只在用户主动调高时更新，跨屏与窗口缩放时的临时布局不会污染基准
+    connect(splitter, &QSplitter::splitterMoved, this, [this]() {
+        if (chatInput->height() > 0 && curDpi > 0)
+            baseChatInputHeight = DpiUtil::toBasePx(chatInput->height(), curDpi);
+    });
     contentWidget = new Widget();
     contentWidget->resize(1200, 760);
     contentWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -170,15 +196,14 @@ MainWindow::MainWindow(QWidget *parent)
     settingWidgetInit();
     chatRecordsWidgetInit();
     emptyTextLabel = new PrintLabel("文本不能为空", appContext, this);
-    emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
-                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     emptyTextLabel->raise();
     emptyTextLabel->hide();
     textCopyLabel = new PrintLabel("文本复制成功", appContext, this);
-    textCopyLabel->move((width() - textCopyLabel->width()) / 2,
-                        titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
     textCopyLabel->raise();
     textCopyLabel->hide();
+    // 两个标签的位置同样以 144 DPI 基准给出（构造期所有尺寸都是基准值），
+    // 窗口首次显示与每次 DPI 变化时由 updateFloatingLabelPosition 重算
+    updateFloatingLabelPosition(DpiUtil::kBaseDpi);
 
     messageWidgetList.clear();
     // 拖拽中的消息宽度轻量刷新节流（见 scheduleMessageWidthRefresh）：
@@ -188,10 +213,21 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&messageWidthRefreshTimer, &QTimer::timeout, this,
             &MainWindow::refreshMessageWidthDuringDrag);
     lastScreen = curScreen = screen();
-    initDpi = lastDpi = curDpi = curScreen->logicalDotsPerInch();
-    // DPI 物理尺寸基准：以初始窗口尺寸与当前屏 DPI 为基准（见 dpiScaledSize）
-    baseWindowSize = size();
-    baseWindowDpi = curDpi;
+    // 构造期尺寸全部属于 144 DPI 基准（见构造函数开头说明）：curDpi 同样以基准
+    // 初始化。窗口首次显示时若实际所在屏 DPI 不同，showEvent 会以 lastDpi=144
+    // 执行一次完整换算（appliedDpi、最小尺寸/最小高度、布局边距同步更新）
+    initDpi = lastDpi = curDpi = DpiUtil::kBaseDpi;
+    // DPI 物理尺寸基准：初始窗口尺寸即 144 DPI 基准尺寸（见 dpiScaledSize）
+    baseWindowSize = QSize(kBaseWindowWidth, kBaseWindowHeight);
+    baseWindowDpi = DpiUtil::kBaseDpi;
+    // chatInput 的高度基准（144 DPI 屏的像素高度）：直接取 TextEditFull 的
+    // 144 基准常量，不做 DPI 折算——构造期 mainwindow 与 TextEditFull 各自
+    // 通过 screen() 取到的屏可能不同（窗口尚未落到实际屏），折算会把基准算偏
+    baseChatInputHeight = TextEditFull::baseHeightPx();
+    // 拖拽状态标记初始值（WM_ENTERSIZEMOVE / WM_SIZING / WM_EXITSIZEMOVE 每次
+    // 拖拽循环开始时重新置位，这里只为避免未初始化读取）
+    dpiDragHandled = false;
+    userResizeDuringDrag = false;
     // 提示字体按窗口所在屏的 DPI 换算为像素字号（详见 AppContext::
     // applyToolTipFontForScreen）；按钮显示提示前还会按自身所在屏再校正
     applyToolTipFont();
@@ -213,11 +249,13 @@ MainWindow::MainWindow(QWidget *parent)
                 [this](QScreen *) { refreshScreenList(); });
     }
 
-    widgetSizeDict["MainWindow"] = size();
-    widgetSizeDict["MainWindow minimumSize"] = minimumSize();
-    widgetSizeDict["mainWidget"] = mainWidget->size();
-    widgetSizeDict["mainWidget x"] = mainWidget->x();
-    widgetSizeDict["mainWidget y"] = mainWidget->y();
+    widgetSizeDict["MainWindow"] = DpiUtil::toBaseSize(size(), curDpi);
+    // 最小尺寸直接以基准值记录：构造时按基准像素设置，不按构造屏 DPI 折算
+    // （窗口最终落在哪块屏由 showEvent 校正）
+    widgetSizeDict["MainWindow minimumSize"] = QSize(kBaseWindowMinWidth, kBaseWindowMinHeight);
+    widgetSizeDict["mainWidget"] = DpiUtil::toBaseSize(mainWidget->size(), curDpi);
+    widgetSizeDict["mainWidget x"] = DpiUtil::toBasePx(mainWidget->x(), curDpi);
+    widgetSizeDict["mainWidget y"] = DpiUtil::toBasePx(mainWidget->y(), curDpi);
 
     // checkGraphicsBackend();
 
@@ -496,11 +534,14 @@ void MainWindow::showEvent(QShowEvent *event)
     // 首次显示完成后，WM_SIZE 才允许触发聊天记录重建（避免启动阶段误触发）
     isShowFirst = false;
 
-    // 构造时 screen() 可能仍指向主屏：窗口实际被系统放到另一块 DPI 不同的屏上时
-    // （主屏 144、副屏 96），按实际所在屏 DPI 校正像素字号并按比例缩放全部部件，
-    // 避免启动即出现字号/尺寸偏差
-    if (screen()->logicalDotsPerInch() != curDpi) {
-        applyScreenDpiChange(screen()->logicalDotsPerInch());
+    // 构造期全部部件以 144 DPI 基准建好（见构造函数开头说明）：窗口首次显示时
+    // 按实际所在屏 DPI 换算一次。启动屏就是 144 DPI 时这一步为空操作；启动屏是
+    // 其它 DPI（例如 96）时，窗口尺寸与最小尺寸、两个分栏容器的最小高度/布局
+    // 边距、全部部件的缓存尺寸、appliedDpi 与像素字号都在首帧绘制前换算完成
+    const QScreen *showScreen = screen();
+    const int showScreenDpi = showScreen ? qRound(showScreen->logicalDotsPerInch()) : 0;
+    if (showScreenDpi > 0 && showScreenDpi != qRound(curDpi)) {
+        applyScreenDpiChange(showScreenDpi);
         // 缩放链已将各部件按新屏 DPI 重排（几何/字号已正确），但布局激活
         // 是排队执行的：首次映射时的第一帧若在激活前绘制，画面仍是构造时（144
         // DPI）的旧布局——标题行高 40 而非 27、FunWidget 内部边距 10 而非 7，
@@ -511,6 +552,11 @@ void MainWindow::showEvent(QShowEvent *event)
         activateLayoutsRecursively(this);
         mainWidget->update();
     }
+    // 首次显示后按 144 DPI 基准重设 chatInput 高度：splitter 默认按子项当前
+    // 尺寸分配 pane 高度，会把输入框压得比 144 DPI 基准矮；布局激活可能排在
+    // 事件循环里，再兜底一次（按基准绝对换算，重复执行结果不变）
+    applyChatInputHeightForDpi();
+    QTimer::singleShot(0, this, &MainWindow::applyChatInputHeightForDpi);
     // 监听平台窗口的屏幕变化：系统缩放比例变更时窗口会在拓扑重算中临时跨屏
     // 再回到原屏，期间按临时屏 DPI 执行过缩放链，回到原屏后没有可靠的
     // WM_DPICHANGED 时序，界面会停留在临时屏的字号/尺寸上（整变大）；
@@ -711,19 +757,24 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
         MONITORINFO mi = { sizeof(mi) };
         if (GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
-            mmi->ptMaxPosition.x = mi.rcWork.left + 1;
-            mmi->ptMaxPosition.y = mi.rcWork.top + 1;
-            mmi->ptMaxSize.x = mi.rcWork.right - mi.rcWork.left;
-            mmi->ptMaxSize.y = mi.rcWork.bottom - mi.rcWork.top;
+            // ptMaxPosition 是“相对目标显示器工作区左上角的偏移量”，不是虚拟
+            // 屏幕的绝对坐标：对原点不为 (0,0) 的显示器（本机副屏 x 从 -3440
+            // 开始），直接传 rcWork.left + 1 会被系统再叠加一次显示器原点，最大化
+            // 后窗口落在所有显示器之外（实测副屏 maxPos=-3439 得到 x=-6879，
+            // 3440x1392 的窗口整体在副屏左侧屏幕外）。这里换算为相对显示器原点
+            // 的偏移，主屏（原点 0）与副屏（负坐标）都成立；+1 是为无边框窗口
+            // 保留 1px 可见边缘，避免边框被工作区裁掉
+            const int maxW = mi.rcWork.right - mi.rcWork.left;
+            const int maxH = mi.rcWork.bottom - mi.rcWork.top;
+            const int relX = mi.rcWork.left - mi.rcMonitor.left;
+            const int relY = mi.rcWork.top - mi.rcMonitor.top;
+            mmi->ptMaxPosition.x = relX + 1;
+            mmi->ptMaxPosition.y = relY + 1;
+            mmi->ptMaxSize.x = maxW;
+            mmi->ptMaxSize.y = maxH;
         }
-        mmi->ptMinTrackSize.x = 1100;
-        mmi->ptMinTrackSize.y = 795;
-        // 最小尺寸按窗口当前所在屏的 DPI 相对 144（设计基准）缩放：固定
-        // 1100x795 物理像素在 96 DPI 屏上会钳制跨屏缩放目标（如 800x533），
-        // 窗口无法按 DPI 比例缩小，自适应缩放链失效
-        const UINT windowDpi = GetDpiForWindow(hwnd);
-        mmi->ptMinTrackSize.x = MulDiv(1100, int(windowDpi), 144);
-        mmi->ptMinTrackSize.y = MulDiv(795, int(windowDpi), 144);
+        mmi->ptMinTrackSize.x = DpiUtil::scalePx(kBaseWindowMinWidth, int(GetDpiForWindow(hwnd)));
+        mmi->ptMinTrackSize.y = DpiUtil::scalePx(kBaseWindowMinHeight, int(GetDpiForWindow(hwnd)));
         *result = 0;
         return true;
     }
@@ -796,12 +847,22 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         isDpiDragPending = false;
         pendingDragDpi = 0;
         dpiDragHandled = false;
-        // 用户开始拖动/拉伸窗口：此刻窗口处于稳定状态（尺寸与其所在屏 DPI
-        // 一致），以当前尺寸作为 DPI 物理尺寸基准。只在用户主动改变窗口尺寸
-        // 的时机更新，系统在缩放设置变更的拓扑重算中临时改变的尺寸/DPI 不
-        // 参与（见 dpiScaledSize），否则多次跨屏或反复改缩放后尺寸会逐次漂移
-        baseWindowSize = size();
-        baseWindowDpi = curDpi;
+        userResizeDuringDrag = false;
+        // 用户开始拖动/拉伸窗口：只在窗口尺寸与其所在屏 DPI 一致（或基准尚未
+        // 建立）时，才把当前尺寸作为 DPI 物理尺寸基准。系统在缩放设置变更的
+        // 拓扑重算中会临时把窗口改成与基准不成比例的尺寸（过渡帧），最大化/
+        // 贴边 Snap 状态下窗口尺寸也由系统布局给出——若把这些尺寸当基准，窗口
+        // 基准就与部件基准（widgetSizeDict）不一致：mainWidget 按旧基准铺满后
+        // 超出窗口（实测过渡帧 1100x795@144 被当基准后拖到 96 DPI 副屏，窗口
+        // 得到 733x530 而 mainWidget 为 800x533），来回跨屏还会逐次漂移。
+        // 用户真正拉伸的结果由 WM_EXITSIZEMOVE 采用
+        const QSize expectWindowSize = dpiScaledSize(curDpi);
+        if (!expectWindowSize.isValid() || !(baseWindowDpi > 0)
+                || (qAbs(width() - expectWindowSize.width()) <= 2
+                    && qAbs(height() - expectWindowSize.height()) <= 2)) {
+            baseWindowSize = size();
+            baseWindowDpi = curDpi;
+        }
         // 拖拽开始前顺带检查样式（缺失时延迟补齐，恢复后续边缘拉伸能力）
         scheduleFrameStyleEnsure();
         RECT rect;
@@ -841,9 +902,23 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
                 }
             }
             if (targetDpi > 0 && targetDpi != qRound(curDpi)) {
-                isDpiDragPending = true;
-                pendingDragDpi = targetDpi;
-                qDebug() << "WM_MOVING cross-dpi pending" << targetDpi;
+                // 拖到屏幕边缘触发 Aero Snap 时，系统把拖动目标矩形改成贴边的
+                // 半屏/全屏矩形，其中心可能已越过屏边界（本机副屏右边缘 x=0
+                // 紧邻主屏原点）：此时用户意图是“在当前屏贴边”，不是跨屏。
+                // 若据此切到目标屏 DPI，DPI 链会把窗口按比例缩放一次，松手后
+                // 系统给出的 snap 尺寸又被覆盖（实测副屏右边缘 Snap 得到
+                // 1720x1392 后立刻变回 800x533，半屏效果消失）。贴边矩形不参与
+                // 跨屏判定，真跨屏仍由 WM_DPICHANGED 与 WM_EXITSIZEMOVE 兜底
+                const bool edgeSnapped = mrc->left <= mi.rcMonitor.left
+                        || mrc->right >= mi.rcMonitor.right || mrc->top <= mi.rcMonitor.top
+                        || mrc->bottom >= mi.rcMonitor.bottom;
+                if (edgeSnapped) {
+                    isDpiDragPending = false;
+                } else {
+                    isDpiDragPending = true;
+                    pendingDragDpi = targetDpi;
+                    qDebug() << "WM_MOVING cross-dpi pending" << targetDpi;
+                }
             } else if (targetDpi > 0) {
                 // 拖回原 DPI 屏（或目标屏与当前同 DPI）：清除待处理状态
                 isDpiDragPending = false;
@@ -863,6 +938,12 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             pendingRegenerateAfterResize = true;
             qDebug() << "WM_MOVING width changed, pending regenerate" << w;
         }
+        break;
+    }
+
+    case WM_SIZING: {
+        // 用户拖动窗口边缘拉伸（不是仅移动）：记录后仍交给默认处理
+        userResizeDuringDrag = true;
         break;
     }
 
@@ -898,6 +979,31 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             // 依赖拖拽开始快照（来回跨屏时快照属于另一个 DPI，会算错）
             qDebug() << "WM_EXITSIZEMOVE screenChanged, applyScreenDpiChange" << releaseDpi;
             applyScreenDpiChange(releaseDpi);
+        }
+        // 注意：这里不能无条件按 DPI 基准校正窗口尺寸。Aero Snap 的最终矩形由
+        // 系统在退出拖拽前后分两步应用（先给尺寸、位置稍后到位），最大化的还原
+        // 也不由本消息决定，盲目 resize 会把半屏/贴边布局覆盖成普通尺寸（实测
+        // 主屏左半屏 Snap 变回 1800x1200、副屏右半屏变回 800x533）。
+        // 仅在“只移动”的跨 DPI 屏拖动后校正窗口尺寸（用户未同时拖边缘拉伸，
+        // 且非最大化/非贴边）：此时最终尺寸是系统按“拖动过程中的临时尺寸 × 目标屏
+        // DPI 比例”算出的。若拖动前窗口尺寸已被外部因素改过（缩放设置的拓扑重算
+        // 临时改尺寸、程序化 MoveWindow）而与 DPI 基准不一致，这里会留下与基准
+        // 不符的窗口（实测 1100x795@144 拖到副屏得到 733x530，而基准应为
+        // 800x533），且该错误尺寸会被当作新基准导致后续尺寸漂移。贴边 Snap 的
+        // 半屏尺寸由 isSnappedToScreenEdge 识别（含“系统先给尺寸、位置稍后到位”
+        // 的中间帧），不会被这里覆盖
+        if (dpiDragHandled && !userResizeDuringDrag && !isWindowMaximized()
+                && !isSnappedToScreenEdge()) {
+            const QSize expect = dpiScaledSize(curDpi);
+            if (expect.isValid()
+                    && (qAbs(width() - expect.width()) > 2
+                        || qAbs(height() - expect.height()) > 2)) {
+                qDebug() << "WM_EXITSIZEMOVE correct size by dpi base" << expect << "from"
+                         << size();
+                // 不置 avoidRepeatSelfFun：校正后的 resizeEvent 要重排 mainWidget
+                // 与各部件，并在尺寸与基准一致时写回正确基准
+                resize(expect);
+            }
         }
 
         RECT rect;
@@ -940,8 +1046,10 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
             qDebug() << "WM_EXITSIZEMOVE move or height only, skip regenerate" << w << h;
         }
         // 用户在拖拽中拉伸了窗口（当前尺寸与基准的 DPI 换算结果不符）：
-        // 以当前尺寸为新基准，否则下次跨屏会跳回旧尺寸
-        if (!isWindowMaximized()) {
+        // 以当前尺寸为新基准，否则下次跨屏会跳回旧尺寸。
+        // 贴边 Snap 的尺寸由系统布局给出，不代表用户设定的窗口尺寸：
+        // 若把它写进基准，从半屏拖出后跨屏会按半屏尺寸等比放大
+        if (!isWindowMaximized() && !isSnappedToScreenEdge()) {
             const QSize expect = dpiScaledSize(curDpi);
             if (qAbs(width() - expect.width()) > 2 || qAbs(height() - expect.height()) > 2) {
                 baseWindowSize = size();
@@ -1470,6 +1578,69 @@ QSize MainWindow::dpiScaledSize(qreal dpi) const
                  qRound(baseWindowSize.height() * dpi / baseWindowDpi));
 }
 
+void MainWindow::applyLayoutDpiScale(qreal dpi)
+{
+    if (dpi <= 0)
+        dpi = curDpi > 0 ? curDpi : qreal(DpiUtil::kBaseDpi);
+    // 最小高度同样参与 DPI 换算：固定 244/100 在 96 DPI 屏上物理偏大，会把
+    // splitter 的上 pane 卡得过高（窗口整体缩小时 chatShow 无法按比例变小）；
+    // 216 DPI 屏上又挡不住过度压缩
+    chatShowWidget->setMinimumHeight(DpiUtil::scalePx(kBaseChatShowMinHeight, dpi));
+    chatInputWidget->setMinimumHeight(DpiUtil::scalePx(kBaseChatInputMinHeight, dpi));
+    // 两个容器的内边距同样参与换算：chatShow 的左右/上下边距决定消息列表的
+    // 可用宽度与高度，chatInput 的下边距计入 splitter 中 pane 的高度
+    // （见 applyChatInputHeightForDpi），chatInput 的左右边距决定输入框宽度
+    chatShowVLayout->setContentsMargins(DpiUtil::scaleMargins(kBaseChatShowMargins, dpi));
+    chatInputVLayout->setContentsMargins(DpiUtil::scaleMargins(kBaseChatInputMargins, dpi));
+    qDebug().nospace().noquote() << "applyLayoutDpiScale dpi=" << dpi
+                                 << " chatShowMin=" << chatShowWidget->minimumHeight()
+                                 << " chatInputMin=" << chatInputWidget->minimumHeight()
+                                 << " chatShowMargins=" << chatShowVLayout->contentsMargins()
+                                 << " chatInputMargins=" << chatInputVLayout->contentsMargins();
+}
+
+void MainWindow::applyChatInputHeightForDpi()
+{
+    // chatInput 的高度基准（144 DPI 屏的像素高度）尚未就绪或 splitter 尚未
+    // 完成布局时跳过：下一次 resizeEvent / 首次显示的兜底会再试一次
+    if (baseChatInputHeight <= 0 || splitter->height() <= 0)
+        return;
+    // chatInput 高度按 144 基准换算；其上下布局边距（chatInputVLayout）同样已
+    // 按 144 基准换算（见 applyLayoutDpiScale），这里取当前值相加才能得到
+    // chatInputWidget 的目标高度
+    const QMargins inputMargins = chatInputVLayout->contentsMargins();
+    const int paneHeight = DpiUtil::scalePx(baseChatInputHeight, curDpi)
+            + inputMargins.top() + inputMargins.bottom();
+    splitter->setSizes({ qMax(1, splitter->height() - paneHeight), paneHeight });
+    qDebug().nospace().noquote() << "chatInput 高度=" << paneHeight << " dpi=" << curDpi
+                                << " splitter=" << splitter->sizes();
+    // pane 高度重设会改变 chatShowWidget 的高度，两个浮动提示标签的纵向位置以它为
+    // 基准相减，必须在这里重算：resizeEvent 里那一次可能比 pane 高度先算（布局在
+    // 窗口 resize 时还没激活、chatShowWidget 仍是旧高度），标签会停在错位的位置
+    updateFloatingLabelPosition(curDpi);
+}
+
+void MainWindow::updateFloatingLabelPosition(qreal dpi)
+{
+    if (!emptyTextLabel || !textCopyLabel || !titleWidget || !chatFun || !chatShowWidget)
+        return;
+    if (dpi <= 0)
+        dpi = curDpi > 0 ? curDpi : qreal(DpiUtil::kBaseDpi);
+    // 位置以 144 DPI 屏的默认位置为基准：纵向 = 标题栏 + 功能栏 + 聊天显示区
+    // 高度之和（三者由各自的 DPI 缩放链给出）+ 间距（代码中的固定像素，按基准
+    // 换算）；横向居中随窗口宽度自动跟随，两个标签宽度由字体度量得出、同样跨
+    // DPI 换算，所以居中后的物理位置在任一 DPI 屏上一致
+    const int gap = DpiUtil::scalePx(kBaseFloatingLabelGap, dpi, 0);
+    const int y = titleWidget->height() + chatFun->height()
+            + chatShowWidget->height() + gap;
+    emptyTextLabel->move((width() - emptyTextLabel->width()) / 2, y);
+    textCopyLabel->move((width() - textCopyLabel->width()) / 2, y);
+    qDebug().nospace().noquote() << "浮动提示标签位置 dpi=" << qRound(dpi) << " gap=" << gap
+                                 << " y=" << y
+                                 << " emptyTextLabel=" << emptyTextLabel->geometry()
+                                 << " textCopyLabel=" << textCopyLabel->geometry();
+}
+
 void MainWindow::scheduleDpiSettleCheck()
 {
     // 缩放设置变更期间系统会重建显示拓扑：窗口可能被临时移到另一块屏、Qt
@@ -1507,12 +1678,30 @@ void MainWindow::applyScreenDpiChange(int newDpi, bool scheduleRegenerate)
             std::ceil(appContext->titleFontPointSize() * (curDpi / 72.0)));
     applyToolTipFont();
     isDpiChanged = true;
+    // 两个分栏容器的最小高度与布局内边距先按新 DPI 更新（在 resize 之前）：
+    // 它们会限制 splitter 的最小尺寸，滞后于 resize 会把窗口/子部件卡成错误尺寸
+    applyLayoutDpiScale(curDpi);
+    // 最小尺寸必须与窗口尺寸同时按新 DPI 更新，且必须在 resize 之前：系统在
+    // 缩放设置变更后按建议矩形 resize 窗口时，若最小尺寸还是旧 DPI 的值，
+    // 窗口会被旧最小值卡成错误尺寸（实测 216→96 时得到 1665x1195，而不是
+    // 800x533），该帧内所有部件按错误宽度重排并把错误值写回基准。
+    // 缓存里保存的是 144 基准值，这里按新 DPI 换算，不回写缓存（避免逐次
+    // 换算累积取整误差）
+    {
+        const QSize minBase = widgetSizeDict["MainWindow minimumSize"].value<QSize>();
+        if (minBase.isValid())
+            setMinimumSize(DpiUtil::scaleSize(minBase, curDpi));
+    }
     // 触发 resizeEvent 的 isDpiChanged 缩放链：按比例缩放窗口最小尺寸、主部件
     // 几何与各部件 updateSize，最后重建消息部件。窗口能按目标尺寸 resize 时由
     // 真实 resize 事件驱动；最大化或目标尺寸与当前相同（比例四舍五入后相等）时
     // 手动驱动一次缩放链，保证字体仍然更新
     const QSize target = dpiScaledSize(curDpi);
-    if (!isWindowMaximized() && target != size()) {
+    // 最大化与贴边 Snap 时窗口几何由系统布局决定：按 DPI 比例 resize 会覆盖
+    // 系统刚给出的尺寸（实测副屏右边缘 Snap 得到 1720x1392 后，DPI 链又把它
+    // 缩成 800x533，只剩位置变化、半屏效果消失）。这两种情形只驱动布局与
+    // 部件缩放，不改变窗口几何
+    if (!isWindowMaximized() && !isSnappedToScreenEdge() && target != size()) {
         resize(target);
     } else {
         QResizeEvent e(size(), size());
@@ -1526,6 +1715,9 @@ void MainWindow::applyScreenDpiChange(int newDpi, bool scheduleRegenerate)
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event);
+    // 本帧已在 DPI 链中按高度基准重新分配 chatInput 的 pane 高度：末尾不再回写
+    // 基准（此时 chatInput 尚未按新 pane 高度重新布局，旧高度会污染基准）
+    bool skipInputHeightBaseCapture = false;
     if (avoidRepeatSelfFun) {
         avoidRepeatSelfFun = false;
         return;
@@ -1581,37 +1773,59 @@ void MainWindow::resizeEvent(QResizeEvent *event)
                 return;
         }
     }
-    if (isDpiChanged) {
-        setMinimumSize(qRound(widgetSizeDict["MainWindow minimumSize"].value<QSize>().width()
-                              * curDpi / lastDpi),
-                       qRound(widgetSizeDict["MainWindow minimumSize"].value<QSize>().height()
-                              * curDpi / lastDpi));
-        widgetSizeDict["MainWindow minimumSize"] = minimumSize();
+    // 最小尺寸已在 applyScreenDpiChange 的 resize 之前按新 DPI 更新（见该处
+    // 注释）：这里再乘一次 curDpi/lastDpi 会把最小值缩成二级小值
+    // 本帧尺寸是否可以作为 DPI 基准（widgetSizeDict 与各部件 saveWidgetSize）：
+    // 系统在“显示缩放设置变更”的拓扑重算中会先按新 DPI 改窗口尺寸（此时 Qt
+    // 报告的 curDpi 还是旧值），该帧尺寸与 dpiScaledSize(curDpi) 对不上。若把
+    // 它当基准，下一次 DPI 换算的比例就与基准所属 DPI 不一致，所有部件按错误
+    // 比例缩小（实测 216→96 时基准被 192 DPI 的 1600x1064 按 96/216 算成
+    // 711x473）。过渡帧只做布局、不写基准，下次真正按 DPI 缩放时比例才正确。
+    // 用户拖拽拉伸、最大化、贴边 Snap 的尺寸另有语义，不参与该判定
+    bool captureBase = true;
+    if (!isSizeMoveDrag && !isWindowMaximized() && !isSnappedToScreenEdge()) {
+        const QSize expect = dpiScaledSize(curDpi);
+        if (expect.width() > 0
+                && (qAbs(width() - expect.width()) > 2 || qAbs(height() - expect.height()) > 2))
+            captureBase = false;
     }
     // qDebug() << "resizeEvent isScreenMax" << isScreenMax;
     if (isWindowMaximized())
         mainWidget->setGeometry(0, 0, width(), height());
     else {
-        if (isDpiChanged) {
+        // 贴边 Snap 的窗口几何由系统布局给出，与 baseWindowSize 的 DPI 换算
+        // 结果不成比例（实测副屏 Snap 右半屏为 1720x1392，而基准换算只有
+        // 800x533）。此时若仍按 widgetSizeDict["mainWidget"] 乘 curDpi/lastDpi，
+        // mainWidget 会被缩回基准尺寸，依赖其宽度的 chatFun/chatInput 一起变小
+        // （newChatButton 出现在预期位置左边）；直到点最大化走上面按 width()
+        // 铺满的分支才恢复。这里系统布局几何一律按当前窗口铺满，
+        // 且不写回 DPI 基准（半屏尺寸不代表用户设定的尺寸）
+        const bool systemGeometry = isSnappedToScreenEdge();
+        // 按比例缩放只用于窗口尺寸与基准对不上的过渡帧（captureBase=false）：此时
+        // 窗口尺寸不可信，只能按部件基准等比缩放。窗口尺寸已等于基准期望值时
+        // （captureBase=true，包括 DPI 链驱动的那一帧）以窗口为准铺满，否则
+        // mainWidget 会按“部件基准×比例”算出一个与窗口不符的尺寸（实测窗口
+        // 1800x1200 时 mainWidget 只有 1200x800，chatFun 随之变窄）并停留到
+        // 下一次交互才恢复
+        const bool scaleByDpi = isDpiChanged && !systemGeometry && !captureBase;
+        // mainWidget 的位置/尺寸缓存按 144 基准保存（见下方写回），这里统一
+        // 按目标 DPI 从基准换算，不再乘 curDpi/lastDpi
+        const int mx = DpiUtil::scalePx(widgetSizeDict["mainWidget x"].value<int>(), curDpi, 0);
+        const int my = DpiUtil::scalePx(widgetSizeDict["mainWidget y"].value<int>(), curDpi, 0);
+        if (scaleByDpi) {
+            const QSize mainBaseSize = widgetSizeDict["mainWidget"].value<QSize>();
             mainWidget->setGeometry(
-                    qRound(widgetSizeDict["mainWidget x"].value<int>() * curDpi / lastDpi),
-                    qRound(widgetSizeDict["mainWidget y"].value<int>() * curDpi / lastDpi),
-                    qRound(widgetSizeDict["mainWidget"].value<QSize>().width() * curDpi / lastDpi),
-                    qRound(widgetSizeDict["mainWidget"].value<QSize>().height() * curDpi
-                           / lastDpi));
-            widgetSizeDict["mainWidget"] = mainWidget->size();
-            widgetSizeDict["mainWidget x"] = mainWidget->x();
-            widgetSizeDict["mainWidget y"] = mainWidget->y();
+                    QRect(QPoint(mx, my), DpiUtil::scaleSize(mainBaseSize, curDpi)));
         } else {
             qDebug() << "mainWidget geometry" << mainWidget->geometry();
-            mainWidget->setGeometry(widgetSizeDict["mainWidget x"].value<int>(),
-                                    widgetSizeDict["mainWidget y"].value<int>(),
-                                    width() - 2 * widgetSizeDict["mainWidget x"].value<int>(),
-                                    height() - 2 * widgetSizeDict["mainWidget y"].value<int>());
-            qDebug() << "mainWidget x y" << widgetSizeDict["mainWidget x"].value<int>()
-                     << widgetSizeDict["mainWidget y"].value<int>();
+            mainWidget->setGeometry(mx, my, width() - 2 * mx, height() - 2 * my);
+            qDebug() << "mainWidget x y" << mx << my;
             qDebug() << "mainWidget geometry" << mainWidget->geometry();
-            widgetSizeDict["mainWidget"] = mainWidget->size();
+        }
+        if (!systemGeometry && captureBase) {
+            widgetSizeDict["mainWidget"] = DpiUtil::toBaseSize(mainWidget->size(), curDpi);
+            widgetSizeDict["mainWidget x"] = DpiUtil::toBasePx(mainWidget->x(), curDpi);
+            widgetSizeDict["mainWidget y"] = DpiUtil::toBasePx(mainWidget->y(), curDpi);
         }
     }
     if (isDpiChanged) {
@@ -1621,12 +1835,23 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         titleWidget->updateSize(curDpi, lastDpi);
         chatRecordsWidget->updateSize(curDpi, lastDpi);
         chatFun->updateSize(curDpi, lastDpi);
-        chatInput->updateSendButtonSize(curDpi, lastDpi);
+        chatInput->updateSize(curDpi, lastDpi);
+        // chatInput 的高度同样参与 DPI 缩放：splitter 在窗口 resize 时保持既有
+        // 比例分配（stretch 0 的 chatInputWidget 不会按 chatInput 的 sizeHint
+        // 自行换算），低 DPI 屏上输入框会保持 144 DPI 的像素高度、物理偏高。
+        // 这里标记在末尾（布局已按新窗口尺寸重排后）按 144 基准重设 pane 高度
+        if (baseChatInputHeight > 0)
+            skipInputHeightBaseCapture = true;
     }
     settingWidget->resize(mainWidget->width() / 3, mainWidget->height() - titleWidget->height());
     chatRecordsWidget->resize(mainWidget->width() / 3,
                               mainWidget->height() - titleWidget->height());
-    chatRecordsWidget->resetWidgetSize();
+    // 过渡帧（系统抢跑改了窗口尺寸、curDpi 还是旧值）只重排、不写基准：
+    // resetWidgetSize 会把当前尺寸存进 widgetSizeDict，作为下一次 DPI 换算的基准
+    if (captureBase)
+        chatRecordsWidget->resetWidgetSize();
+    else
+        chatRecordsWidget->setSize();
     if (settingWidgetIsOpen || chatRecordsWidgetIsOpen) {
         // 展开态内容区宽度统一使用 mainWidget->width() - mainWidget->width() / 3：
         // 侧栏宽度为 mainWidget->width() / 3，chatRecordsUiAnimationMove 的终态与
@@ -1635,10 +1860,17 @@ void MainWindow::resizeEvent(QResizeEvent *event)
         // 的右边缘错开 1px
         const int contentWidth = mainWidget->width() - mainWidget->width() / 3;
         chatFun->setFixedSize(contentWidth, chatFun->height());
-        chatFun->resetWidgetSize();
-        chatShow->resize(contentWidth - 30, chatShow->height());
+        if (captureBase)
+            chatFun->resetWidgetSize();
+        else
+            chatFun->setSize();
+        chatShow->resize(contentWidth - chatShowVLayout->contentsMargins().left()
+                                - chatShowVLayout->contentsMargins().right(),
+                        chatShow->height());
         chatShowWidget->resize(contentWidth, chatShowWidget->height());
-        chatInput->resize(contentWidth - 40, chatInput->height());
+        chatInput->resize(contentWidth - chatInputVLayout->contentsMargins().left()
+                                  - chatInputVLayout->contentsMargins().right(),
+                          chatInput->height());
         chatInput->resetWidgetSize();
         chatInputWidget->resize(contentWidth, chatInputWidget->height());
         splitter->resize(contentWidth, splitter->height());
@@ -1653,7 +1885,10 @@ void MainWindow::resizeEvent(QResizeEvent *event)
             chatRecordsWidget->move(-chatRecordsWidget->width(), titleWidget->height());
     } else {
         chatFun->setFixedSize(mainWidget->width(), chatFun->height());
-        chatFun->resetWidgetSize();
+        if (captureBase)
+            chatFun->resetWidgetSize();
+        else
+            chatFun->setSize();
         // qDebug() << "mainWindow size:" << size();
         chatInput->resetWidgetSize();
         settingWidget->move(-settingWidget->width(), titleWidget->height());
@@ -1661,12 +1896,13 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     }
     if (isDpiChanged)
         settingWidget->updateLayoutMarginsSpacing(curDpi, lastDpi);
-    settingWidget->resetWidgetSize();
-    titleWidget->saveWidgetSize();
-    emptyTextLabel->move((width() - emptyTextLabel->width()) / 2,
-                         titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
-    textCopyLabel->move((width() - textCopyLabel->width()) / 2,
-                        titleWidget->height() + chatFun->height() + chatShowWidget->height() + 10);
+    if (captureBase) {
+        settingWidget->resetWidgetSize();
+        titleWidget->saveWidgetSize();
+    } else {
+        settingWidget->setSize();
+    }
+    updateFloatingLabelPosition(curDpi);
     // 同 DPI 的横向拉伸（拖拽中未释放鼠标）不经过任何消息部件宽度刷新路径：
     // MessageWidget 的最大宽度只取决于窗口宽度，不刷新则气泡宽度停留在拖拽前的
     // 窗口宽度，直到释放鼠标后的完整重建才恢复。
@@ -1677,7 +1913,8 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     if (isDpiChanged) {
         isDpiChanged = false;
         const QSize dpiTarget = dpiScaledSize(curDpi);
-        if (dpiTarget != size()) {
+        // 贴边/最大化时窗口尺寸由系统布局决定，链尾不再按 DPI 基准覆盖
+        if (dpiTarget != size() && !isWindowMaximized() && !isSnappedToScreenEdge()) {
             avoidRepeatSelfFun = true;
             resize(dpiTarget.width(), dpiTarget.height());
         }
@@ -1690,10 +1927,99 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     // 注意：这里不再用当前尺寸回写 DPI 物理尺寸基准——系统在缩放设置变更的
     // 拓扑重算、窗口临时跨屏期间会主动改窗口尺寸（且尺寸与其报告的 DPI 可能
     // 不匹配），把它当作基准会让后续换算一路放大；基准只在用户拖拽开始/结束
-    // （WM_ENTERSIZEMOVE / WM_EXITSIZEMOVE）与构造时更新
-    widgetSizeDict["MainWindow"] = size();
+    // （WM_ENTERSIZEMOVE / WM_EXITSIZEMOVE）与构造时更新。缓存同样按 144 基准保存
+    widgetSizeDict["MainWindow"] = DpiUtil::toBaseSize(size(), curDpi);
     qDebug() << "resizeEvent MainWindow size:" << size();
+    // 跨屏/缩放回归诊断：一行汇总本帧的 DPI、窗口与关键子部件尺寸（探针脚本
+    // test/_textinput_dpi_check/*.ps1 从日志中提取该行比对 144/96 两档期望值）
+    qDebug().nospace().noquote() << "诊断 dpi " << qRound(curDpi) << " last " << qRound(lastDpi)
+                                 << " size " << size() << " capture " << captureBase
+                                 << " snapped " << isSnappedToScreenEdge() << " mainWidget "
+                                 << mainWidget->size() << " chatFun " << chatFun->size();
+    // chatInput 高度参与 DPI 缩放：本帧已按 144 基准重设 pane 高度；布局可能还
+    // 待在事件循环里激活（此时 splitter 高度仍是旧值、sizes 会被按比例重排），
+    // 再兜底一次（按基准绝对换算，重复执行结果不变）
+    if (skipInputHeightBaseCapture) {
+        applyChatInputHeightForDpi();
+        QTimer::singleShot(0, this, &MainWindow::applyChatInputHeightForDpi);
+    }
     // qDebug() << "resizeEvent lastNormalGeometry:" << lastNormalGeometry;
+}
+
+bool MainWindow::isSnappedToScreenEdge() const
+{
+    // Aero Snap（贴左/右/上/下边缘的半屏、四分之一屏）与贴边最大化：窗口矩形
+    // 紧贴当前屏工作区的某条边，尺寸由系统布局决定，DPI 缩放链不得再按比例
+    // resize 覆盖（否则半屏尺寸被换成基准尺寸）。容差 2px 吸收边框取整误差。
+    // 判定必须是“与边界的距离在容差内”，不能写成 g.left() <= work.left() + 容差：
+    // 窗口位于另一块屏（本机副屏在 x<0 一侧）而 Qt 报告的 screen() 在显示缩放
+    // 设置的拓扑重算中短暂滞后为副屏右侧的主屏时，该条件恒为真，被误判成贴边
+    // Snap——resizeEvent 因此跳过 DPI 基准写回，基准停留在上上个 DPI 的尺寸，
+    // 下一次换算按错误比例缩小（实测 216→96 时 mainWidget 1600x1064 被按
+    // 96/216 算成 711x473，chatFun 变为 711x36、设置面板 237x445、输入框高 201）。
+    // 同理也不允许“窗口大半在别的屏上”时按该屏边界判贴边
+    const QScreen *s = screen();
+    const QRect g = geometry();
+    if (!g.isValid())
+        return false;
+    // 归属屏：优先取 screen()，但它在本项目里并不可靠——跨屏拖动、缩放设置
+    // 变更的拓扑重算期间 Qt 报告的屏可能滞后（窗口已经落到新屏，screen() 仍是
+    // 旧屏），此时窗口与“该屏工作区”完全不相交。实测副屏拖到主屏左边缘 Snap
+    // 成功得到 1280x1528 后，DPI 链按旧屏判贴边失败，把半屏改回基准 1200x800。
+    // 因此两者不相交时退化为“与窗口重叠面积最大的屏”
+    QRect work;
+    QRect inter;
+    if (s) {
+        work = s->availableGeometry();
+        inter = work.isValid() ? g.intersected(work) : QRect();
+    }
+    if (!s || inter.isEmpty()) {
+        int bestArea = 0;
+        const QList<QScreen *> allScreens = QGuiApplication::screens();
+        for (const QScreen *c : allScreens) {
+            if (!c)
+                continue;
+            const QRect cw = c->availableGeometry();
+            const QRect ci = g.intersected(cw);
+            if (ci.isEmpty())
+                continue;
+            const int area = ci.width() * ci.height();
+            if (area > bestArea) {
+                bestArea = area;
+                work = cw;
+                inter = ci;
+            }
+        }
+        if (bestArea <= 0)
+            return false;
+    }
+    // 窗口横跨两屏时以重叠面积判归属：在两个方向上都不到该屏一半，忽略
+    if (inter.width() * 2 < g.width() && inter.height() * 2 < g.height())
+        return false;
+    constexpr int kTolerance = 2;
+    const bool edgeHit = qAbs(g.left() - work.left()) <= kTolerance
+            || qAbs(g.top() - work.top()) <= kTolerance
+            || qAbs(g.right() - work.right()) <= kTolerance
+            || qAbs(g.bottom() - work.bottom()) <= kTolerance;
+    if (edgeHit)
+        return true;
+    // 跨 DPI 屏拖到边缘 Snap 时，系统分两步：先给出 Snap 尺寸，位置稍后才到位。
+    // 该中间帧位置不贴边（实测副屏拖到主屏左边缘时得到 QRect(-666,680 1280x1528)，
+    // 而主屏工作区为 0,0 2560x1528），仅靠边界距离判不出来，DPI 链就会把半屏
+    // 尺寸改回基准尺寸、Snap 失效。这里补上尺寸判据：窗口尺寸等于某块屏工作区
+    // 的一半（左/右、上/下、四分之一）或整块工作区时，也属于系统布局结果。
+    // 代价是用户手动把窗口调到恰好半屏大小时同样不参与 DPI 缩放，影响极小
+    const QList<QScreen *> allScreens = QGuiApplication::screens();
+    for (const QScreen *c : allScreens) {
+        if (!c)
+            continue;
+        const QSize w = c->availableGeometry().size();
+        if (g.size() == w || g.size() == QSize(w.width() / 2, w.height())
+                || g.size() == QSize(w.width(), w.height() / 2)
+                || g.size() == QSize(w.width() / 2, w.height() / 2))
+            return true;
+    }
+    return false;
 }
 
 bool MainWindow::isWindowMaximized() const
@@ -1741,11 +2067,15 @@ void MainWindow::chatRecordsUiAnimationMove(const QVariant &value)
     chatFun->setFixedSize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
                           chatFun->height());
     chatFun->setSize();
-    chatShow->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width() - 30,
+    chatShow->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width()
+                             - chatShowVLayout->contentsMargins().left()
+                             - chatShowVLayout->contentsMargins().right(),
                      chatShow->height());
     chatShowWidget->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
                            chatShowWidget->height());
-    chatInput->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width() - 40,
+    chatInput->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width()
+                              - chatInputVLayout->contentsMargins().left()
+                              - chatInputVLayout->contentsMargins().right(),
                       chatInput->height());
     chatInput->resetWidgetSize();
     chatInputWidget->resize(mainWidget->width() - rect.x() - chatRecordsWidget->width(),
