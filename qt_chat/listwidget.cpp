@@ -3,7 +3,8 @@
 ListWidget::ListWidget(QWidget *parent)
     : QListWidget(parent), scrollAutoChange(true), scrollChangeUplimit(200), pendingSendItem(false)
 {
-    resize(1170, 480);
+    // 144 DPI 基准下的默认高度：chatShowWidget 460 - 上下布局边距 20（4 + 16）
+    resize(1170, 440);
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);

@@ -40,7 +40,9 @@ void CodeShow::setupUI()
     // 返回空串表示字体不可用，跳过设置使用默认字体
     const QString &fontFamily = appContext->fontFamily();
     if (!fontFamily.isEmpty()) {
-        QFont font(fontFamily, appContext->windowFontPointSize());
+        // 像素字号（与 CodeEditor 及全局一致）：跨屏缩放由消息重建链统一处理
+        QFont font(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
         label->setFont(font);
     }
     QPalette pal = label->palette();
@@ -164,6 +166,42 @@ void CodeShow::setText(const QString &codeText, const QString &lexerName)
 bool CodeShow::hasSelectedText() const
 {
     return codeEdit->textCursor().hasSelection();
+}
+
+void CodeShow::updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth)
+{
+    if (lastDpi <= 0 || curDpi <= 0 || newMaxWidth <= 0)
+        return;
+    // 语言标签字体：像素字号不随屏 DPI 自动变化，必须按新像素字号显式重设
+    const QString &fontFamily = appContext->fontFamily();
+    if (!fontFamily.isEmpty()) {
+        QFont font(fontFamily);
+        font.setPixelSize(appContext->windowFontPixelSize());
+        label->setFont(font);
+    }
+    label->adjustSize();
+    // 顶栏高度与按钮尺寸按标签高度重算（与 setupUI 的换算一致：setupUI 用固定
+    // 24 作为顶栏最小高度，不做 DPI 缩放，这里保持一致，保证拖动中与释放后
+    // 重建的结果相同）
+    const int topHeight = qMax(label->height(), 24);
+    topWidget->setFixedHeight(topHeight);
+    topSubLeftWidget->setFixedHeight(topHeight);
+    topSubRightWidget->setFixedHeight(topHeight);
+    const int buttonSize = qMax(topHeight - 10, 1);
+    toggleThemeButton->setFixedSize(buttonSize, buttonSize);
+    toggleThemeButton->setIconSize(QSize(buttonSize, buttonSize));
+    wordWrapButton->setFixedSize(buttonSize, buttonSize);
+    wordWrapButton->setIconSize(QSize(buttonSize, buttonSize));
+    codeCopyButton->setFixedSize(buttonSize, buttonSize);
+    codeCopyButton->setIconSize(QSize(buttonSize, buttonSize));
+    if (QHBoxLayout *leftLayout = qobject_cast<QHBoxLayout *>(topSubLeftWidget->layout()))
+        leftLayout->setContentsMargins(0, (topHeight - label->height()) / 2, 0,
+                                       (topHeight - label->height()) / 2);
+    // 宽度与代码区宽度按新最大宽度设置（代码区宽 = 本控件宽 - 2，与构造一致）
+    maxWidth = newMaxWidth;
+    codeEdit->setFixedWidth(qMax(maxWidth - 2, 1));
+    codeEdit->updateSize(curDpi, lastDpi);
+    setFixedSize(maxWidth, codeEdit->height() + topWidget->height() + 2);
 }
 
 QString CodeShow::getSelectedText() const

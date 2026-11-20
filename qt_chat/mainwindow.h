@@ -89,6 +89,40 @@ private:
     // 按窗口所在屏 DPI 换算的像素字号应用 QToolTip 提示字体（提示显示前
     // 按钮还会按自身所在屏再校正一次，避免初始化时沿用主屏 DPI 使字号偏大）
     void applyToolTipFont();
+    // 统一的屏幕 DPI 转换入口：窗口所在屏 DPI 变化时（跨屏拖动结束、系统缩放
+    // 设置改变、首次显示时被系统放到 DPI 不同的屏上）重算像素字号，并驱动
+    // resizeEvent 的 isDpiChanged 缩放链——窗口与全部部件按 DPI 比例缩放、
+    // 各部件 updateSize 重设几何与字体、消息部件（WebEngineView/CodeEditor）
+    // 以新字号重建，保证部件物理大小跨屏一致
+    void applyScreenDpiChange(int newDpi, bool scheduleRegenerate = true);
+    // 窗口所在屏变化（QWindow::screenChanged）：系统 DPI 设置变更时窗口在
+    // 拓扑重算中会临时跨屏再回到原屏，期间按临时屏 DPI 执行过缩放链，回到
+    // 原屏后没有可靠的 WM_DPICHANGED 时序，界面会停留在临时屏字号/尺寸上
+    // （整体偏大）。这里在屏变化后自动按窗口实际所在屏 DPI 校正（拖拽中由
+    // resizeEvent 拦截路径处理，释放时 WM_EXITSIZEMOVE 兜底）
+    void onScreenChanged(QScreen *newScreen);
+    // 显示拓扑变化（插拔/断电重连/RDP/改缩放）后重建缓存的屏列表并重连 DPI 信号
+    void refreshScreenList();
+    // DPI 稳定后校验（延迟一段时间再比较窗口实际所在屏 DPI 与 curDpi）：
+    // 系统缩放设置变更期间 Qt 报告的屏/DPI 会短暂错误，校正所依赖的屏信号
+    // 可能不再到达或来得过早，这里作为兜底保证界面最终自动回到正确字号/尺寸
+    void scheduleDpiSettleCheck();
+    // 按物理尺寸基准换算某 DPI 下的窗口目标尺寸（baseWindowSize × dpi /
+    // baseWindowDpi）：跨屏拖动与系统缩放变化统一用该基准，避免系统在 DPI
+    // 切换过渡期临时缩放窗口污染尺寸基准，导致来回拖动后窗口/部件比例失常
+    QSize dpiScaledSize(qreal dpi) const;
+    // 按 144 DPI 基准重设分栏的两个容器：chatShowWidget / chatInputWidget 的
+    // 最小高度与两个布局的内边距都参与 DPI 换算（固定像素在低 DPI 屏上物理
+    // 偏大、高 DPI 屏上偏小）
+    void applyLayoutDpiScale(qreal dpi);
+    // 按 144 DPI 基准重设 splitter 中 chatInputWidget 的高度：QSplitter 在窗口
+    // resize 时保持既有比例/子项尺寸分配，不会按 sizeHint 随屏 DPI 换算，
+    // 不重设则低 DPI 屏上输入框保持 144 DPI 的像素高度、物理偏高
+    void applyChatInputHeightForDpi();
+    // 按 144 DPI 基准重设两个浮动提示标签（emptyTextLabel / textCopyLabel）的
+    // 位置：纵向取标题栏 + 功能栏 + 聊天显示区高度（均已由各自的 DPI 缩放链
+    // 换算）+ 基准间距（同样按 dpi 换算），横向在窗口内居中
+    void updateFloatingLabelPosition(qreal dpi);
 #ifdef Q_OS_WIN
     // 取当前原生窗口句柄：仅当平台窗口已创建完成时返回有效句柄，否则返回
     // nullptr；不做任何创建动作（对比 winId() 会触发窗口创建——在窗口创建
@@ -106,6 +140,9 @@ private:
     // 诊断：鼠标在拉伸边缘/非拉伸区之间切换时打印一次当前命中区域与窗口样式
     void logHitTestRegion(const char *region);
     void isItemShowFull(QWidget *widget);
+    // 窗口是否贴住当前屏工作区边缘（Aero Snap 半屏/四分之一屏、贴边最大化）：
+    // 此时窗口几何由系统布局决定，DPI 缩放链不得按比例 resize 覆盖
+    bool isSnappedToScreenEdge() const;
     bool isWindowMaximized() const;
     // void regionDivision();
     // void UiStretch();
@@ -149,6 +186,15 @@ private:
     void updateItemLayout(QWidget *itemWidget, MessageWidget *messageWidget, QListWidgetItem *item);
     // 聊天记录部件展开/收起后只调整 item 布局边距，不重建 MessageWidget
     void messageWidgetItemRelayout();
+    // 跨 DPI 屏拖动未释放鼠标前的轻量刷新：按新 DPI 重设各 MessageWidget
+    // 内文本/代码块的字体与尺寸（不重建控件，避免阻塞拖拽模态循环），
+    // 使消息区域在未释放鼠标时就呈现正确比例
+    void messageWidgetUpdateSize(qreal curDpi, qreal lastDpi);
+    // 同 DPI 横向拉伸（拖拽中未释放鼠标）中的消息宽度轻量刷新调度：
+    // 拖拽期间 resizeEvent/WM_SIZE 触发非常频繁，按定时器节流后统一执行一次
+    // （只重设最大宽度与子控件尺寸/字号，不重建控件、不重载 WebEngine 页面）
+    void scheduleMessageWidthRefresh();
+    void refreshMessageWidthDuringDrag();
 
     // 用户消息 item 的右侧留白：用户消息 ImageLabel 右边缘与 chatShow 右边缘的距离，
     // 同时也是 AI 消息达到最大宽度时右边缘的对齐基准
@@ -224,12 +270,42 @@ private:
     // QRect lastNormalGeometry;
     int dragStartWidth;
     int dragStartHeight;
+    // DPI 缩放的物理尺寸基准（见 dpiScaledSize）：只在用户主动改变窗口尺寸时
+    // 更新；系统在 DPI 切换过渡期临时缩放窗口、DPI 缩放链内部的 resize 都
+    // 不更新，保证多次跨屏拖动 / 系统缩放设置变化后尺寸不漂移
+    QSize baseWindowSize;
+    qreal baseWindowDpi;
+    // chatInput 的高度基准（按 144 DPI 屏的像素高度，即“物理高度基准”）：
+    // splitter 在窗口 resize 时保持既有比例分配，低 DPI 屏上 chatInputWidget
+    // 不会按 sizeHint 自行缩小，需在 DPI 变化时据此重新分配 pane 高度；
+    // 用户拖动 splitter 改变高度时回写（折算回 144 DPI）
+    int baseChatInputHeight;
     bool isSizeMoveDrag;
     bool dragRegenerateDone;
     bool pendingRegenerateAfterResize;
+    // 拖拽中 WM_MOVING 检测到窗口中心进入 DPI 不同的屏（跨 DPI 屏拖动）：
+    // 系统随后会按 DPI 缩放窗口并触发 resizeEvent，由 resizeEvent 提前执行
+    // 完整 DPI 缩放链（见 resizeEvent 拦截），避免与释放时缩放链重复缩放
+    bool isDpiDragPending;
+    int pendingDragDpi;
+    // 本次拖拽已在 resizeEvent 拦截中执行过 DPI 缩放链：
+    // WM_EXITSIZEMOVE 的 DPI 分支据此跳过（curDpi 已更新）
+    bool dpiDragHandled;
+    // 本次拖拽中用户拖动窗口边缘拉伸过（收到 WM_SIZING）：此时最终尺寸是用户
+    // 设定的尺寸，跨屏释放后不得按 DPI 基准覆盖（仅移动的跨屏拖动才按基准校正）
+    bool userResizeDuringDrag;
+    // 当前 DPI 缩放链是否调度消息重建（applyScreenDpiChange 参数透传给
+    // resizeEvent 的 isDpiChanged 链尾）：拖动中提前执行的缩放链不立即重建，
+    // 由 WM_EXITSIZEMOVE 在释放后统一触发，避免阻塞拖拽模态循环
+    bool dpiChainScheduleRegenerate;
     bool isMinimizedState;
     int lastRegenerateWidth;
     int lastRegenerateHeight;
+    // 拖拽中消息宽度轻量刷新的节流定时器与上次刷新的最大宽度：
+    // 单次触发型定时器保证一次拖拽中的连续 resize 只做一次刷新；
+    // 最大宽度未变化（仅上下拉伸）时跳过，避免无谓的文本重新量测
+    QTimer messageWidthRefreshTimer;
+    int lastMessageWidthRefreshMaxWidth = -1;
     // bool isChangeRectFirst;
     QList<QScreen *> screens;
     // RegionEnum regionDir;

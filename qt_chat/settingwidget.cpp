@@ -1,7 +1,28 @@
 #include "settingwidget.h"
 #include "appcontext.h"
+#include "dpiutil.h"
+
+#include <QtGui/QFontMetrics>
 
 #include <stdexcept>
+
+// 布局日志用：布局的 margin 与 spacing 拼成一行
+static QString layoutInfo(const QLayout *layout)
+{
+    const QMargins margins = layout->contentsMargins();
+    return QString("margin=(%1,%2,%3,%4) spacing=%5")
+            .arg(margins.left())
+            .arg(margins.top())
+            .arg(margins.right())
+            .arg(margins.bottom())
+            .arg(layout->spacing());
+}
+
+// 布局日志用：控件宽高
+static QString sizeInfo(const QWidget *widget)
+{
+    return QString("%1x%2").arg(widget->width()).arg(widget->height());
+}
 
 SettingWidget::SettingWidget(AppContext *appContext, QWidget *parent)
     : QWidget(parent),
@@ -27,7 +48,8 @@ SettingWidget::SettingWidget(AppContext *appContext, QWidget *parent)
       modelSelectWidget(nullptr),
       maxTokensWidget(nullptr),
       topPWidget(nullptr),
-      temperatureWidget(nullptr)
+      temperatureWidget(nullptr),
+      appliedDpi(DpiUtil::kBaseDpi)
 {
     setMouseTracking(true);
     loadConfig();
@@ -119,15 +141,12 @@ void SettingWidget::setupUI()
     topPLabel->setText("Top P");
     temperatureLabel->setText("Temperature");
 
-    baseUrlLabel->adjustSize();
-    baseUrlLabel->setFixedWidth(baseUrlLabel->width() + 2);
-    apiKeyLabel->adjustSize();
-    apiKeyLabel->setFixedWidth(apiKeyLabel->width() + 2);
-    modelNameLabel->adjustSize();
-    modelNameLabel->setFixedWidth(modelNameLabel->width() + 2);
-    maxTokensLabel->adjustSize();
-    topPLabel->adjustSize();
-    temperatureLabel->adjustSize();
+    fitLabelSize(baseUrlLabel);
+    fitLabelSize(apiKeyLabel);
+    fitLabelSize(modelNameLabel);
+    fitLabelSize(maxTokensLabel);
+    fitLabelSize(topPLabel);
+    fitLabelSize(temperatureLabel);
 
     baseUrlEdit = new SettingEdit(this->appContext);
     apiKeyEdit = new SettingEdit(this->appContext);
@@ -322,10 +341,10 @@ void SettingWidget::createModelSelectWidget()
 
     baseUrlHLayout = new QHBoxLayout(baseUrlWidget);
     baseUrlHLayout->setSpacing(9);
-    baseUrlEdit->setFixedSize(baseUrlWidget->width() - baseUrlLabel->width() - 10,
-                              baseUrlEdit->height());
+    // 输入框宽度不再手工拼算（行宽 - 标签宽 - 间距）：交给布局按剩余空间分配，
+    // 多轮 DPI 缩放后即使各固定尺寸的取整误差互不抵消，右边缘也不会越出行
     baseUrlHLayout->addWidget(baseUrlLabel);
-    baseUrlHLayout->addWidget(baseUrlEdit);
+    baseUrlHLayout->addWidget(baseUrlEdit, 1);
     baseUrlHLayout->setContentsMargins(0, 4, 0, 4);
 
     apiKeyWidget = new QWidget();
@@ -338,10 +357,8 @@ void SettingWidget::createModelSelectWidget()
 
     apiKeyHLayout = new QHBoxLayout(apiKeyWidget);
     apiKeyHLayout->setSpacing(9);
-    apiKeyEdit->setFixedSize(apiKeyWidget->width() - apiKeyLabel->width() - 10,
-                             apiKeyEdit->height());
     apiKeyHLayout->addWidget(apiKeyLabel);
-    apiKeyHLayout->addWidget(apiKeyEdit);
+    apiKeyHLayout->addWidget(apiKeyEdit, 1);
     apiKeyHLayout->setContentsMargins(0, 4, 0, 4);
 
     modelNameWidget = new QWidget();
@@ -354,10 +371,8 @@ void SettingWidget::createModelSelectWidget()
 
     modelNameHLayout = new QHBoxLayout(modelNameWidget);
     modelNameHLayout->setSpacing(9);
-    modelNameEdit->setFixedSize(modelNameWidget->width() - modelNameLabel->width() - 10,
-                                modelNameEdit->height());
     modelNameHLayout->addWidget(modelNameLabel);
-    modelNameHLayout->addWidget(modelNameEdit);
+    modelNameHLayout->addWidget(modelNameEdit, 1);
     modelNameHLayout->setContentsMargins(0, 4, 0, 4);
 
     modelSelectVLayout = new QVBoxLayout(modelSelectWidget);
@@ -502,6 +517,40 @@ void SettingWidget::createTemperatureWidget()
     temperatureVLayout->setSpacing(0);
 }
 
+// 标签宽高按当前字体度量重新拟合：字体像素字号与字形 advance 都是整数，
+// 文本总宽与字号并非严格线性。此前宽度取 adjustSize() 结果 + 2 后按 DPI
+// 比例逐级缩放，多数缩放比例下小于实际文本宽度，文本右边缘被部件边缘裁掉
+void SettingWidget::fitLabelSize(Label *label)
+{
+    if (!label)
+        return;
+
+    // 先解除上一次的定尺寸约束，sizeHint 才能按当前字体重新度量
+    label->setMinimumSize(0, 0);
+    label->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    const QSize hint = label->sizeHint();
+    const QFontMetrics fm(label->font());
+    // 边框与 QLabel margin 占据绘制区两侧，文本可用宽度 = 总宽 - extra
+    const int extra = 2 * label->margin() + 2 * label->frameWidth();
+    // 宽度取 sizeHint（含样式 padding）与文本 advance 的较大值，并留 2px 余量
+    label->setFixedSize(qMax(hint.width(), fm.horizontalAdvance(label->text()) + extra) + 2,
+                        qMax(hint.height(), fm.height() + extra));
+}
+
+// 数值行布局：标签宽度随字体度量变化后不能再固定用“行宽 / 2”做间距，
+// 否则标签变宽时间距被压成负值，标签与数值框重叠
+void SettingWidget::layoutValueRow(QHBoxLayout *layout, QWidget *subWidget, Label *label,
+                                   QWidget *box)
+{
+    if (!layout || !subWidget || !label || !box)
+        return;
+
+    const int spacing = qMax(0, subWidget->width() / 2 - label->width());
+    layout->setSpacing(spacing);
+    // 数值框宽度取标签与间距占完后的剩余空间（标签未变宽时仍为行宽一半）
+    box->setFixedWidth(qMax(1, subWidget->width() - label->width() - spacing));
+}
+
 void SettingWidget::setSize()
 {
     modelSelectWidget->setFixedSize(
@@ -551,21 +600,9 @@ void SettingWidget::setSize()
                     - 2 * modelSelectVLayout->spacing())
                    / qreal(3)));
 
-    baseUrlLabel->setFixedSize(baseUrlLabel->size());
-    apiKeyLabel->setFixedSize(apiKeyLabel->size());
-    modelNameLabel->setFixedSize(modelNameLabel->size());
-    baseUrlEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
-                                      - baseUrlHLayout->contentsMargins().right()
-                                      - baseUrlHLayout->spacing() - baseUrlLabel->width() - 1,
-                              baseUrlEdit->height());
-    apiKeyEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
-                                     - baseUrlHLayout->contentsMargins().right()
-                                     - baseUrlHLayout->spacing() - apiKeyLabel->width() - 1,
-                             apiKeyEdit->height());
-    modelNameEdit->setFixedSize(baseUrlWidget->width() - baseUrlHLayout->contentsMargins().left()
-                                        - baseUrlHLayout->contentsMargins().right()
-                                        - baseUrlHLayout->spacing() - modelNameLabel->width() - 1,
-                                modelNameEdit->height());
+    fitLabelSize(baseUrlLabel);
+    fitLabelSize(apiKeyLabel);
+    fitLabelSize(modelNameLabel);
 
     maxTokensTopSubWidget->setFixedSize(
             maxTokensWidget->width() - maxTokensVLayout->contentsMargins().left()
@@ -604,17 +641,13 @@ void SettingWidget::setSize()
                     - temperatureVLayout->contentsMargins().bottom())
                    / qreal(2)));
 
-    maxTokensLabel->setFixedSize(maxTokensLabel->size());
-    topPLabel->setFixedSize(topPLabel->size());
-    temperatureLabel->setFixedSize(temperatureLabel->size());
-    maxTokensTopSubHLayout->setSpacing(maxTokensTopSubWidget->width() / 2
-                                       - maxTokensLabel->width());
-    topPTopSubHLayout->setSpacing(topPTopSubWidget->width() / 2 - topPLabel->width());
-    temperatureTopSubHLayout->setSpacing(temperatureTopSubWidget->width() / 2
-                                         - temperatureLabel->width());
-    maxTokensBox->setFixedSize(maxTokensTopSubWidget->width() / 2, maxTokensBox->height());
-    topPBox->setFixedSize(topPTopSubWidget->width() / 2, topPBox->height());
-    temperatureBox->setFixedSize(temperatureTopSubWidget->width() / 2, temperatureBox->height());
+    fitLabelSize(maxTokensLabel);
+    fitLabelSize(topPLabel);
+    fitLabelSize(temperatureLabel);
+    layoutValueRow(maxTokensTopSubHLayout, maxTokensTopSubWidget, maxTokensLabel, maxTokensBox);
+    layoutValueRow(topPTopSubHLayout, topPTopSubWidget, topPLabel, topPBox);
+    layoutValueRow(temperatureTopSubHLayout, temperatureTopSubWidget, temperatureLabel,
+                   temperatureBox);
     qDebug() << "resizeEvent maxTokensBox size" << maxTokensBox->size()
              << maxTokensTopSubWidget->height() << maxTokensTopSubHLayout->contentsMargins().top()
              << maxTokensTopSubHLayout->contentsMargins().bottom();
@@ -640,74 +673,129 @@ void SettingWidget::setSize()
              << temperatureBottomSubWidget->height()
              << temperatureBottomSubHLayout->contentsMargins().top()
              << temperatureBottomSubHLayout->contentsMargins().bottom();
+
+    // 布局快照：确认各部件尺寸与布局距离是否按 DPI 比例缩放（跨 DPI 时重点看这段）
+    qDebug().nospace().noquote() << "SettingWidget::setSize 面板=" << sizeInfo(this)
+                                 << " settingVLayout " << layoutInfo(settingVLayout);
+    qDebug().nospace().noquote() << "  modelSelectWidget=" << sizeInfo(modelSelectWidget)
+                                 << " modelSelectVLayout " << layoutInfo(modelSelectVLayout);
+    qDebug().nospace().noquote() << "    baseUrlWidget=" << sizeInfo(baseUrlWidget)
+                                 << " baseUrlHLayout " << layoutInfo(baseUrlHLayout)
+                                 << " label=" << sizeInfo(baseUrlLabel)
+                                 << " edit=" << sizeInfo(baseUrlEdit);
+    qDebug().nospace().noquote() << "    apiKeyWidget=" << sizeInfo(apiKeyWidget)
+                                 << " apiKeyHLayout " << layoutInfo(apiKeyHLayout)
+                                 << " label=" << sizeInfo(apiKeyLabel)
+                                 << " edit=" << sizeInfo(apiKeyEdit);
+    qDebug().nospace().noquote() << "    modelNameWidget=" << sizeInfo(modelNameWidget)
+                                 << " modelNameHLayout " << layoutInfo(modelNameHLayout)
+                                 << " label=" << sizeInfo(modelNameLabel)
+                                 << " edit=" << sizeInfo(modelNameEdit);
+    qDebug().nospace().noquote() << "  maxTokensWidget=" << sizeInfo(maxTokensWidget)
+                                 << " maxTokensVLayout " << layoutInfo(maxTokensVLayout);
+    qDebug().nospace().noquote() << "    上子行=" << sizeInfo(maxTokensTopSubWidget)
+                                 << " " << layoutInfo(maxTokensTopSubHLayout)
+                                 << " label=" << sizeInfo(maxTokensLabel)
+                                 << " box=" << sizeInfo(maxTokensBox);
+    qDebug().nospace().noquote() << "    下子行=" << sizeInfo(maxTokensBottomSubWidget)
+                                 << " " << layoutInfo(maxTokensBottomSubHLayout)
+                                 << " slider=" << sizeInfo(maxTokensSlider);
+    qDebug().nospace().noquote() << "  topPWidget=" << sizeInfo(topPWidget) << " topPVLayout "
+                                 << layoutInfo(topPVLayout);
+    qDebug().nospace().noquote() << "    上子行=" << sizeInfo(topPTopSubWidget) << " "
+                                 << layoutInfo(topPTopSubHLayout)
+                                 << " label=" << sizeInfo(topPLabel)
+                                 << " box=" << sizeInfo(topPBox);
+    qDebug().nospace().noquote() << "    下子行=" << sizeInfo(topPBottomSubWidget) << " "
+                                 << layoutInfo(topPBottomSubHLayout)
+                                 << " slider=" << sizeInfo(topPSlider);
+    qDebug().nospace().noquote() << "  temperatureWidget=" << sizeInfo(temperatureWidget)
+                                 << " temperatureVLayout " << layoutInfo(temperatureVLayout);
+    qDebug().nospace().noquote() << "    上子行=" << sizeInfo(temperatureTopSubWidget) << " "
+                                 << layoutInfo(temperatureTopSubHLayout)
+                                 << " label=" << sizeInfo(temperatureLabel)
+                                 << " box=" << sizeInfo(temperatureBox);
+    qDebug().nospace().noquote() << "    下子行=" << sizeInfo(temperatureBottomSubWidget) << " "
+                                 << layoutInfo(temperatureBottomSubHLayout)
+                                 << " slider=" << sizeInfo(temperatureSlider);
 }
 
 void SettingWidget::saveWidgetSize()
 {
-    widgetSizeDict["baseUrlWidget"] = baseUrlWidget->size();
-    widgetSizeDict["baseUrlLabel"] = baseUrlLabel->size();
-    widgetSizeDict["baseUrlEdit"] = baseUrlEdit->size();
+    // 缓存一律以 144 DPI 基准保存：构造成员尺寸即基准值，跨屏 updateSize 后
+    // 按当前已应用的 DPI 折算回基准，来回跨屏不会累积取整误差
+    auto baseSize = [this](const QSize &s) { return DpiUtil::toBaseSize(s, appliedDpi); };
+    auto baseMargins = [this](const QMargins &m) {
+        return DpiUtil::toBaseMargins(m, appliedDpi);
+    };
+    auto baseSpacing = [this](int v) { return DpiUtil::toBasePx(v, appliedDpi); };
+
+    widgetSizeDict["baseUrlWidget"] = baseSize(baseUrlWidget->size());
+    widgetSizeDict["baseUrlLabel"] = baseSize(baseUrlLabel->size());
+    widgetSizeDict["baseUrlEdit"] = baseSize(baseUrlEdit->size());
     widgetSizeDict["baseUrlHLayout contentsMargins"] =
-            QVariant::fromValue(baseUrlHLayout->contentsMargins());
-    widgetSizeDict["baseUrlHLayout spacing"] = baseUrlHLayout->spacing();
-    widgetSizeDict["apiKeyWidget"] = apiKeyWidget->size();
-    widgetSizeDict["apiKeyLabel"] = apiKeyLabel->size();
-    widgetSizeDict["apiKeyEdit"] = apiKeyEdit->size();
+            QVariant::fromValue(baseMargins(baseUrlHLayout->contentsMargins()));
+    widgetSizeDict["baseUrlHLayout spacing"] = baseSpacing(baseUrlHLayout->spacing());
+    widgetSizeDict["apiKeyWidget"] = baseSize(apiKeyWidget->size());
+    widgetSizeDict["apiKeyLabel"] = baseSize(apiKeyLabel->size());
+    widgetSizeDict["apiKeyEdit"] = baseSize(apiKeyEdit->size());
     widgetSizeDict["apiKeyHLayout contentsMargins"] =
-            QVariant::fromValue(apiKeyHLayout->contentsMargins());
-    widgetSizeDict["apiKeyHLayout spacing"] = apiKeyHLayout->spacing();
-    widgetSizeDict["modelNameWidget"] = modelNameWidget->size();
-    widgetSizeDict["modelNameLabel"] = modelNameLabel->size();
-    widgetSizeDict["modelNameEdit"] = modelNameEdit->size();
+            QVariant::fromValue(baseMargins(apiKeyHLayout->contentsMargins()));
+    widgetSizeDict["apiKeyHLayout spacing"] = baseSpacing(apiKeyHLayout->spacing());
+    widgetSizeDict["modelNameWidget"] = baseSize(modelNameWidget->size());
+    widgetSizeDict["modelNameLabel"] = baseSize(modelNameLabel->size());
+    widgetSizeDict["modelNameEdit"] = baseSize(modelNameEdit->size());
     widgetSizeDict["modelNameHLayout contentsMargins"] =
-            QVariant::fromValue(modelNameHLayout->contentsMargins());
-    widgetSizeDict["modelNameHLayout spacing"] = modelNameHLayout->spacing();
-    widgetSizeDict["modelSelectWidget"] = modelSelectWidget->size();
+            QVariant::fromValue(baseMargins(modelNameHLayout->contentsMargins()));
+    widgetSizeDict["modelNameHLayout spacing"] = baseSpacing(modelNameHLayout->spacing());
+    widgetSizeDict["modelSelectWidget"] = baseSize(modelSelectWidget->size());
     widgetSizeDict["modelSelectVLayout contentsMargins"] =
-            QVariant::fromValue(modelSelectVLayout->contentsMargins());
-    widgetSizeDict["modelSelectVLayout spacing"] = modelSelectVLayout->spacing();
-    widgetSizeDict["maxTokensWidget"] = maxTokensWidget->size();
+            QVariant::fromValue(baseMargins(modelSelectVLayout->contentsMargins()));
+    widgetSizeDict["modelSelectVLayout spacing"] = baseSpacing(modelSelectVLayout->spacing());
+    widgetSizeDict["maxTokensWidget"] = baseSize(maxTokensWidget->size());
     widgetSizeDict["maxTokensVLayout contentsMargins"] =
-            QVariant::fromValue(maxTokensVLayout->contentsMargins());
-    widgetSizeDict["maxTokensTopSubWidget"] = maxTokensTopSubWidget->size();
+            QVariant::fromValue(baseMargins(maxTokensVLayout->contentsMargins()));
+    widgetSizeDict["maxTokensTopSubWidget"] = baseSize(maxTokensTopSubWidget->size());
     widgetSizeDict["maxTokensTopSubHLayout contentsMargins"] =
-            QVariant::fromValue(maxTokensTopSubHLayout->contentsMargins());
-    widgetSizeDict["maxTokensTopSubHLayout spacing"] = maxTokensTopSubHLayout->spacing();
-    widgetSizeDict["maxTokensLabel"] = maxTokensLabel->size();
-    widgetSizeDict["maxTokensBox"] = maxTokensBox->size();
-    widgetSizeDict["maxTokensBottomSubWidget"] = maxTokensBottomSubWidget->size();
+            QVariant::fromValue(baseMargins(maxTokensTopSubHLayout->contentsMargins()));
+    widgetSizeDict["maxTokensTopSubHLayout spacing"] =
+            baseSpacing(maxTokensTopSubHLayout->spacing());
+    widgetSizeDict["maxTokensLabel"] = baseSize(maxTokensLabel->size());
+    widgetSizeDict["maxTokensBox"] = baseSize(maxTokensBox->size());
+    widgetSizeDict["maxTokensBottomSubWidget"] = baseSize(maxTokensBottomSubWidget->size());
     widgetSizeDict["maxTokensBottomSubHLayout contentsMargins"] =
-            QVariant::fromValue(maxTokensBottomSubHLayout->contentsMargins());
-    widgetSizeDict["maxTokensSlider"] = maxTokensSlider->size();
-    widgetSizeDict["topPWidget"] = topPWidget->size();
+            QVariant::fromValue(baseMargins(maxTokensBottomSubHLayout->contentsMargins()));
+    widgetSizeDict["maxTokensSlider"] = baseSize(maxTokensSlider->size());
+    widgetSizeDict["topPWidget"] = baseSize(topPWidget->size());
     widgetSizeDict["topPVLayout contentsMargins"] =
-            QVariant::fromValue(topPVLayout->contentsMargins());
-    widgetSizeDict["topPTopSubWidget"] = topPTopSubWidget->size();
+            QVariant::fromValue(baseMargins(topPVLayout->contentsMargins()));
+    widgetSizeDict["topPTopSubWidget"] = baseSize(topPTopSubWidget->size());
     widgetSizeDict["topPTopSubHLayout contentsMargins"] =
-            QVariant::fromValue(topPTopSubHLayout->contentsMargins());
-    widgetSizeDict["topPTopSubHLayout spacing"] = topPTopSubHLayout->spacing();
-    widgetSizeDict["topPLabel"] = topPLabel->size();
-    widgetSizeDict["topPBox"] = topPBox->size();
-    widgetSizeDict["topPBottomSubWidget"] = topPBottomSubWidget->size();
+            QVariant::fromValue(baseMargins(topPTopSubHLayout->contentsMargins()));
+    widgetSizeDict["topPTopSubHLayout spacing"] = baseSpacing(topPTopSubHLayout->spacing());
+    widgetSizeDict["topPLabel"] = baseSize(topPLabel->size());
+    widgetSizeDict["topPBox"] = baseSize(topPBox->size());
+    widgetSizeDict["topPBottomSubWidget"] = baseSize(topPBottomSubWidget->size());
     widgetSizeDict["topPBottomSubHLayout contentsMargins"] =
-            QVariant::fromValue(topPBottomSubHLayout->contentsMargins());
-    widgetSizeDict["topPSlider"] = topPSlider->size();
-    widgetSizeDict["temperatureWidget"] = temperatureWidget->size();
+            QVariant::fromValue(baseMargins(topPBottomSubHLayout->contentsMargins()));
+    widgetSizeDict["topPSlider"] = baseSize(topPSlider->size());
+    widgetSizeDict["temperatureWidget"] = baseSize(temperatureWidget->size());
     widgetSizeDict["temperatureVLayout contentsMargins"] =
-            QVariant::fromValue(temperatureVLayout->contentsMargins());
-    widgetSizeDict["temperatureTopSubWidget"] = temperatureTopSubWidget->size();
+            QVariant::fromValue(baseMargins(temperatureVLayout->contentsMargins()));
+    widgetSizeDict["temperatureTopSubWidget"] = baseSize(temperatureTopSubWidget->size());
     widgetSizeDict["temperatureTopSubHLayout contentsMargins"] =
-            QVariant::fromValue(temperatureTopSubHLayout->contentsMargins());
-    widgetSizeDict["temperatureTopSubHLayout spacing"] = temperatureTopSubHLayout->spacing();
-    widgetSizeDict["temperatureLabel"] = temperatureLabel->size();
-    widgetSizeDict["temperatureBox"] = temperatureBox->size();
-    widgetSizeDict["temperatureBottomSubWidget"] = temperatureBottomSubWidget->size();
+            QVariant::fromValue(baseMargins(temperatureTopSubHLayout->contentsMargins()));
+    widgetSizeDict["temperatureTopSubHLayout spacing"] =
+            baseSpacing(temperatureTopSubHLayout->spacing());
+    widgetSizeDict["temperatureLabel"] = baseSize(temperatureLabel->size());
+    widgetSizeDict["temperatureBox"] = baseSize(temperatureBox->size());
+    widgetSizeDict["temperatureBottomSubWidget"] = baseSize(temperatureBottomSubWidget->size());
     widgetSizeDict["temperatureBottomSubHLayout contentsMargins"] =
-            QVariant::fromValue(temperatureBottomSubHLayout->contentsMargins());
-    widgetSizeDict["temperatureSlider"] = temperatureSlider->size();
+            QVariant::fromValue(baseMargins(temperatureBottomSubHLayout->contentsMargins()));
+    widgetSizeDict["temperatureSlider"] = baseSize(temperatureSlider->size());
     widgetSizeDict["settingVLayout contentsMargins"] =
-            QVariant::fromValue(settingVLayout->contentsMargins());
-    widgetSizeDict["settingVLayout spacing"] = settingVLayout->spacing();
+            QVariant::fromValue(baseMargins(settingVLayout->contentsMargins()));
+    widgetSizeDict["settingVLayout spacing"] = baseSpacing(settingVLayout->spacing());
 }
 
 void SettingWidget::resetWidgetSize()
@@ -718,24 +806,36 @@ void SettingWidget::resetWidgetSize()
 
 void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
 {
-    if (lastDpi == 0)
-        return;
-    qreal ratio = qreal(curDpi / lastDpi);
+    // 缓存值均为 144 DPI 基准：按目标 DPI 绝对换算（不再用 curDpi/lastDpi 叠乘，
+    // 避免取整误差随跨屏次数累积）
+    Q_UNUSED(lastDpi);
+    if (curDpi <= 0)
+        curDpi = DpiUtil::kBaseDpi;
 
-    auto scale = [=](const QSize &s) -> QSize {
-        return QSize(qRound(s.width() * ratio), qRound(s.height() * ratio));
-    };
+    auto scale = [=](const QSize &s) -> QSize { return DpiUtil::scaleSize(s, curDpi); };
     auto scaleMargins = [=](const QMargins &m) -> QMargins {
-        return QMargins(qRound(m.left() * ratio), qRound(m.top() * ratio),
-                        qRound(m.right() * ratio), qRound(m.bottom() * ratio));
+        return DpiUtil::scaleMargins(m, curDpi);
+    };
+    auto scalePx = [=](int v, int minimum = 0) -> int {
+        return DpiUtil::scalePx(v, curDpi, minimum);
     };
 
-    baseUrlLabel->setFixedSize(scale(widgetSizeDict["baseUrlLabel"].value<QSize>()));
-    apiKeyLabel->setFixedSize(scale(widgetSizeDict["apiKeyLabel"].value<QSize>()));
-    modelNameLabel->setFixedSize(scale(widgetSizeDict["modelNameLabel"].value<QSize>()));
-    maxTokensLabel->setFixedSize(scale(widgetSizeDict["maxTokensLabel"].value<QSize>()));
-    topPLabel->setFixedSize(scale(widgetSizeDict["topPLabel"].value<QSize>()));
-    temperatureLabel->setFixedSize(scale(widgetSizeDict["temperatureLabel"].value<QSize>()));
+    // 标签宽高不再按 DPI 比例推导：像素字号经字形 hinting 后文本宽度与
+    // 字号并非严格线性，比例推导出的固定宽度在多数缩放比例下小于实际文本
+    // 宽度，文本右边缘被部件边缘裁掉（如 "Model" 只显示 "Mode"）。
+    // 这里只重设字体，随后按新字体的实际度量重新拟合尺寸
+    baseUrlLabel->updateFontSize();
+    apiKeyLabel->updateFontSize();
+    modelNameLabel->updateFontSize();
+    maxTokensLabel->updateFontSize();
+    topPLabel->updateFontSize();
+    temperatureLabel->updateFontSize();
+    fitLabelSize(baseUrlLabel);
+    fitLabelSize(apiKeyLabel);
+    fitLabelSize(modelNameLabel);
+    fitLabelSize(maxTokensLabel);
+    fitLabelSize(topPLabel);
+    fitLabelSize(temperatureLabel);
     qDebug() << "baseUrlLabel" << baseUrlLabel->size();
     qDebug() << "apiKeyLabel" << apiKeyLabel->size();
     qDebug() << "modelNameLabel" << modelNameLabel->size();
@@ -743,9 +843,14 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
     qDebug() << "topPLabel" << topPLabel->size();
     qDebug() << "temperatureLabel" << temperatureLabel->size();
 
-    baseUrlEdit->setSize(scale(widgetSizeDict["baseUrlEdit"].value<QSize>()));
-    apiKeyEdit->setSize(scale(widgetSizeDict["apiKeyEdit"].value<QSize>()));
-    modelNameEdit->setSize(scale(widgetSizeDict["modelNameEdit"].value<QSize>()));
+    // 输入框只缩放高度：宽度由行内布局按剩余空间分配（见 SettingEdit::setHeight）
+    baseUrlEdit->setHeight(scalePx(widgetSizeDict["baseUrlEdit"].value<QSize>().height()));
+    apiKeyEdit->setHeight(scalePx(widgetSizeDict["apiKeyEdit"].value<QSize>().height()));
+    modelNameEdit->setHeight(scalePx(widgetSizeDict["modelNameEdit"].value<QSize>().height()));
+    // 输入框样式表内含像素字号 font-size，按新像素字号重应用
+    baseUrlEdit->updateFontSize();
+    apiKeyEdit->updateFontSize();
+    modelNameEdit->updateFontSize();
 
     baseUrlHLayout->setContentsMargins(
             scaleMargins(widgetSizeDict["baseUrlHLayout contentsMargins"].value<QMargins>()));
@@ -753,31 +858,22 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
             scaleMargins(widgetSizeDict["apiKeyHLayout contentsMargins"].value<QMargins>()));
     modelNameHLayout->setContentsMargins(
             scaleMargins(widgetSizeDict["modelNameHLayout contentsMargins"].value<QMargins>()));
-    baseUrlHLayout->setSpacing(
-            qRound(widgetSizeDict["baseUrlHLayout spacing"].value<int>() * ratio));
-    apiKeyHLayout->setSpacing(qRound(widgetSizeDict["apiKeyHLayout spacing"].value<int>() * ratio));
+    baseUrlHLayout->setSpacing(scalePx(widgetSizeDict["baseUrlHLayout spacing"].value<int>(), 1));
+    apiKeyHLayout->setSpacing(scalePx(widgetSizeDict["apiKeyHLayout spacing"].value<int>(), 1));
     modelNameHLayout->setSpacing(
-            qRound(widgetSizeDict["modelNameHLayout spacing"].value<int>() * ratio));
+            scalePx(widgetSizeDict["modelNameHLayout spacing"].value<int>(), 1));
 
+    // 宽度不再按“行宽 - 标签宽 - 间距”反推后修正间距：那个修正会把算出
+    // 的（可能是负的）间距写回 widgetSizeDict，下一次缩放继续沿用，导致
+    // 标签与输入框重叠或输入框越出行右边缘。行宽与输入框宽度现在由布局
+    // 自行分配，这里只按比例缩放行自身的尺寸
     baseUrlWidget->setFixedSize(scale(widgetSizeDict["baseUrlWidget"].value<QSize>()));
-    if (baseUrlWidget->width()
-        < baseUrlLabel->width() + baseUrlEdit->width() + baseUrlHLayout->spacing())
-        baseUrlHLayout->setSpacing(baseUrlWidget->width() - baseUrlLabel->width()
-                                   - baseUrlEdit->width() - 1);
     apiKeyWidget->setFixedSize(scale(widgetSizeDict["apiKeyWidget"].value<QSize>()));
-    if (apiKeyWidget->width()
-        < apiKeyLabel->width() + apiKeyEdit->width() + apiKeyHLayout->spacing())
-        apiKeyHLayout->setSpacing(apiKeyWidget->width() - apiKeyLabel->width() - apiKeyEdit->width()
-                                  - 1);
     modelNameWidget->setFixedSize(scale(widgetSizeDict["modelNameWidget"].value<QSize>()));
-    if (modelNameWidget->width()
-        < modelNameLabel->width() + modelNameEdit->width() + modelNameHLayout->spacing())
-        modelNameHLayout->setSpacing(modelNameWidget->width() - modelNameLabel->width()
-                                     - modelNameEdit->width() - 1);
     modelSelectVLayout->setContentsMargins(
             scaleMargins(widgetSizeDict["modelSelectVLayout contentsMargins"].value<QMargins>()));
     modelSelectVLayout->setSpacing(
-            qRound(widgetSizeDict["modelSelectVLayout spacing"].value<int>() * ratio));
+            scalePx(widgetSizeDict["modelSelectVLayout spacing"].value<int>()));
     modelSelectWidget->setFixedSize(scale(widgetSizeDict["modelSelectWidget"].value<QSize>()));
 
     maxTokensWidget->setFixedSize(scale(widgetSizeDict["maxTokensWidget"].value<QSize>()));
@@ -801,18 +897,16 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
             scaleMargins(widgetSizeDict["topPTopSubHLayout contentsMargins"].value<QMargins>()));
     temperatureTopSubHLayout->setContentsMargins(scaleMargins(
             widgetSizeDict["temperatureTopSubHLayout contentsMargins"].value<QMargins>()));
-    maxTokensTopSubHLayout->setSpacing(maxTokensTopSubWidget->width() / 2
-                                       - maxTokensLabel->width());
-    topPTopSubHLayout->setSpacing(topPTopSubWidget->width() / 2 - topPLabel->width());
-    temperatureTopSubHLayout->setSpacing(temperatureTopSubWidget->width() / 2
-                                         - temperatureLabel->width());
-    maxTokensBox->setSize(maxTokensTopSubWidget->width() / 2,
-                          qRound(widgetSizeDict["maxTokensBox"].value<QSize>().height() * ratio));
-    topPBox->setSize(topPTopSubWidget->width() / 2,
-                     qRound(widgetSizeDict["topPBox"].value<QSize>().height() * ratio));
-    temperatureBox->setSize(
-            temperatureTopSubWidget->width() / 2,
-            qRound(widgetSizeDict["temperatureBox"].value<QSize>().height() * ratio));
+    layoutValueRow(maxTokensTopSubHLayout, maxTokensTopSubWidget, maxTokensLabel, maxTokensBox);
+    layoutValueRow(topPTopSubHLayout, topPTopSubWidget, topPLabel, topPBox);
+    layoutValueRow(temperatureTopSubHLayout, temperatureTopSubWidget, temperatureLabel,
+                   temperatureBox);
+    maxTokensBox->setSize(maxTokensBox->width(),
+                          scalePx(widgetSizeDict["maxTokensBox"].value<QSize>().height()));
+    topPBox->setSize(topPBox->width(),
+                     scalePx(widgetSizeDict["topPBox"].value<QSize>().height()));
+    temperatureBox->setSize(temperatureBox->width(),
+                            scalePx(widgetSizeDict["temperatureBox"].value<QSize>().height()));
 
     maxTokensBottomSubWidget->setFixedSize(
             scale(widgetSizeDict["maxTokensBottomSubWidget"].value<QSize>()));
@@ -828,22 +922,22 @@ void SettingWidget::updateSize(qreal curDpi, qreal lastDpi)
     maxTokensSlider->setSize(scale(widgetSizeDict["maxTokensSlider"].value<QSize>()));
     topPSlider->setSize(scale(widgetSizeDict["topPSlider"].value<QSize>()));
     temperatureSlider->setSize(scale(widgetSizeDict["temperatureSlider"].value<QSize>()));
+
+    // 记录缓存当前对应的 DPI：之后 saveWidgetSize 据此把像素值折算回 144 基准
+    appliedDpi = curDpi;
 }
 
 void SettingWidget::updateLayoutMarginsSpacing(qreal curDpi, qreal lastDpi)
 {
-    if (lastDpi == 0)
-        return;
-    qreal ratio = qreal(curDpi / lastDpi);
-    auto scaleMargins = [=](const QMargins &m) -> QMargins {
-        return QMargins(qRound(m.left() * ratio), qRound(m.top() * ratio),
-                        qRound(m.right() * ratio), qRound(m.bottom() * ratio));
-    };
+    // 同上：边距/间距也以 144 DPI 基准给出，按目标 DPI 绝对换算
+    Q_UNUSED(lastDpi);
+    if (curDpi <= 0)
+        curDpi = DpiUtil::kBaseDpi;
 
-    settingVLayout->setContentsMargins(
-            scaleMargins(widgetSizeDict["settingVLayout contentsMargins"].value<QMargins>()));
+    settingVLayout->setContentsMargins(DpiUtil::scaleMargins(
+            widgetSizeDict["settingVLayout contentsMargins"].value<QMargins>(), curDpi));
     settingVLayout->setSpacing(
-            qRound(widgetSizeDict["settingVLayout spacing"].value<int>() * ratio));
+            DpiUtil::scalePx(widgetSizeDict["settingVLayout spacing"].value<int>(), curDpi, 0));
     if (height() < modelSelectWidget->height() + maxTokensWidget->height() + topPWidget->height()
                 + temperatureWidget->height() + settingVLayout->contentsMargins().top()
                 + settingVLayout->contentsMargins().bottom() + 3 * settingVLayout->spacing()) {

@@ -32,6 +32,7 @@ public:
     void setSize();
     void saveWidgetSize();
     void resetWidgetSize();
+    // 按 144 DPI 基准（DpiUtil::kBaseDpi）重设尺寸与内部边距
     void updateSize(qreal curDpi, qreal lastDpi);
     void updateLayoutMarginsSpacing(qreal curDpi, qreal lastDpi);
 
@@ -62,6 +63,11 @@ private:
     void createMaxTokensWidget();
     void createTopPWidget();
     void createTemperatureWidget();
+    // 按当前字体度量重新拟合标签宽高：文本宽度与像素字号不严格线性，
+    // 不能用按 DPI 比例推导的固定宽度
+    void fitLabelSize(Label *label);
+    // 数值行（标签 + 数值框）按标签实际宽度分配间距与数值框宽度
+    void layoutValueRow(QHBoxLayout *layout, QWidget *subWidget, Label *label, QWidget *box);
 
     QString baseUrl;
     QString apiKey;
@@ -122,6 +128,9 @@ private:
     QVBoxLayout *settingVLayout;
 
     QMap<QString, QVariant> widgetSizeDict;
+    // widgetSizeDict 以 144 DPI 基准保存：保存时按当前已应用的 DPI 折算回基准，
+    // 读取时再按目标 DPI 放大，来回跨屏不会累积取整误差
+    qreal appliedDpi;
 };
 
 #endif // SETTINGWIDGET_H

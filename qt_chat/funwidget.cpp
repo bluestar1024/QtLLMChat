@@ -1,8 +1,11 @@
 #include "funwidget.h"
 #include "appcontext.h"
+#include "dpiutil.h"
+
+#include <QDebug>
 
 FunWidget::FunWidget(AppContext *appContext, QWidget *parent)
-    : QWidget(parent), appContext(appContext)
+    : QWidget(parent), appContext(appContext), appliedDpi(DpiUtil::kBaseDpi)
 {
     chatRecordsButton = new PushButton(this->appContext, "聊天历史");
     chatRecordsButton->setFixedSize(44, 44);
@@ -28,9 +31,9 @@ FunWidget::FunWidget(AppContext *appContext, QWidget *parent)
     // applicationFontFamilies(fontId).at(0) 未判空，空列表时越界读取崩溃）
     const QString &fontFamily = this->appContext->fontFamily();
     if (!fontFamily.isEmpty()) {
-        QFont font(fontFamily);
-        font.setPixelSize(this->appContext->titleFontPixelSize());
-        titleLabel->setFont(font);
+        titleFont = QFont(fontFamily);
+        titleFont.setPixelSize(this->appContext->titleFontPixelSize());
+        titleLabel->setFont(titleFont);
     }
     titleLabel->setText("AI助理");
     titleLabel->adjustSize();
@@ -114,7 +117,16 @@ void FunWidget::setSize()
     // newChatButton 便贴到 FunWidget 右边缘；动画最后一帧 FunWidget 尺寸不再变化，
     // 不会再次触发布局计算，该错误几何会一直保留。
     // 这里只显式激活布局，几何始终由布局计算。
+    // mainHLayout->activate() 只把三个子部件的几何设置到位，子部件内部的
+    // QHBoxLayout 仍在 LayoutRequest 队列里排队（Qt 在子部件尺寸变化时仅
+    // postEvent(LayoutRequest)，不保证本帧内重排）——同帧读取或同帧绘制的帧里，
+    // newChatButton 的 AlignRight 尚未生效，按钮会停在上一帧按旧宽度算出的坐标上
+    // （表现为“按钮出现在预期位置左侧”）。这里把三级布局都在本帧内激活，
+    // 使 setSize() 返回时 newChatButton 的几何已经是最终值
     mainHLayout->activate();
+    funLeftSubHLayout->activate();
+    funMidSubHLayout->activate();
+    funRightSubHLayout->activate();
 
     // qDebug() << "FunWidget size:" << size();
     // qDebug() << "funLeftSubWidget geometry:" << funLeftSubWidget->geometry();
@@ -130,23 +142,29 @@ void FunWidget::setSize()
 
 void FunWidget::saveWidgetSize()
 {
-    widgetSizeDict["this"] = size();
-    widgetSizeDict["chatRecordsButton"] = chatRecordsButton->size();
-    widgetSizeDict["chatRecordsButton iconSize"] = chatRecordsButton->iconSize();
-    widgetSizeDict["funLeftSubWidget"] = funLeftSubWidget->size();
+    // 构造函数中的尺寸即 144 DPI 基准值；updateSize 后按当前已应用 DPI 折算回基准
+    widgetSizeDict["this"] = DpiUtil::toBaseSize(size(), appliedDpi);
+    widgetSizeDict["chatRecordsButton"] = DpiUtil::toBaseSize(chatRecordsButton->size(), appliedDpi);
+    widgetSizeDict["chatRecordsButton iconSize"] =
+            DpiUtil::toBaseSize(chatRecordsButton->iconSize(), appliedDpi);
+    widgetSizeDict["funLeftSubWidget"] = DpiUtil::toBaseSize(funLeftSubWidget->size(), appliedDpi);
     widgetSizeDict["funLeftSubHLayout contentsMargins"] =
-            QVariant::fromValue(funLeftSubHLayout->contentsMargins());
-    widgetSizeDict["titleLabel"] = titleLabel->size();
-    widgetSizeDict["funMidSubWidget"] = funMidSubWidget->size();
+            QVariant::fromValue(DpiUtil::toBaseMargins(funLeftSubHLayout->contentsMargins(),
+                                                      appliedDpi));
+    widgetSizeDict["titleLabel"] = DpiUtil::toBaseSize(titleLabel->size(), appliedDpi);
+    widgetSizeDict["funMidSubWidget"] = DpiUtil::toBaseSize(funMidSubWidget->size(), appliedDpi);
     widgetSizeDict["funMidSubHLayout contentsMargins"] =
-            QVariant::fromValue(funMidSubHLayout->contentsMargins());
-    widgetSizeDict["newChatButton"] = newChatButton->size();
-    widgetSizeDict["newChatButton iconSize"] = newChatButton->iconSize();
-    widgetSizeDict["funRightSubWidget"] = funRightSubWidget->size();
+            QVariant::fromValue(DpiUtil::toBaseMargins(funMidSubHLayout->contentsMargins(),
+                                                      appliedDpi));
+    widgetSizeDict["newChatButton"] = DpiUtil::toBaseSize(newChatButton->size(), appliedDpi);
+    widgetSizeDict["newChatButton iconSize"] =
+            DpiUtil::toBaseSize(newChatButton->iconSize(), appliedDpi);
+    widgetSizeDict["funRightSubWidget"] = DpiUtil::toBaseSize(funRightSubWidget->size(), appliedDpi);
     widgetSizeDict["funRightSubHLayout contentsMargins"] =
-            QVariant::fromValue(funRightSubHLayout->contentsMargins());
+            QVariant::fromValue(DpiUtil::toBaseMargins(funRightSubHLayout->contentsMargins(),
+                                                      appliedDpi));
     widgetSizeDict["mainHLayout contentsMargins"] =
-            QVariant::fromValue(mainHLayout->contentsMargins());
+            QVariant::fromValue(DpiUtil::toBaseMargins(mainHLayout->contentsMargins(), appliedDpi));
 }
 
 void FunWidget::resetWidgetSize()
@@ -157,22 +175,17 @@ void FunWidget::resetWidgetSize()
 
 void FunWidget::updateSize(qreal curDpi, qreal lastDpi)
 {
-    if (lastDpi == 0)
-        return;
-    qreal ratio = qreal(curDpi / lastDpi);
+    // 缓存值均为 144 DPI 基准：按目标 DPI 绝对换算（不再用 curDpi/lastDpi 叠乘，
+    // 避免取整误差随跨屏次数累积）
+    Q_UNUSED(lastDpi);
+    if (curDpi <= 0)
+        curDpi = DpiUtil::kBaseDpi;
 
-    auto scale = [=](const QSize &s) -> QSize {
-        return QSize(qRound(s.width() * ratio), qRound(s.height() * ratio));
-    };
-    auto scaleMargins = [=](const QMargins &m) -> QMargins {
-        return QMargins(qRound(m.left() * ratio), qRound(m.top() * ratio),
-                        qRound(m.right() * ratio), qRound(m.bottom() * ratio));
-    };
-
-    setFixedSize(scale(widgetSizeDict["this"].value<QSize>()));
-    chatRecordsButton->setFixedSize(scale(widgetSizeDict["chatRecordsButton"].value<QSize>()));
+    setFixedSize(DpiUtil::scaleSize(widgetSizeDict["this"].value<QSize>(), curDpi));
+    chatRecordsButton->setFixedSize(
+            DpiUtil::scaleSize(widgetSizeDict["chatRecordsButton"].value<QSize>(), curDpi));
     chatRecordsButton->setIconSize(
-            scale(widgetSizeDict["chatRecordsButton iconSize"].value<QSize>()));
+            DpiUtil::scaleSize(widgetSizeDict["chatRecordsButton iconSize"].value<QSize>(), curDpi));
     chatRecordsButton->setStyleSheet(QString("QPushButton{ border:none; border-radius:%1px; }"
                                              "QPushButton:hover{ background:#d0d0d0; }")
                                              .arg(chatRecordsButton->width() / 2));
@@ -180,19 +193,34 @@ void FunWidget::updateSize(qreal curDpi, qreal lastDpi)
     // 三个子部件是 mainHLayout 的布局项，不能设置固定尺寸：固定尺寸（min = max）
     // 会强制被布局满足，右侧子部件将超出 FunWidget 右边缘（与 setSize 中手工
     // resize 同类问题）。缩放内部控件与边距后，几何交给布局重新计算。
-    funLeftSubHLayout->setContentsMargins(
-            scaleMargins(widgetSizeDict["funLeftSubHLayout contentsMargins"].value<QMargins>()));
+    funLeftSubHLayout->setContentsMargins(DpiUtil::scaleMargins(
+            widgetSizeDict["funLeftSubHLayout contentsMargins"].value<QMargins>(), curDpi));
 
-    titleLabel->setFixedSize(scale(widgetSizeDict["titleLabel"].value<QSize>()));
+    titleLabel->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["titleLabel"].value<QSize>(), curDpi));
     funMidSubHLayout->setContentsMargins(0, 0, 0, 0);
 
-    newChatButton->setFixedSize(scale(widgetSizeDict["newChatButton"].value<QSize>()));
-    newChatButton->setIconSize(scale(widgetSizeDict["newChatButton iconSize"].value<QSize>()));
+    // 标题字体按新像素字号重设（像素字号不随屏 DPI 自动变化，需显式重设）
+    if (!titleFont.family().isEmpty()) {
+        titleFont.setPixelSize(appContext->titleFontPixelSize());
+        titleLabel->setFont(titleFont);
+    }
+
+    newChatButton->setFixedSize(DpiUtil::scaleSize(widgetSizeDict["newChatButton"].value<QSize>(), curDpi));
+    newChatButton->setIconSize(
+            DpiUtil::scaleSize(widgetSizeDict["newChatButton iconSize"].value<QSize>(), curDpi));
     newChatButton->setStyleSheet(QString("QPushButton{ border:none; border-radius:%1px; }"
                                          "QPushButton:hover{ background:#d0d0d0; }")
                                          .arg(newChatButton->width() / 2));
 
-    funRightSubHLayout->setContentsMargins(
-            scaleMargins(widgetSizeDict["funRightSubHLayout contentsMargins"].value<QMargins>()));
+    funRightSubHLayout->setContentsMargins(DpiUtil::scaleMargins(
+            widgetSizeDict["funRightSubHLayout contentsMargins"].value<QMargins>(), curDpi));
     mainHLayout->setContentsMargins(0, 0, 0, 0);
+
+    // 记录缓存当前对应的 DPI：后续 saveWidgetSize 据此把像素值折算回 144 基准
+    appliedDpi = curDpi;
+
+    // 尺寸与内部控件已按新 DPI 重设：立即激活各级布局，使本次 updateSize()
+    // 返回时三个子部件的几何已是最终值（跨屏来回切换时 1200x60 ↔ 800x40
+    // 严格幂等，不依赖下一帧 LayoutRequest）
+    setSize();
 }

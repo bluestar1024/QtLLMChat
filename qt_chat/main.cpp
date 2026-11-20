@@ -147,6 +147,22 @@ void myMessageHandler(QtMsgType type, const QMessageLogContext &context, const Q
     }
 }
 
+// ---- 文件日志（诊断用）：设置 QT_CHAT_LOG_FILE 环境变量时，qDebug 等输出同步
+// 写入指定文件并即时刷新。GUI 程序经管道重定向 stderr 时 CRT 会切换到全缓冲，
+// 进程被强制结束（拖拽测试后 kill）会丢失尾部日志；文件+fflush 保证日志完整 ----
+static FILE *g_logFile = nullptr;
+static void fileLogHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    if (!g_logFile)
+        return;
+    static const char *typeNames[] = { "debug", "warning", "critical", "fatal", "info" };
+    int idx = int(type);
+    const char *tn = (idx >= 0 && idx < 5) ? typeNames[idx] : "unknown";
+    QByteArray local = msg.toLocal8Bit();
+    fprintf(g_logFile, "%s: %s\n", tn, local.constData());
+    fflush(g_logFile);
+}
+
 void diagnoseGraphics()
 {
     qDebug() << "\n===== 图形系统诊断 =====";
@@ -156,6 +172,14 @@ void diagnoseGraphics()
     qDebug() << "主屏幕:" << screen->name();
     qDebug() << "DPI:" << screen->logicalDotsPerInch();
     qDebug() << "物理尺寸:" << screen->physicalSize();
+
+    // 全部屏幕（跨屏 DPI 缩放依赖 Qt 正确识别每块屏）
+    const QList<QScreen *> screens = QGuiApplication::screens();
+    qDebug() << "屏幕数量:" << screens.size();
+    for (QScreen *s : screens) {
+        qDebug() << "  屏幕:" << s->name() << "DPI:" << s->logicalDotsPerInch()
+                 << "geometry:" << s->geometry();
+    }
 
     // OpenGL 信息
     qDebug() << "OpenGL 类型:" << QOpenGLContext::openGLModuleType();
@@ -176,6 +200,9 @@ int main(int argc, char *argv[])
 {
     // 注册崩溃处理器：任何未处理异常（含访问违规 0xc0000005）都会写入 crash.log
     // AddVectoredExceptionHandler(1, CrashHandler);
+    // 顶层未处理异常过滤器：只在异常确实无人处理（即将终止进程）时触发，
+    // 不影响 Chromium/Qt 内部的 first-chance 异常（VEH 会对它们生效，故不用 VEH）
+    SetUnhandledExceptionFilter(CrashHandler);
 
     // qputenv("QSG_RHI_BACKEND", "null");
     // qputenv("QT_QUICK_BACKEND", "software");
@@ -225,6 +252,14 @@ int main(int argc, char *argv[])
 
     qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
     // qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
+
+    // 诊断日志文件：设置 QT_CHAT_LOG_FILE 时输出到文件（详见 fileLogHandler）
+    const QByteArray logFilePath = qgetenv("QT_CHAT_LOG_FILE");
+    if (!logFilePath.isEmpty()) {
+        g_logFile = fopen(logFilePath.constData(), "w");
+        if (g_logFile)
+            qInstallMessageHandler(fileLogHandler);
+    }
 
     // qputenv("QTWEBENGINE_CHROMIUM_FLAGS",
     //         "--disable-site-isolation-trials "

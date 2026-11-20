@@ -6,7 +6,6 @@
 #include <QtGui/QBrush>
 #include <QtGui/QColor>
 #include <QtGui/QFont>
-#include <QtGui/QFontDatabase>
 #include <QtGui/QFontMetricsF>
 #include <QtGui/QPainter>
 #include <QtGui/QPainterPath>
@@ -25,7 +24,7 @@ public:
     explicit PrintLabel(const QString &text, AppContext *appContext, QWidget *parent = nullptr);
     ~PrintLabel();
 
-    void updateSize(int curDpi, int lastDpi);
+    void updateSize(qreal curDpi, qreal lastDpi);
     void setText(const QString &text);
     void printStart();
     void printEnd();

@@ -31,6 +31,10 @@ public:
     void setThemeStyle(bool light = false);
     int getFirstVisibleBlockNumber() const;
     void highlightCode(const QString &text, const QString &lexer = "cpp");
+    // 跨 DPI 屏拖动未释放鼠标时的轻量刷新：像素字号不随屏 DPI 自动变化，
+    // 这里按新像素字号重设字体（含等宽回退判定）、宽度按比例缩放并重新量算高度，
+    // 避免未重建前代码块字体/尺寸仍停留在旧屏比例
+    void updateSize(qreal curDpi, qreal lastDpi);
 
 public slots:
     void adjustHeight();
@@ -44,6 +48,9 @@ protected:
 private:
     void updateLineNumberAreaWidth();
     void setHighlighter(StyleSyntaxHighlighter *high);
+    // 按 appContext->windowFontPixelSize() 选择等宽字体并应用（构造与跨屏
+    // 刷新共用，保证两条路径的字体选择逻辑一致）
+    void applyDpiFont();
 
     AppContext *appContext;
 

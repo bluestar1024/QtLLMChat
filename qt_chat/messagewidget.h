@@ -23,6 +23,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QRegularExpression>
 #include <QtCore/QMetaObject>
+#include <QtCore/QMargins>
 // #include <QtCore/QQueue>
 
 // extern const QString imagesDir;
@@ -55,6 +56,10 @@ public:
     void removeRenewResponseButton();
     void removeLoadingWidget();
     void updateFunWidgetSize(qreal curDpi, qreal initDpi);
+    // 跨 DPI 屏拖动未释放鼠标时的轻量刷新（与重建链效果一致但不重建控件）：
+    // 文本块/代码块重设字体与宽度、思考按钮与复制按钮按比例缩放，最后重算
+    // 本控件尺寸；释放鼠标后的完整重建仍会按新字号重建一次
+    void updateSize(qreal curDpi, qreal lastDpi, int newMaxWidth);
     bool getThinkIsExpanded();
     void showFunWidget();
     void hideFunWidget();
@@ -142,6 +147,15 @@ private:
     QHBoxLayout *funHLayout;
     CopyButton *copyButton;
     PushButton *renewResponseButton;
+    // 复制/重新生成按钮与 funWidget 的 144 DPI 基准尺寸（构造常量为基准）。
+    // 跨屏时按目标 DPI 绝对换算，不再就当前像素乘比例（会逐次累积取整误差）
+    QSize baseCopyButtonSize;
+    QSize baseRenewResponseButtonSize;
+    QSize baseFunWidgetSize;
+    QMargins baseFunHLayoutMargins;
+    int baseFunHLayoutSpacing;
+    // 上述基准当前对应的 DPI（构造时为 144）
+    qreal funSizeDpi;
 
     bool thinkButtonHaveCreated;
     QString thinkText;
