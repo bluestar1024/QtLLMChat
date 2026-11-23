@@ -4,8 +4,6 @@
 
 #include <QtGui/QFontMetrics>
 
-#include <stdexcept>
-
 // 布局日志用：布局的 margin 与 spacing 拼成一行
 static QString layoutInfo(const QLayout *layout)
 {
@@ -93,14 +91,19 @@ void SettingWidget::loadConfig()
 
     if (!QFile::exists(this->appContext->configFilePath())) {
         if (configFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QTextStream out(&configFile);
-            out.setEncoding(QStringConverter::Utf8);
-            out << this->appContext->initBaseUrl() << '\n'
-                << this->appContext->initApiKey() << '\n'
-                << this->appContext->initModel() << '\n'
-                << this->appContext->initMaxTokensCurrentVal() << '\n'
-                << this->appContext->initTopPCurrentVal() << '\n'
-                << this->appContext->initTemperatureCurrentVal() << '\n';
+            // 先 flush 再 close：QTextStream 缓冲在析构时才落盘，
+            // 关闭后写入会静默丢失
+            {
+                QTextStream out(&configFile);
+                out.setEncoding(QStringConverter::Utf8);
+                out << this->appContext->initBaseUrl() << '\n'
+                    << this->appContext->initApiKey() << '\n'
+                    << this->appContext->initModel() << '\n'
+                    << this->appContext->initMaxTokensCurrentVal() << '\n'
+                    << this->appContext->initTopPCurrentVal() << '\n'
+                    << this->appContext->initTemperatureCurrentVal() << '\n';
+                out.flush();
+            }
             configFile.close();
         }
     }
@@ -231,42 +234,44 @@ void SettingWidget::setupConnections()
 // 将配置文件中指定行（从 0 开始计数）的内容替换为 value 后写回：行数不足时补空行
 void SettingWidget::writeConfigLine(int lineIndex, const QString &value)
 {
-    try {
-        QFile file(appContext->configFilePath());
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            throw std::runtime_error("无法打开文件");
-        }
+    QFile file(appContext->configFilePath());
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "错误：无法读取配置文件" << file.fileName() << file.errorString();
+        return;
+    }
 
-        QTextStream in(&file);
-        QStringList lines;
-        while (!in.atEnd()) {
-            lines.append(in.readLine());
-        }
-        file.close();
+    QTextStream in(&file);
+    in.setEncoding(QStringConverter::Utf8);
+    QStringList lines;
+    while (!in.atEnd()) {
+        lines.append(in.readLine());
+    }
+    file.close();
 
-        while (lines.size() <= lineIndex) {
-            lines.append("");
-        }
-        lines[lineIndex] = value;
+    while (lines.size() <= lineIndex) {
+        lines.append("");
+    }
+    lines[lineIndex] = value;
 
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
-            throw std::runtime_error("无法写入文件");
-        }
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        qDebug() << "错误：无法写入配置文件" << file.fileName() << file.errorString();
+        return;
+    }
 
+    // QTextStream 的写入先进入内部缓冲，只在 flush()/析构时落盘；
+    // 必须在关闭文件之前 flush，否则关闭后的写入会静默失败（文件被截断为空）
+    {
         QTextStream out(&file);
+        out.setEncoding(QStringConverter::Utf8);
         for (int i = 0; i < lines.size(); ++i) {
             out << lines[i];
             if (i < lines.size() - 1) {
                 out << "\n";
             }
         }
-        file.close();
-
-    } catch (const std::exception &e) {
-        qDebug() << "错误：" << e.what();
-    } catch (...) {
-        qDebug() << "发生未知错误";
+        out.flush();
     }
+    file.close();
 }
 
 void SettingWidget::onBaseUrlTextChanged(const QString &text)

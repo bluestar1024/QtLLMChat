@@ -1,5 +1,8 @@
 #include "appcontext.h"
 
+#include <QtCore/QDir>
+#include <QtCore/QFile>
+#include <QtCore/QStringList>
 #include <QtGui/QFontDatabase>
 #include <QtGui/QFontMetrics>
 #include <QtGui/QGuiApplication>
@@ -9,10 +12,48 @@
 
 #include <cmath>
 
+// 内置配置模板：编译进 exe 的 qrc 资源，只读，不能作为运行时配置文件
+static const char *kDefaultConfigPath = ":/config/config.txt";
+
+// 项目唯一可读写配置文件的所在目录（qt_chat/config），由 qt_chat.pro 以源码树
+// 绝对路径注入，因此与工作目录、构建输出目录无关。
+#ifndef QT_CHAT_CONFIG_DIR
+#define QT_CHAT_CONFIG_DIR ""
+#endif
+
+// 用资源内容生成可写配置文件。
+// 注意不能用 QFile::copy：它会把源文件的权限一并复制，而 qrc 资源是只读的，
+// 生成的目标文件会带上只读属性，之后所有写入都会失败。
+static bool createWritableConfigFile(const QString &targetPath, const QString &templatePath)
+{
+    QFile resource(templatePath);
+    if (!resource.open(QIODevice::ReadOnly))
+        return false;
+    const QByteArray content = resource.readAll();
+    resource.close();
+
+    QFile file(targetPath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        return false;
+    const bool ok = (file.write(content) == content.size());
+    file.close();
+    return ok;
+}
+
+// 以 Append 方式试开：只验证可写，不会截断已有内容
+static bool isWritableFile(const QString &path)
+{
+    QFile probe(path);
+    if (!probe.open(QIODevice::WriteOnly | QIODevice::Append))
+        return false;
+    probe.close();
+    return true;
+}
+
 AppContext::AppContext()
     : imagesDir_(":/images"),
       fontFilePath_(":/font/msyhl.ttc"),
-      configFilePath_(":/config/config.txt"),
+      configFilePath_(),
       mathjaxScriptPath_("mathjax/es5/tex-mml-chtml.js"),
       chatRecordsDir_("../../chatrecords/"),
       codeThemeFilePath_(":/config/dark_theme.xml"),
@@ -42,6 +83,51 @@ AppContext::AppContext()
       initTemperatureCurrentVal_(0.8),
       temperatureSingleStep_(0.01)
 {
+    initConfigFilePath();
+}
+
+// 配置文件只有一个：qt_chat/config/config.txt（项目源码树内，可读可写）。
+// qrc 里的 :/config/config.txt 编译进 exe 后只读，对资源路径用
+// QIODevice::WriteOnly 打开必然失败（SettingWidget 每次改值都报"无法写入
+// 文件"），所以资源只作为该文件缺失时的初始内容来源
+void AppContext::initConfigFilePath()
+{
+    const QString configDir = QString::fromUtf8(QT_CHAT_CONFIG_DIR);
+    const QString defaultConfigPath = QString::fromLatin1(kDefaultConfigPath);
+
+    if (configDir.isEmpty()) {
+        qDebug() << "错误：未定义 QT_CHAT_CONFIG_DIR（qt_chat.pro 未生效），配置将不会保存";
+        configFilePath_ = defaultConfigPath;
+        return;
+    }
+
+    // config 目录属于项目源码树，缺失时（如误删）直接以资源内容重建
+    if (!QDir().mkpath(configDir)) {
+        qDebug() << "错误：无法创建配置目录" << configDir;
+        configFilePath_ = defaultConfigPath;
+        return;
+    }
+
+    const QString target = QDir(configDir).filePath("config.txt");
+
+    if (!QFile::exists(target))
+        createWritableConfigFile(target, defaultConfigPath);
+
+    // 文件带只读属性时（例如被版本库只读检出）先清掉，否则写入必然失败
+    if (QFile::exists(target) && !isWritableFile(target))
+        QFile::setPermissions(target, QFileDevice::ReadOwner | QFileDevice::WriteOwner
+                                             | QFileDevice::ReadUser
+                                             | QFileDevice::WriteUser);
+
+    if (QFile::exists(target) && isWritableFile(target)) {
+        configFilePath_ = target;
+        qDebug() << "配置文件：" << configFilePath_;
+        return;
+    }
+
+    // 实在不可写时退到只读资源：界面仍可读到默认值，但设置无法保存
+    qDebug() << "错误：配置文件不可写" << target;
+    configFilePath_ = defaultConfigPath;
 }
 
 const QString &AppContext::imagesDir() const

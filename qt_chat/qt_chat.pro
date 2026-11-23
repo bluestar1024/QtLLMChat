@@ -4,6 +4,11 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets webenginewidgets quickwidgets
 
 CONFIG += c++11
 
+# 项目内唯一可读写的配置文件目录（源码树内的 qt_chat/config/config.txt）。
+# 以源码树绝对路径注入，避免依赖工作目录或构建输出目录；qrc 里的
+# :/config/config.txt 只读，仅作为该文件缺失时的初始内容模板。
+DEFINES += QT_CHAT_CONFIG_DIR=\\\"$$PWD/config\\\"
+
 #for(item, QMAKE_LFLAGS) {
 #    message(QMAKE_LFLAGS contains: $$item)
 #}

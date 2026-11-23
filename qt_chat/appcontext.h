@@ -20,6 +20,8 @@ public:
     // 资源路径（只读）
     const QString &imagesDir() const;
     const QString &fontFilePath() const;
+    // 运行时可读写的配置文件路径：项目内唯一的 qt_chat/config/config.txt
+    // （注意：不能用 qrc 资源路径，资源只读）
     const QString &configFilePath() const;
     const QString &mathjaxScriptPath() const;
     const QString &chatRecordsDir() const;
@@ -84,6 +86,10 @@ public:
     double temperatureSingleStep() const;
 
 private:
+    // 定位项目内唯一的配置文件 qt_chat/config/config.txt（目录由 qt_chat.pro
+    // 注入）；文件缺失时以 qrc 内的 config.txt 为模板生成，并清除只读属性
+    void initConfigFilePath();
+
     QString imagesDir_;
     QString fontFilePath_;
     QString configFilePath_;
