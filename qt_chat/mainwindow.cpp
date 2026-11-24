@@ -386,6 +386,12 @@ void MainWindow::applyDWMShadow()
     DWMNCRENDERINGPOLICY policy = DWMNCRP_ENABLED;
     DwmSetWindowAttribute(hwnd, DWMWA_NCRENDERING_POLICY, &policy, sizeof(policy));
 
+    // Win11 会为窗口绘制 1px 边框（DWMWA_BORDER_COLOR），无边框窗口贴边时这条
+    // 边框会画在客户区边缘上，使标题栏与屏幕边缘错开 1px；DWMWA_COLOR_NONE
+    // 关闭该边框（旧系统无此属性时调用失败，忽略即可）
+    const COLORREF borderNone = 0xFFFFFFFE; // DWMWA_COLOR_NONE
+    DwmSetWindowAttribute(hwnd, 34 /* DWMWA_BORDER_COLOR */, &borderNone, sizeof(borderNone));
+
     MARGINS margins = { 1, 1, 1, 1 };
     DwmExtendFrameIntoClientArea(hwnd, &margins);
 
@@ -649,6 +655,27 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         // 窗口尺寸/位置变化都会经过这里：顺带检查样式，缺失时延迟补齐
         // （不在 NcCalcSize 处理中同步重写样式，避免重入）
         scheduleFrameStyleEnsure();
+        // 最大化时系统把 SetWindowPos 的矩形当作客户区，并把窗口矩形按其可调整
+        // 边框宽度向外膨胀（本机 144 DPI 每边 11px、96 DPI 每边 8px，与
+        // AdjustWindowRectExForDpi 返回的边框值一致；Qt 在系统应用完
+        // WM_GETMINMAXINFO 的最大化矩形后，还会按屏幕可用区域再 SetWindowPos
+        // 一次）。本窗口一般让客户区等于整个窗口矩形（下方返回 0），但最大化时
+        // 若也这么做，膨胀会原样成为标题栏与屏幕工作区的偏移。
+        // 这里把最大化状态下的客户区钳制为工作区矩形：标题栏左上角与工作区
+        // 左上角（右半屏时为顶边中点）严格重合，且不依赖对膨胀量的预测
+        if (IsZoomed(hwnd) && msg->wParam) {
+            NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS *>(msg->lParam);
+            MONITORINFO mi = { sizeof(mi) };
+            if (params
+                    && GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
+                // rgrc[0] 为建议的窗口/客户区矩形（屏幕坐标）：与工作区取交集
+                RECT &r = params->rgrc[0];
+                r.left = qMax(r.left, mi.rcWork.left);
+                r.top = qMax(r.top, mi.rcWork.top);
+                r.right = qMin(r.right, mi.rcWork.right);
+                r.bottom = qMin(r.bottom, mi.rcWork.bottom);
+            }
+        }
         *result = 0;
         return true;
     }
@@ -757,19 +784,21 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, qintptr
         MINMAXINFO *mmi = reinterpret_cast<MINMAXINFO *>(msg->lParam);
         MONITORINFO mi = { sizeof(mi) };
         if (GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi)) {
-            // ptMaxPosition 是“相对目标显示器工作区左上角的偏移量”，不是虚拟
-            // 屏幕的绝对坐标：对原点不为 (0,0) 的显示器（本机副屏 x 从 -3440
-            // 开始），直接传 rcWork.left + 1 会被系统再叠加一次显示器原点，最大化
-            // 后窗口落在所有显示器之外（实测副屏 maxPos=-3439 得到 x=-6879，
-            // 3440x1392 的窗口整体在副屏左侧屏幕外）。这里换算为相对显示器原点
-            // 的偏移，主屏（原点 0）与副屏（负坐标）都成立；+1 是为无边框窗口
-            // 保留 1px 可见边缘，避免边框被工作区裁掉
+            // ptMaxPosition 是“相对目标显示器左上角的偏移量”，不是虚拟屏幕的
+            // 绝对坐标：对原点不为 (0,0) 的显示器（本机副屏 x 从 -3440 开始），
+            // 直接传 rcWork.left 会被系统再叠加一次显示器原点，最大化后窗口落在
+            // 所有显示器之外（实测副屏 maxPos=-3439 得到 x=-6879，3440x1392 的
+            // 窗口整体在副屏左侧屏幕外）。这里换算为相对显示器原点的偏移，主屏
+            // （原点 0）与副屏（负坐标）都成立
+            // 注意：这里的值并不是最大化后的最终矩形——系统应用本结果后，Qt
+            // 还会按屏幕可用区域再做一次 SetWindowPos，那一步还会按可调整边框
+            // 向外膨胀窗口矩形；最终对齐由 WM_NCCALCSIZE 处理（详见该处）
             const int maxW = mi.rcWork.right - mi.rcWork.left;
             const int maxH = mi.rcWork.bottom - mi.rcWork.top;
             const int relX = mi.rcWork.left - mi.rcMonitor.left;
             const int relY = mi.rcWork.top - mi.rcMonitor.top;
-            mmi->ptMaxPosition.x = relX + 1;
-            mmi->ptMaxPosition.y = relY + 1;
+            mmi->ptMaxPosition.x = relX;
+            mmi->ptMaxPosition.y = relY;
             mmi->ptMaxSize.x = maxW;
             mmi->ptMaxSize.y = maxH;
         }
