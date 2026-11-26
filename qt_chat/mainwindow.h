@@ -119,6 +119,10 @@ private:
     // resize 时保持既有比例/子项尺寸分配，不会按 sizeHint 随屏 DPI 换算，
     // 不重设则低 DPI 屏上输入框保持 144 DPI 的像素高度、物理偏高
     void applyChatInputHeightForDpi();
+    // 把 splitter 中 chatInput pane 的当前高度折算回 144 DPI 基准并写回
+    // baseChatInputHeight：用户拖动胶囊或分隔条改变高度后调用，跨屏/窗口缩放
+    // 期间的临时布局不会走到这里，避免污染基准
+    void writeBackChatInputHeightBase();
     // 按 144 DPI 基准重设两个浮动提示标签（emptyTextLabel / textCopyLabel）的
     // 位置：纵向取标题栏 + 功能栏 + 聊天显示区高度（均已由各自的 DPI 缩放链
     // 换算）+ 基准间距（同样按 dpi 换算），横向在窗口内居中
@@ -280,6 +284,10 @@ private:
     // 不会按 sizeHint 自行缩小，需在 DPI 变化时据此重新分配 pane 高度；
     // 用户拖动 splitter 改变高度时回写（折算回 144 DPI）
     int baseChatInputHeight;
+    // 胶囊拖动起点：按下时的鼠标全局纵坐标与 splitter 两 pane 的尺寸快照，
+    // 拖动中据此一次性换算目标高度（不逐帧累加，避免取整误差累积）
+    int chatInputGripStartY;
+    QList<int> chatInputGripStartSizes;
     bool isSizeMoveDrag;
     bool dragRegenerateDone;
     bool pendingRegenerateAfterResize;
@@ -351,6 +359,11 @@ private:
 
 private slots:
     void onDpiChanged();
+    // 输入框顶部胶囊拖动改高：按下记录起点快照，移动按位移调整 pane 高度，
+    // 松手把结果写回高度基准（胶囊拖动取代了 splitter 分隔条）
+    void chatInputResizeGripPressed(int globalY);
+    void chatInputResizeGripMoved(int globalY);
+    void chatInputResizeGripReleased();
     void uiMinimize();
     void uiMaximize();
     void uiClose();
