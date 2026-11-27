@@ -23,10 +23,10 @@ constexpr int kBaseTopInset = 5;
 constexpr int kBaseResizeGripWidth = 138;
 constexpr int kBaseResizeGripHeight = 9;
 constexpr int kBaseResizeGripHitPadding = 4;
-// 胶囊空闲描边向白混合的比例：描边比输入框当前边框色淡 25%（c + (255-c)*0.25），
-// 聚焦态 #646464 -> #8B8B8B、未聚焦悬停态 #A8A8A8 -> #BEBEBE，两者都与
-// #E0E0E0 的主体填充形成可见层次；悬停/拖动时描边改为边框原色
-constexpr qreal kResizeGripIdleLighten = 0.25;
+// 胶囊空闲描边取输入框当前边框色与主体色的中间值（比边框色淡）：主体色带透
+// 明度时先按父部件背景色合成（聚焦态主体色全透明，合成结果即父部件背景
+// #F0F0F0），透明度变化时中间值连续渐变。悬停/拖动时描边改为边框原色
+const QColor kParentWidgetBackground(0xF0, 0xF0, 0xF0);
 // 输入框失焦但鼠标在框内时的边框色：比失焦常态 #E0E0E0 深，作为可见的胶囊
 // 承载轮廓；鼠标离开且胶囊隐藏后恢复 #E0E0E0
 const QColor kUnfocusedPointerInsideBorder(168, 168, 168);
@@ -35,13 +35,14 @@ const QColor kUnfocusedPointerInsideBorder(168, 168, 168);
 // 96 DPI 下换算为 150（文本区 127 = 150 - 2 * 10 - 3）
 constexpr int kBaseHeight = TextEdit::kBaseTextHeight + 2 * kBaseEdgeMargin + kBaseTopInset;
 
-// 胶囊空闲描边：以输入框当前边框色为基准向白混合，跟随边框色动画
-QColor lightenResizeGripBorder(const QColor &borderColor)
+// 胶囊空闲描边：边框色与主体色（按父部件背景色合成后）的中间值，跟随动画
+QColor idleResizeGripBorder(const QColor &borderColor, const QColor &fillColor)
 {
-    return QColor::fromRgbF(borderColor.redF() + (1.0 - borderColor.redF()) * kResizeGripIdleLighten,
-                            borderColor.greenF() + (1.0 - borderColor.greenF()) * kResizeGripIdleLighten,
-                            borderColor.blueF() + (1.0 - borderColor.blueF()) * kResizeGripIdleLighten,
-                            borderColor.alphaF());
+    const qreal a = fillColor.alphaF();
+    const qreal r = (fillColor.redF() * a + kParentWidgetBackground.redF() * (1.0 - a) + borderColor.redF()) / 2.0;
+    const qreal g = (fillColor.greenF() * a + kParentWidgetBackground.greenF() * (1.0 - a) + borderColor.greenF()) / 2.0;
+    const qreal b = (fillColor.blueF() * a + kParentWidgetBackground.blueF() * (1.0 - a) + borderColor.blueF()) / 2.0;
+    return QColor::fromRgbF(r, g, b, borderColor.alphaF());
 }
 } // namespace
 
@@ -350,10 +351,10 @@ void TextEditFull::paintEvent(QPaintEvent *e)
 
     // 胶囊描边为完整一圈：左右侧壁与顶边框断口端点重合（断口不留余量），
     // 边框线直接接到侧壁上、不出现缝隙，下半圈落在框内主体上。悬停/拖动用
-    // 边框当前色，否则用比边框色更淡的描边；均随边框色动画逐帧取值。
-    // 内缩半像素保证 1px 清晰
+    // 边框当前色，否则用边框色与主体色的中间值（比边框色淡）；均随动画逐帧
+    // 取值。内缩半像素保证 1px 清晰
     const QColor gripBorder = (gripHovered || gripDragging)
-            ? bColor : lightenResizeGripBorder(bColor);
+            ? bColor : idleResizeGripBorder(bColor, bgColor);
     QPainterPath gripOutline;
     gripOutline.addRoundedRect(QRectF(grip).adjusted(0.5, 0.5, -0.5, -0.5),
                                (grip.height() - 2) / 2.0, (grip.height() - 2) / 2.0);
