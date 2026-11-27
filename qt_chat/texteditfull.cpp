@@ -337,9 +337,10 @@ void TextEditFull::paintEvent(QPaintEvent *e)
         painter.restore();
     }
 
-    // 顶边框线在胶囊宽度范围断开（左右各留 1px 抗锯齿余量）
+    // 顶边框线只断到胶囊左右两端（不额外留余量）：断口端点与胶囊侧壁重合，
+    // 视觉上连线直接"抬起"成胶囊轮廓；只断到顶边框行，底边框不受影响
     QRegion clip(rect());
-    clip -= QRegion(grip.adjusted(-1, 0, 1, 1));
+    clip -= QRegion(QRect(grip.left(), 0, grip.width(), box.top() + 1));
     painter.save();
     painter.setClipRegion(clip);
     painter.setPen(QPen(bColor, 1));
@@ -347,8 +348,10 @@ void TextEditFull::paintEvent(QPaintEvent *e)
     painter.drawPath(boxPath);
     painter.restore();
 
-    // 胶囊描边：悬停/拖动用边框当前色（与圆角框描边一致），否则用比边框色
-    // 更淡的描边；均随边框色动画逐帧取值。内缩半像素保证 1px 清晰
+    // 胶囊描边为完整一圈：左右侧壁与顶边框断口端点重合（断口不留余量），
+    // 边框线直接接到侧壁上、不出现缝隙，下半圈落在框内主体上。悬停/拖动用
+    // 边框当前色，否则用比边框色更淡的描边；均随边框色动画逐帧取值。
+    // 内缩半像素保证 1px 清晰
     const QColor gripBorder = (gripHovered || gripDragging)
             ? bColor : lightenResizeGripBorder(bColor);
     QPainterPath gripOutline;
