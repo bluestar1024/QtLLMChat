@@ -138,6 +138,13 @@ MainWindow::MainWindow(QWidget *parent)
     chatShowVLayout->addWidget(chatShow);
     chatInput = new TextEditFull(appContext);
     chatInput->connectSendButtonClick(this, &MainWindow::sendMessage);
+    // 输入框顶部胶囊拖动改高：分隔条交互已禁用，高度调节改由胶囊接管
+    connect(chatInput, &TextEditFull::resizeGripPressed, this,
+            &MainWindow::chatInputResizeGripPressed);
+    connect(chatInput, &TextEditFull::resizeGripMoved, this,
+            &MainWindow::chatInputResizeGripMoved);
+    connect(chatInput, &TextEditFull::resizeGripReleased, this,
+            &MainWindow::chatInputResizeGripReleased);
     chatInputWidget = new Widget();
     chatInputWidget->resize(1200, 240);
     chatInputWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
@@ -159,8 +166,7 @@ MainWindow::MainWindow(QWidget *parent)
     // 用户拖动分隔条改变 chatInput 高度时回写高度基准（折算回 144 DPI）：
     // 只在用户主动调高时更新，跨屏与窗口缩放时的临时布局不会污染基准
     connect(splitter, &QSplitter::splitterMoved, this, [this]() {
-        if (chatInput->height() > 0 && curDpi > 0)
-            baseChatInputHeight = DpiUtil::toBasePx(chatInput->height(), curDpi);
+        writeBackChatInputHeightBase();
     });
     contentWidget = new Widget();
     contentWidget->resize(1200, 760);
@@ -228,6 +234,7 @@ MainWindow::MainWindow(QWidget *parent)
     // 拖拽循环开始时重新置位，这里只为避免未初始化读取）
     dpiDragHandled = false;
     userResizeDuringDrag = false;
+    chatInputGripStartY = 0;
     // 提示字体按窗口所在屏的 DPI 换算为像素字号（详见 AppContext::
     // applyToolTipFontForScreen）；按钮显示提示前还会按自身所在屏再校正
     applyToolTipFont();
@@ -1647,6 +1654,49 @@ void MainWindow::applyChatInputHeightForDpi()
     // 基准相减，必须在这里重算：resizeEvent 里那一次可能比 pane 高度先算（布局在
     // 窗口 resize 时还没激活、chatShowWidget 仍是旧高度），标签会停在错位的位置
     updateFloatingLabelPosition(curDpi);
+}
+
+void MainWindow::chatInputResizeGripPressed(int globalY)
+{
+    // 快照按下时的 pane 尺寸与鼠标位置：拖动中按位移一次性换算目标高度，
+    // 不逐帧累加（逐帧取整会在跨越多个像素后产生可见误差）
+    chatInputGripStartY = globalY;
+    chatInputGripStartSizes = splitter->sizes();
+}
+
+void MainWindow::chatInputResizeGripMoved(int globalY)
+{
+    if (chatInputGripStartSizes.size() < 2)
+        return;
+    const int total = chatInputGripStartSizes.at(0) + chatInputGripStartSizes.at(1);
+    if (total <= 0)
+        return;
+    // 向上拖（globalY 减小）为增高输入框
+    const int startPane = chatInputGripStartSizes.at(1);
+    const int minPane = qMax(1, chatInputWidget->minimumHeight());
+    const int maxPane = qMax(minPane, total - qMax(1, chatShowWidget->minimumHeight()));
+    const int pane = qBound(minPane, startPane - (globalY - chatInputGripStartY), maxPane);
+    splitter->setSizes({ qMax(1, total - pane), pane });
+}
+
+void MainWindow::chatInputResizeGripReleased()
+{
+    chatInputGripStartSizes.clear();
+    writeBackChatInputHeightBase();
+}
+
+void MainWindow::writeBackChatInputHeightBase()
+{
+    if (curDpi <= 0)
+        return;
+    const QList<int> sizes = splitter->sizes();
+    if (sizes.size() < 2)
+        return;
+    // pane 高度包含 chatInputWidget 的上下内边距，扣掉才是 chatInput 自身高度
+    const QMargins margins = chatInputVLayout->contentsMargins();
+    const int inputHeight = sizes.at(1) - margins.top() - margins.bottom();
+    if (inputHeight > 0)
+        baseChatInputHeight = DpiUtil::toBasePx(inputHeight, curDpi);
 }
 
 void MainWindow::updateFloatingLabelPosition(qreal dpi)
